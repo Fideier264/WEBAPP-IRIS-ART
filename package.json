@@ -1,10 +1,19 @@
 {
   "name": "irisart",
+  "version": "1.0.0",
   "private": true,
+  "main": "server.js",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
-    "web": "npm run web --prefix irisart-app",
-    "build:web": "npm run build:web --prefix irisart-app",
-    "start": "npm run start --prefix irisart-app"
+    "install:app": "npm ci --prefix irisart-app",
+    "build": "npm run install:app && npm run build:web --prefix irisart-app",
+    "start": "node server.js",
+    "web": "npm run web --prefix irisart-app"
+  },
+  "dependencies": {
+    "express": "^4.22.2"
   },
   "devDependencies": {
     "supabase": "^2.83.0"

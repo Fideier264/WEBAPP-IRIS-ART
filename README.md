@@ -26,35 +26,55 @@ npm run web
 
 Supabase-Secrets und Function-Deploy: siehe `supabase/functions/README.md`.
 
-## Web-Deployment (statischer Export)
+## Web-Deployment
 
-Die App ist für statisches Web-Hosting konfiguriert (`app.json` → `web.output: static`).
+Die App exportiert statisches Web (`expo export`) und wird in Produktion von **`server.js`** (Express) ausgeliefert — passend für **Hostinger Node.js Web App**.
+
+Lokal testen (nach Build):
 
 ```bash
-cd irisart-app
-npm ci
-npm run build:web
+npm run build
+npm start
+# → http://localhost:3000
 ```
 
-Der Build liegt in `irisart-app/dist/`.
+### Hostinger (Node.js Web App) — empfohlen
 
-### Vercel
+1. **hPanel** → Websites → **Add website** → **Node.js Web App**
+2. **GitHub-Repository** verbinden (Branch `main`)
+3. **Build-Einstellungen** (Framework: *Other* / Sonstiges):
 
-1. Repository auf GitHub pushen.
-2. In [Vercel](https://vercel.com) neues Projekt aus dem Repo importieren.
-3. **Root Directory:** `irisart-app` (oder Root mit `vercel.json` im Repo-Root verwenden).
-4. **Environment Variables** (Production + Preview):
-   - `EXPO_PUBLIC_SUPABASE_URL`
-   - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-   - `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_30CM` (optional)
-   - `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_60CM` (optional)
+| Einstellung | Wert |
+|-------------|------|
+| Root-Verzeichnis | `.` (Repo-Root) |
+| Build-Befehl | `npm run build` |
+| Start-Befehl | `npm start` |
+| Entry-Datei | `server.js` |
+| Node.js-Version | **20.x** |
 
-Build-Befehl und Output sind in `vercel.json` vorkonfiguriert.
+4. **Environment Variables** — **vor dem ersten Deploy** setzen (werden beim **Build** in die App eingebettet):
 
-### Andere Hosts (Netlify, Cloudflare Pages, GitHub Pages)
+| Variable | Pflicht |
+|----------|---------|
+| `EXPO_PUBLIC_SUPABASE_URL` | ja |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | ja |
+| `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_30CM` | optional |
+| `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_60CM` | optional |
 
-- Build: `cd irisart-app && npm ci && npm run build:web`
-- Publish directory: `irisart-app/dist`
+5. **Deploy** klicken. Hostinger führt aus: `npm install` → `npm run build` → `npm start`.
+
+`PORT` setzt Hostinger automatisch — `server.js` nutzt `process.env.PORT`.
+
+**Hinweis:** Supabase Edge Functions und deren Secrets (`NANO_BANANA_2_API_KEY`, …) laufen weiterhin auf Supabase, nicht auf Hostinger. Nur die Expo-Web-App wird auf Hostinger gehostet.
+
+### Vercel (Alternative)
+
+Siehe `vercel.json`. Environment Variables wie oben.
+
+### Statisches Hosting (ohne Node)
+
+- Build: `npm run build`
+- Publish-Verzeichnis: `irisart-app/dist`
 
 ## GitHub einrichten
 
