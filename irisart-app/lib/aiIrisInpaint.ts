@@ -1,4 +1,5 @@
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from '@/lib/platformFileSystem';
+import { resolveDisplayUri } from './platformFileSystem';
 
 import { cropToEyeRectangle, cropToUserEyeRectangle, uploadTempImage } from './aiEnhance';
 import { IRIS_NANO_BANANA_ART_STYLE, requestNanoBananaIris } from './inpaintApi';
@@ -87,7 +88,7 @@ export async function enhanceIrisTextureWithInpaint(
       const info = await FileSystem.getInfoAsync(persistedOutput);
       if (info.exists && (info.size ?? 0) > 0) {
         const res = {
-          outputUrl: persistedOutput,
+          outputUrl: resolveDisplayUri(persistedOutput),
           seg: {
             maskedImageUri: croppedUri,
             maskImageUri: croppedUri,
@@ -127,7 +128,7 @@ export async function enhanceIrisTextureWithInpaint(
       }
 
       const res = {
-        outputUrl: outUri,
+        outputUrl: resolveDisplayUri(outUri),
         seg: {
           maskedImageUri: croppedUri,
           maskImageUri: croppedUri,
@@ -137,7 +138,7 @@ export async function enhanceIrisTextureWithInpaint(
         },
       };
       enhanceCacheByFingerprint.set(key, res);
-      persistedEnhanceMap.set(key, res.outputUrl);
+      persistedEnhanceMap.set(key, outUri);
       await flushPersistedEnhance();
       await upsertUserIris(res.outputUrl, key);
       return res;

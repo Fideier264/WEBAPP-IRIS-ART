@@ -1,5 +1,5 @@
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from '@/lib/platformFileSystem';
 import jpeg from 'jpeg-js';
 import { Buffer } from 'buffer';
 

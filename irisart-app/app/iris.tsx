@@ -82,7 +82,9 @@ export default function IrisPrepScreen() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 20, gap: 14 }}>
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled>
           <View style={styles.header}>
             <Pressable
               accessibilityRole="button"
@@ -199,6 +201,7 @@ export default function IrisPrepScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 14, gap: 14 },
+  scrollContent: { flexGrow: 1, paddingBottom: 120, gap: 14 },
 
   header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   chip: {
@@ -239,7 +242,6 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     alignItems: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    marginTop: 'auto',
   },
   secondaryText: { fontSize: 15, fontWeight: '750' },
 
