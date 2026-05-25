@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+irisart-app/node_modules/
+
+# Secrets & local env
+.env
+.env.*
+!.env.example
+
+# Expo / React Native
+.expo/
+dist/
+web-build/
+irisart-app/.expo/
+irisart-app/dist/
+irisart-app/web-build/
+expo-env.d.ts
+
+# Supabase CLI cache (local machine state)
+supabase/.temp/
+supabase/.branches/
+
+# Native builds
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.kotlin/
+irisart-app/ios/
+irisart-app/android/
+
+# OS & editors
+.DS_Store
+Thumbs.db
+*.pem
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs & debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+.metro-health-check*
+
+# TypeScript
+*.tsbuildinfo

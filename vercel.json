@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd irisart-app && npm ci && npm run build:web",
+  "outputDirectory": "irisart-app/dist",
+  "installCommand": "cd irisart-app && npm ci",
+  "framework": null
+}

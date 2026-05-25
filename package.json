@@ -1,0 +1,12 @@
+{
+  "name": "irisart",
+  "private": true,
+  "scripts": {
+    "web": "npm run web --prefix irisart-app",
+    "build:web": "npm run build:web --prefix irisart-app",
+    "start": "npm run start --prefix irisart-app"
+  },
+  "devDependencies": {
+    "supabase": "^2.83.0"
+  }
+}
