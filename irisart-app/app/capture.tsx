@@ -2,7 +2,18 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useMemo, useRef, useState } from 'react';
-import { Alert, Image, PanResponder, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Alert,
+  Image,
+  PanResponder,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
 import * as ImagePicker from 'expo-image-picker';
@@ -36,7 +47,11 @@ export default function CaptureScreen() {
   const [isPicking, setIsPicking] = useState(false);
   const [zoom, setZoom] = useState(0.3); // 0..1, ~1.5–2x default
   const { width: windowW } = useWindowDimensions();
-  const stageSize = Math.min(Math.max(240, windowW - 36), 520);
+  const cameraStageSize = Math.min(Math.max(240, windowW - 36), 520);
+  const isPreview = state.kind === 'preview';
+  const stageSize = isPreview
+    ? Math.min(Math.round(cameraStageSize * 0.68), 340)
+    : cameraStageSize;
   const [cropRect, setCropRect] = useState<{ cx: number; cy: number; scale: number }>({
     cx: 0.5,
     cy: 0.5,
@@ -178,6 +193,11 @@ export default function CaptureScreen() {
       />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator
+          keyboardShouldPersistTaps="handled">
         <View style={styles.topBar}>
           <Pressable
             accessibilityRole="button"
@@ -273,21 +293,23 @@ export default function CaptureScreen() {
           )}
         </View>
 
-        <View style={styles.zoomRow}>
-          <Text style={[styles.zoomLabel, { color: scheme === 'dark' ? 'rgba(243,245,255,0.75)' : 'rgba(10,11,16,0.75)' }]}>
-            Zoom { (1 + zoom * 3).toFixed(1) }×
-          </Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={0}
-            maximumValue={1}
-            value={zoom}
-            onValueChange={setZoom}
-            minimumTrackTintColor={c.tint}
-            maximumTrackTintColor={scheme === 'dark' ? 'rgba(243,245,255,0.25)' : 'rgba(10,11,16,0.25)'}
-            thumbTintColor={c.tint}
-          />
-        </View>
+        {state.kind === 'camera' ? (
+          <View style={styles.zoomRow}>
+            <Text style={[styles.zoomLabel, { color: scheme === 'dark' ? 'rgba(243,245,255,0.75)' : 'rgba(10,11,16,0.75)' }]}>
+              Zoom { (1 + zoom * 3).toFixed(1) }×
+            </Text>
+            <Slider
+              style={styles.slider}
+              minimumValue={0}
+              maximumValue={1}
+              value={zoom}
+              onValueChange={setZoom}
+              minimumTrackTintColor={c.tint}
+              maximumTrackTintColor={scheme === 'dark' ? 'rgba(243,245,255,0.25)' : 'rgba(10,11,16,0.25)'}
+              thumbTintColor={c.tint}
+            />
+          </View>
+        ) : null}
 
         <View style={styles.controls}>
           {state.kind === 'preview' ? (
@@ -325,10 +347,13 @@ export default function CaptureScreen() {
                   maximumTrackTintColor={scheme === 'dark' ? 'rgba(243,245,255,0.25)' : 'rgba(10,11,16,0.25)'}
                   thumbTintColor={c.tint}
                 />
-                <View style={[styles.examplePlaceholder, { borderColor: c.border, backgroundColor: c.surfaceAlt }]}>
-                  <Text style={[styles.examplePlaceholderText, { color: scheme === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)' }]}>
-                    Example image slot (you can add your sample reference here later)
-                  </Text>
+                <View style={[styles.exampleFrame, { borderColor: c.border, backgroundColor: c.surfaceAlt }]}>
+                  <Image
+                    source={require('@/assets/crop-eye-example.png')}
+                    style={styles.exampleImage}
+                    resizeMode="cover"
+                    accessibilityLabel="Example: crop rectangle over the eye including eyelid and brow"
+                  />
                 </View>
               </View>
               <View style={styles.previewButtonsRow}>
@@ -369,6 +394,7 @@ export default function CaptureScreen() {
             </View>
           )}
         </View>
+        </ScrollView>
         <AppBottomBar active="scan" />
       </SafeAreaView>
     </View>
@@ -377,7 +403,9 @@ export default function CaptureScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  safe: { flex: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 14 },
+  safe: { flex: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 0 },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 14, flexGrow: 1 },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chip: {
     paddingHorizontal: 12,
@@ -387,7 +415,7 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 13.5, fontWeight: '650' },
 
-  stage: { flexShrink: 1, justifyContent: 'center' },
+  stage: { flexShrink: 0, justifyContent: 'center', alignItems: 'center', paddingTop: 8 },
   cameraWrap: {
     borderRadius: 26,
     overflow: 'hidden',
@@ -459,14 +487,13 @@ const styles = StyleSheet.create({
   cropTitle: { fontSize: 14.5, fontWeight: '900' },
   cropHint: { fontSize: 12.5, fontWeight: '700' },
   cropSlider: { width: '100%', height: 34 },
-  examplePlaceholder: {
+  exampleFrame: {
     marginTop: 4,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    overflow: 'hidden',
   },
-  examplePlaceholderText: { fontSize: 11.8, fontWeight: '650' },
+  exampleImage: { width: '100%', height: 118, backgroundColor: 'rgba(0,0,0,0.12)' },
   cropRect: {
     position: 'absolute',
     borderWidth: 2,
