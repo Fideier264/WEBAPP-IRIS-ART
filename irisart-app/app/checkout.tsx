@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { ACCOUNT_HEADER_CLEARANCE } from '@/constants/Layout';
-import { requestCreateMerchOneOrder } from '@/lib/createMerchOneOrder';
+import { openCheckoutUrl, requestCreateCheckoutSession } from '@/lib/createStripeCheckout';
 import { getCanvasProductOptions, hasConfiguredCanvasSkus } from '@/lib/merchOneCatalog';
 import { uploadOrderPrintFile } from '@/lib/orderPrintUpload';
 
@@ -27,8 +27,9 @@ export default function CheckoutScreen() {
   const c = Colors[cs];
   const muted = cs === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
 
-  const params = useLocalSearchParams<{ textureUri?: string }>();
+  const params = useLocalSearchParams<{ textureUri?: string; canceled?: string }>();
   const textureUri = typeof params.textureUri === 'string' ? params.textureUri : undefined;
+  const canceled = params.canceled === '1' || params.canceled === 'true';
 
   const options = useMemo(() => getCanvasProductOptions(), []);
   const skusOk = hasConfiguredCanvasSkus();
@@ -47,14 +48,13 @@ export default function CheckoutScreen() {
   const [region, setRegion] = useState('');
   const [telephone, setTelephone] = useState('');
 
-  const [status, setStatus] = useState<'idle' | 'uploading' | 'submitting' | 'done' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'redirecting' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [orderId, setOrderId] = useState<string | null>(null);
-  const [isTestOrder, setIsTestOrder] = useState(false);
 
+  const selectedOption = options.find((o) => o.sku === selectedSku) ?? null;
   const inputSurface = { backgroundColor: c.surfaceAlt, borderColor: c.border, color: c.text };
 
-  async function onOrder() {
+  async function onPay() {
     setErrorMsg(null);
     if (!textureUri) {
       setErrorMsg('Kein Kunstwerk (textureUri).');
@@ -94,9 +94,9 @@ export default function CheckoutScreen() {
       setStatus('uploading');
       const printFileUrl = await uploadOrderPrintFile(textureUri);
 
-      setStatus('submitting');
+      setStatus('redirecting');
       const ext = `irisart_${Date.now()}`;
-      const res = await requestCreateMerchOneOrder({
+      const res = await requestCreateCheckoutSession({
         printFileUrl,
         productSku: selectedSku,
         shipping: {
@@ -121,16 +121,14 @@ export default function CheckoutScreen() {
         return;
       }
 
-      setOrderId(res.orderId);
-      setIsTestOrder(res.isTest);
-      setStatus('done');
+      await openCheckoutUrl(res.url);
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : String(e));
       setStatus('error');
     }
   }
 
-  const busy = status === 'uploading' || status === 'submitting';
+  const busy = status === 'uploading' || status === 'redirecting';
 
   return (
     <KeyboardAvoidingView
@@ -171,6 +169,15 @@ export default function CheckoutScreen() {
               <Image source={{ uri: textureUri }} style={styles.previewImg} resizeMode="cover" />
             </View>
 
+            {canceled ? (
+              <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
+                <Text style={[styles.cardTitle, { color: c.text }]}>Zahlung abgebrochen</Text>
+                <Text style={[styles.cardBody, { color: muted }]}>
+                  Du kannst die Daten prüfen und erneut zu Stripe Checkout gehen.
+                </Text>
+              </View>
+            ) : null}
+
             {!skusOk ? (
               <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
                 <Text style={[styles.cardTitle, { color: c.text }]}>SKUs konfigurieren</Text>
@@ -200,6 +207,9 @@ export default function CheckoutScreen() {
                       },
                     ]}>
                     <Text style={[styles.sizePillText, { color: c.text }]}>{o.label}</Text>
+                    {o.priceLabel ? (
+                      <Text style={[styles.sizePrice, { color: muted }]}>{o.priceLabel}</Text>
+                    ) : null}
                   </Pressable>
                 );
               })}
@@ -238,38 +248,30 @@ export default function CheckoutScreen() {
               </View>
             ) : null}
 
-            {status === 'done' ? (
-              <View style={[styles.card, { borderColor: c.tint, backgroundColor: c.surface }]}>
-                <Text style={[styles.cardTitle, { color: c.text }]}>Bestellung übermittelt</Text>
-                <Text style={[styles.cardBody, { color: muted }]}>
-                  {orderId ? `merchOne Order-ID: ${orderId}` : 'Bestellung angenommen.'}
-                  {isTestOrder ? '\n(Testbestellung — laut Server-Konfiguration nicht produktiv.)' : ''}
-                </Text>
-              </View>
-            ) : null}
-
             <Pressable
               accessibilityRole="button"
-              disabled={busy || status === 'done' || !skusOk}
-              onPress={() => void onOrder()}
+              disabled={busy || !skusOk}
+              onPress={() => void onPay()}
               style={({ pressed }) => [
                 styles.primaryBtn,
                 {
                   backgroundColor: c.tint,
-                  opacity: busy || status === 'done' || !skusOk ? 0.5 : pressed ? 0.88 : 1,
+                  opacity: busy || !skusOk ? 0.5 : pressed ? 0.88 : 1,
                 },
               ]}>
               {busy ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.primaryBtnText}>
-                  {status === 'done' ? 'Bestellt' : 'Bestellen'}
+                  {selectedOption?.priceLabel
+                    ? `Jetzt zahlen — ${selectedOption.priceLabel}`
+                    : 'Weiter zur Zahlung'}
                 </Text>
               )}
             </Pressable>
             <Text style={[styles.legal, { color: muted }]}>
-              Mit „Bestellen“ wird eine Bestellung bei merchOne ausgelöst (Druck & Versand). Zahlungsabwicklung
-              folgt in einer späteren Version — aktuell nur API-Anlage gemäß Server-Einstellung (Sandbox/Test möglich).
+              Du wirst zu Stripe Checkout weitergeleitet. Nach erfolgreicher Zahlung wird die Druckbestellung
+              automatisch bei merchOne angelegt.
             </Text>
           </ScrollView>
         )}
@@ -357,8 +359,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: 14,
     paddingHorizontal: 16,
+    gap: 4,
   },
   sizePillText: { fontSize: 15, fontWeight: '700' },
+  sizePrice: { fontSize: 13.5, fontWeight: '600' },
   form: { gap: 12 },
   field: { gap: 6 },
   label: { fontSize: 13, fontWeight: '600', opacity: 0.9 },

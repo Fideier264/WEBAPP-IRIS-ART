@@ -61,17 +61,49 @@ Bei **500 Internal** (und generell): **`iris-enhance` neu deployen**. Zuerst wir
 
 Falls die API **`seed` nicht unterstützt** (HTTP 400): **`GEMINI_IMAGE_NO_SEED=1`** bzw. **`GEMINI_ANALYSIS_NO_SEED=1`** setzen — `temperature` bleibt niedrig; die **DB-Cache**-Schicht liefert bei Analyse trotzdem identische JSON-Ergebnisse nach dem ersten Lauf.
 
-### `create-merchone-order` (Native App → merchOne)
+### `create-merchone-order` (manuell / Admin)
 
 Ruft `POST https://api.merchone.com/api/v1/orders` mit **Basic Auth** auf (Blueprint-SKU + `file.front.url` = HTTPS-Druckdatei).
+
+**Kundenbestellungen laufen über Stripe** (`create-checkout-session` + `stripe-webhook`). Direkte Aufrufe sind standardmäßig **gesperrt**, außer `MERCHONE_ALLOW_DIRECT_ORDERS=1`.
 
 | Secret | Bedeutung |
 |--------|-----------|
 | **`MERCHONE_API_USER`** | Store API user (Dashboard → Store → Settings). |
 | **`MERCHONE_API_KEY`** | Store API key. |
-| `MERCHONE_ORDERS_IS_TEST` | Standard **`true`** (Testorders). Zum Live-Modus: `0` oder `false` setzen (nur wenn Store aktiv und gewollt). |
-| `MERCHONE_ALLOWED_SKUS` | Optional: kommagetrennte Allowlist erlaubter `product_sku`-Werte (Absicherung gegen manipulierte App-Requests). |
+| `MERCHONE_ORDERS_IS_TEST` | Standard **`true`** (Testorders). Zum Live-Modus: `0` oder `false`. |
+| `MERCHONE_ALLOWED_SKUS` | Optional: kommagetrennte Allowlist. |
+| `MERCHONE_ALLOW_DIRECT_ORDERS` | Nur `1` für manuelle Tests ohne Stripe. |
 
-**App (.env):** `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_30CM`, `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_60CM` — echte Blueprint-SKUs aus merchOne (kein Secret).
+### Stripe Checkout (`create-checkout-session` + `stripe-webhook`)
+
+**Flow:** App lädt Druckdatei hoch → `create-checkout-session` → Redirect zu Stripe → nach Zahlung `checkout.session.completed` → Webhook legt merchOne-Order an.
+
+| Secret | Bedeutung |
+|--------|-----------|
+| **`STRIPE_SECRET_KEY`** | `sk_test_…` / `sk_live_…` |
+| **`STRIPE_WEBHOOK_SECRET`** | `whsec_…` vom Stripe Webhook Endpoint |
+| **`MERCHONE_SKU_CANVAS_30CM`** | Gleicher Wert wie `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_30CM` |
+| **`MERCHONE_SKU_CANVAS_60CM`** | Gleicher Wert wie `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_60CM` |
+| `STRIPE_AMOUNT_CENTS_30CM` | Preis in Cent, Standard `4990` (= 49,90 €) |
+| `STRIPE_AMOUNT_CENTS_60CM` | Preis in Cent, Standard `8990` |
+| `STRIPE_CURRENCY` | Standard `eur` |
+| `APP_ORIGIN` | Öffentliche Web-URL (Success/Cancel), z. B. `https://deine-domain.de` |
+| `CHECKOUT_ALLOWED_ORIGINS` | Optional: Allowlist für `appOrigin` aus der App |
+| `SUPABASE_SERVICE_ROLE_KEY` | Für Idempotenz-Tabelle `stripe_webhook_events` |
+
+**Migration:** `supabase/migrations/20260425140000_stripe_webhook_events.sql`
+
+**Deploy:**
+```bash
+supabase functions deploy create-checkout-session
+supabase functions deploy stripe-webhook --no-verify-jwt
+```
+
+**Stripe Dashboard → Developers → Webhooks:** Endpoint  
+`https://<PROJECT_REF>.supabase.co/functions/v1/stripe-webhook`  
+Event: `checkout.session.completed`
+
+**App (.env):** SKUs + optionale Anzeige-Preise `EXPO_PUBLIC_PRICE_EUR_30CM` / `60CM`, optional `EXPO_PUBLIC_APP_ORIGIN`.
 
 **Deploy:** Function `create-merchone-order` deployen und Secrets setzen.

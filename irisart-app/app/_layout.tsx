@@ -80,6 +80,7 @@ function RootLayoutNav() {
             <Stack.Screen name="gallery" options={{ headerShown: false }} />
             <Stack.Screen name="shop" options={{ headerShown: false }} />
             <Stack.Screen name="checkout" options={{ headerShown: false }} />
+            <Stack.Screen name="order-success" options={{ headerShown: false }} />
             <Stack.Screen name="results" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>
