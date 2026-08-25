@@ -152,7 +152,16 @@ serve(async (req) => {
   const meta = (session.metadata ?? {}) as Record<string, string>;
   const productSku = meta.productSku ?? "";
   const printFileUrl = meta.printFileUrl ?? "";
+  const templateId = meta.templateId ?? "";
   const externalId = meta.externalId ?? sessionId ?? `stripe_${Date.now()}`;
+
+  console.log("stripe-webhook: checkout.session.completed — print fulfillment metadata", {
+    sessionId,
+    templateId: templateId || "(missing)",
+    printFileUrl: printFileUrl || "(missing)",
+    productSku: productSku || "(missing)",
+    externalId,
+  });
   let shipping: Record<string, string> = {};
   try {
     shipping = JSON.parse(meta.shipping ?? "{}") as Record<string, string>;
@@ -162,8 +171,20 @@ serve(async (req) => {
   }
 
   if (!productSku || !printFileUrl) {
-    console.error("stripe-webhook: missing productSku/printFileUrl metadata");
+    console.error("stripe-webhook: missing productSku/printFileUrl metadata", {
+      sessionId,
+      templateId: templateId || "(missing)",
+      printFileUrl: printFileUrl || "(missing)",
+      productSku: productSku || "(missing)",
+    });
     return new Response("missing metadata", { status: 400 });
+  }
+
+  if (!templateId) {
+    console.warn("stripe-webhook: templateId missing in metadata — merchOne order will proceed with printFileUrl only", {
+      sessionId,
+      printFileUrl,
+    });
   }
 
   const paymentStatus = session.payment_status;

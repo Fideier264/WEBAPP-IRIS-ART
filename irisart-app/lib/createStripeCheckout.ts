@@ -6,6 +6,7 @@ import type { OrderShippingInput } from './createMerchOneOrder';
 
 export type CreateCheckoutSessionInput = {
   printFileUrl: string;
+  templateId: string;
   productSku: string;
   shipping: OrderShippingInput;
   externalId?: string;
@@ -92,6 +93,7 @@ export async function requestCreateCheckoutSession(
     error?: string;
   }>('create-checkout-session', {
     printFileUrl: input.printFileUrl,
+    templateId: input.templateId,
     productSku: input.productSku,
     shipping: input.shipping,
     externalId: input.externalId,

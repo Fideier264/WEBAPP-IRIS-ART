@@ -178,6 +178,7 @@ export default function CheckoutScreen() {
       const stripeTitle = `${selected.categoryLabel} ${selected.title}`.trim();
       const res = await requestCreateCheckoutSession({
         printFileUrl,
+        templateId,
         productSku: selected.sku,
         productLabel: `IrisArt ${stripeTitle} · ${template.title}`,
         shipping: {

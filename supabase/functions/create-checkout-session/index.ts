@@ -74,6 +74,7 @@ type ShippingIn = {
 
 type Body = {
   printFileUrl: string;
+  templateId: string;
   productSku: string;
   shipping: ShippingIn;
   appOrigin?: string;
@@ -108,11 +109,15 @@ serve(async (req) => {
   }
 
   const printFileUrl = typeof body.printFileUrl === "string" ? body.printFileUrl.trim() : "";
+  const templateId = typeof body.templateId === "string" ? body.templateId.trim() : "";
   const productSku = typeof body.productSku === "string" ? body.productSku.trim() : "";
   const sh = body.shipping;
 
   if (!printFileUrl || !isHttpsUrl(printFileUrl)) {
     return json({ ok: false, error: "printFileUrl must be a valid https URL." }, { status: 200, headers: cors });
+  }
+  if (!templateId) {
+    return json({ ok: false, error: "templateId is required." }, { status: 200, headers: cors });
   }
   if (!productSku) {
     return json({ ok: false, error: "productSku is required." }, { status: 200, headers: cors });
@@ -194,6 +199,9 @@ serve(async (req) => {
   if (printFileUrl.length > 480) {
     return json({ ok: false, error: "printFileUrl too long for checkout metadata." }, { status: 200, headers: cors });
   }
+  if (templateId.length > 120) {
+    return json({ ok: false, error: "templateId too long for checkout metadata." }, { status: 200, headers: cors });
+  }
 
   const currency = stripeCurrency();
   const successUrl = `${appOrigin}/order-success?session_id={CHECKOUT_SESSION_ID}`;
@@ -211,10 +219,13 @@ serve(async (req) => {
   form.set("line_items[0][price_data][product_data][name]", productLabel);
   form.set("metadata[productSku]", productSku);
   form.set("metadata[printFileUrl]", printFileUrl);
+  form.set("metadata[templateId]", templateId);
   form.set("metadata[shipping]", shippingJson);
   form.set("metadata[externalId]", externalId);
   form.set("metadata[productLabel]", productLabel.slice(0, 450));
   form.set("payment_intent_data[metadata][productSku]", productSku);
+  form.set("payment_intent_data[metadata][printFileUrl]", printFileUrl);
+  form.set("payment_intent_data[metadata][templateId]", templateId);
   form.set("payment_intent_data[metadata][externalId]", externalId);
 
   try {
