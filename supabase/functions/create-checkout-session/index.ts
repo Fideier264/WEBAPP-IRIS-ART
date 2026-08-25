@@ -77,6 +77,7 @@ type Body = {
   shipping: ShippingIn;
   appOrigin?: string;
   externalId?: string;
+  productLabel?: string;
 };
 
 serve(async (req) => {
@@ -122,11 +123,14 @@ serve(async (req) => {
       {
         ok: false,
         error:
-          "Unknown productSku / price. Set MERCHONE_SKU_CANVAS_30CM|60CM and STRIPE_AMOUNT_CENTS_30CM|60CM on the function.",
+          "Unbekannte productSku / kein Preis. Setze STRIPE_PRODUCT_CATALOG oder MERCHONE_SKU_CANVAS_* + STRIPE_AMOUNT_CENTS_* auf der Function.",
       },
       { status: 200, headers: cors },
     );
   }
+
+  const productLabel =
+    (typeof body.productLabel === "string" && body.productLabel.trim()) || priced.label;
 
   if (!sh || typeof sh !== "object") {
     return json({ ok: false, error: "shipping is required." }, { status: 200, headers: cors });
@@ -203,11 +207,12 @@ serve(async (req) => {
   form.set("line_items[0][quantity]", "1");
   form.set("line_items[0][price_data][currency]", currency);
   form.set("line_items[0][price_data][unit_amount]", String(priced.amountCents));
-  form.set("line_items[0][price_data][product_data][name]", priced.label);
+  form.set("line_items[0][price_data][product_data][name]", productLabel);
   form.set("metadata[productSku]", productSku);
   form.set("metadata[printFileUrl]", printFileUrl);
   form.set("metadata[shipping]", shippingJson);
   form.set("metadata[externalId]", externalId);
+  form.set("metadata[productLabel]", productLabel.slice(0, 450));
   form.set("payment_intent_data[metadata][productSku]", productSku);
   form.set("payment_intent_data[metadata][externalId]", externalId);
 
@@ -242,7 +247,7 @@ serve(async (req) => {
         url,
         amountCents: priced.amountCents,
         currency,
-        label: priced.label,
+        label: productLabel,
       },
       { status: 200, headers: cors },
     );

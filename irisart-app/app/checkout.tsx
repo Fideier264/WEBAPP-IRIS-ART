@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,24 +18,70 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { ACCOUNT_HEADER_CLEARANCE } from '@/constants/Layout';
-import { openCheckoutUrl, requestCreateCheckoutSession } from '@/lib/createStripeCheckout';
-import { getCanvasProductOptions, hasConfiguredCanvasSkus } from '@/lib/merchOneCatalog';
+import {
+  openCheckoutUrl,
+  rememberCheckoutTexture,
+  requestCreateCheckoutSession,
+  restoreCheckoutTexture,
+} from '@/lib/createStripeCheckout';
+import {
+  catalogHasPayableSkus,
+  getCatalogProducts,
+  uniqueCategories,
+  type CatalogProduct,
+} from '@/lib/merchOneCatalog';
 import { uploadOrderPrintFile } from '@/lib/orderPrintUpload';
+
+function paramString(v: string | string[] | undefined): string | undefined {
+  if (typeof v === 'string' && v.trim()) return v.trim();
+  if (Array.isArray(v) && typeof v[0] === 'string' && v[0].trim()) return v[0].trim();
+  return undefined;
+}
 
 export default function CheckoutScreen() {
   const scheme = useColorScheme();
   const cs = scheme ?? 'light';
   const c = Colors[cs];
   const muted = cs === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
+  const { width } = useWindowDimensions();
+  const cardW = Math.floor((width - 36 - 10) / 2);
 
-  const params = useLocalSearchParams<{ textureUri?: string; canceled?: string }>();
-  const textureUri = typeof params.textureUri === 'string' ? params.textureUri : undefined;
-  const canceled = params.canceled === '1' || params.canceled === 'true';
+  const params = useLocalSearchParams<{ textureUri?: string | string[]; canceled?: string | string[] }>();
+  const paramTexture = paramString(params.textureUri);
+  const canceled = paramString(params.canceled) === '1' || paramString(params.canceled) === 'true';
 
-  const options = useMemo(() => getCanvasProductOptions(), []);
-  const skusOk = hasConfiguredCanvasSkus();
+  const [textureUri, setTextureUri] = useState<string | undefined>(paramTexture);
 
-  const [selectedSku, setSelectedSku] = useState<string | null>(options[0]?.sku ?? null);
+  useEffect(() => {
+    if (paramTexture) {
+      setTextureUri(paramTexture);
+      rememberCheckoutTexture(paramTexture);
+      return;
+    }
+    const restored = restoreCheckoutTexture();
+    if (restored) setTextureUri(restored);
+  }, [paramTexture]);
+
+  const products = useMemo(() => getCatalogProducts(), []);
+  const categories = useMemo(() => uniqueCategories(products), [products]);
+  const payable = catalogHasPayableSkus();
+
+  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? 'canvas');
+  const visibleProducts = useMemo(
+    () => products.filter((p) => p.category === categoryId),
+    [products, categoryId]
+  );
+
+  const [selectedId, setSelectedId] = useState(visibleProducts[0]?.id ?? products[0]?.id ?? '');
+
+  useEffect(() => {
+    if (!visibleProducts.find((p) => p.id === selectedId)) {
+      setSelectedId(visibleProducts[0]?.id ?? '');
+    }
+  }, [visibleProducts, selectedId]);
+
+  const selected: CatalogProduct | null =
+    products.find((p) => p.id === selectedId) ?? visibleProducts[0] ?? null;
 
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -51,23 +98,26 @@ export default function CheckoutScreen() {
   const [status, setStatus] = useState<'idle' | 'uploading' | 'redirecting' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const selectedOption = options.find((o) => o.sku === selectedSku) ?? null;
   const inputSurface = { backgroundColor: c.surfaceAlt, borderColor: c.border, color: c.text };
+  const busy = status === 'uploading' || status === 'redirecting';
 
   async function onPay() {
     setErrorMsg(null);
+
     if (!textureUri) {
-      setErrorMsg('Kein Kunstwerk (textureUri).');
+      setErrorMsg('Kein Kunstwerk gefunden. Bitte vom Shop aus „Leinwand bestellen“ wählen.');
       setStatus('error');
       return;
     }
-    if (!selectedSku) {
-      setErrorMsg('Bitte eine Leinwandgröße wählen.');
+    if (!selected) {
+      setErrorMsg('Bitte ein Produkt auswählen.');
       setStatus('error');
       return;
     }
-    if (!skusOk) {
-      setErrorMsg('Leinwand-SKUs fehlen in der App-Konfiguration (.env).');
+    if (!selected.sku) {
+      setErrorMsg(
+        'Für dieses Produkt fehlt noch die merchOne-SKU. Trage EXPO_PUBLIC_MERCHONE_CATALOG oder die Legacy-SKU-Env-Vars ein und baue die App neu.'
+      );
       setStatus('error');
       return;
     }
@@ -83,7 +133,6 @@ export default function CheckoutScreen() {
       setStatus('error');
       return;
     }
-
     if (!email.trim() || !firstName.trim() || !lastName.trim() || !street.trim() || !city.trim() || !postcode.trim()) {
       setErrorMsg('Bitte alle Pflichtfelder der Lieferadresse ausfüllen.');
       setStatus('error');
@@ -92,13 +141,15 @@ export default function CheckoutScreen() {
 
     try {
       setStatus('uploading');
+      rememberCheckoutTexture(textureUri);
       const printFileUrl = await uploadOrderPrintFile(textureUri);
 
       setStatus('redirecting');
-      const ext = `irisart_${Date.now()}`;
+      const stripeTitle = `${selected.categoryLabel} ${selected.title}`.trim();
       const res = await requestCreateCheckoutSession({
         printFileUrl,
-        productSku: selectedSku,
+        productSku: selected.sku,
+        productLabel: `IrisArt ${stripeTitle}`,
         shipping: {
           email: email.trim(),
           firstName: firstName.trim(),
@@ -112,7 +163,7 @@ export default function CheckoutScreen() {
           region: region.trim() || undefined,
           telephone: telephone.trim() || undefined,
         },
-        externalId: ext,
+        externalId: `irisart_${Date.now()}`,
       });
 
       if (!res.ok) {
@@ -127,8 +178,6 @@ export default function CheckoutScreen() {
       setStatus('error');
     }
   }
-
-  const busy = status === 'uploading' || status === 'redirecting';
 
   return (
     <KeyboardAvoidingView
@@ -156,7 +205,9 @@ export default function CheckoutScreen() {
         {!textureUri ? (
           <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
             <Text style={[styles.cardTitle, { color: c.text }]}>Kein Bild</Text>
-            <Text style={[styles.cardBody, { color: muted }]}>Bitte vom Shop aus „Leinwand bestellen“ wählen.</Text>
+            <Text style={[styles.cardBody, { color: muted }]}>
+              Bitte vom Shop aus „Leinwand bestellen“ wählen.
+            </Text>
           </View>
         ) : (
           <ScrollView
@@ -164,56 +215,101 @@ export default function CheckoutScreen() {
             contentContainerStyle={styles.scroll}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <Text style={[styles.sectionTitle, { color: c.text }]}>Dein Motiv</Text>
-            <View style={[styles.previewCard, { borderColor: c.border, backgroundColor: c.surface }]}>
-              <Image source={{ uri: textureUri }} style={styles.previewImg} resizeMode="cover" />
-            </View>
-
             {canceled ? (
               <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
                 <Text style={[styles.cardTitle, { color: c.text }]}>Zahlung abgebrochen</Text>
                 <Text style={[styles.cardBody, { color: muted }]}>
-                  Du kannst die Daten prüfen und erneut zu Stripe Checkout gehen.
+                  Produkt wählen und Adresse prüfen, danach erneut zur Zahlung.
                 </Text>
               </View>
             ) : null}
 
-            {!skusOk ? (
-              <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
-                <Text style={[styles.cardTitle, { color: c.text }]}>SKUs konfigurieren</Text>
+            {!payable ? (
+              <View style={[styles.card, { borderColor: 'rgba(220,160,40,0.55)', backgroundColor: c.surface }]}>
+                <Text style={[styles.cardTitle, { color: c.text }]}>SKU-Konfiguration fehlt</Text>
                 <Text style={[styles.cardBody, { color: muted }]}>
-                  Trage in der .env die merchOne-Blueprint-SKUs ein: EXPO_PUBLIC_MERCHONE_SKU_CANVAS_30CM und
-                  EXPO_PUBLIC_MERCHONE_SKU_CANVAS_60CM (Werte aus dem merchOne-Dashboard).
+                  Produkte sind wählbar, aber ohne echte merchOne-SKUs in EXPO_PUBLIC_MERCHONE_CATALOG (oder
+                  Legacy-SKU-Env) schlägt die Zahlung fehl.
                 </Text>
               </View>
             ) : null}
 
-            <Text style={[styles.sectionTitle, { color: c.text }]}>Format</Text>
-            <View style={styles.sizeRow}>
-              {options.map((o) => {
-                const active = o.sku === selectedSku;
+            <Text style={[styles.sectionTitle, { color: c.text }]}>Produkt wählen</Text>
+            {categories.length > 1 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
+                {categories.map((cat) => {
+                  const active = cat.id === categoryId;
+                  return (
+                    <Pressable
+                      key={cat.id}
+                      accessibilityRole="button"
+                      disabled={busy}
+                      onPress={() => setCategoryId(cat.id)}
+                      style={({ pressed }) => [
+                        styles.catChip,
+                        {
+                          borderColor: active ? c.tint : c.border,
+                          backgroundColor: active ? 'rgba(124,92,255,0.14)' : c.surfaceAlt,
+                          opacity: pressed ? 0.9 : 1,
+                        },
+                      ]}>
+                      <Text style={[styles.catChipText, { color: c.text }]}>{cat.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : null}
+
+            <View style={styles.productGrid}>
+              {visibleProducts.map((p) => {
+                const active = p.id === selected?.id;
+                const photoUri = p.imageUrl || textureUri;
                 return (
                   <Pressable
-                    key={o.id}
+                    key={p.id}
                     accessibilityRole="button"
                     disabled={busy}
-                    onPress={() => setSelectedSku(o.sku)}
+                    onPress={() => setSelectedId(p.id)}
                     style={({ pressed }) => [
-                      styles.sizePill,
+                      styles.productCard,
                       {
+                        width: cardW,
                         borderColor: active ? c.tint : c.border,
-                        backgroundColor: active ? 'rgba(124,92,255,0.14)' : c.surfaceAlt,
-                        opacity: pressed ? 0.9 : 1,
+                        backgroundColor: c.surface,
+                        opacity: pressed ? 0.92 : 1,
                       },
                     ]}>
-                    <Text style={[styles.sizePillText, { color: c.text }]}>{o.label}</Text>
-                    {o.priceLabel ? (
-                      <Text style={[styles.sizePrice, { color: muted }]}>{o.priceLabel}</Text>
-                    ) : null}
+                    <View style={styles.productPhotoWrap}>
+                      <Image source={{ uri: photoUri }} style={styles.productPhoto} resizeMode="cover" />
+                      {active ? (
+                        <View style={[styles.selectedBadge, { backgroundColor: c.tint }]}>
+                          <Text style={styles.selectedBadgeText}>Gewählt</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={[styles.productTitle, { color: c.text }]} numberOfLines={2}>
+                      {p.title}
+                    </Text>
+                    <Text style={[styles.productMeta, { color: muted }]} numberOfLines={1}>
+                      {p.categoryLabel}
+                      {p.description ? ` · ${p.description}` : ''}
+                    </Text>
+                    <Text style={[styles.productPrice, { color: c.text }]}>{p.priceLabel}</Text>
                   </Pressable>
                 );
               })}
             </View>
+
+            {selected ? (
+              <View style={[styles.summaryCard, { borderColor: c.border, backgroundColor: c.surface }]}>
+                <Text style={[styles.cardTitle, { color: c.text }]}>Auswahl</Text>
+                <Text style={[styles.cardBody, { color: muted }]}>
+                  {selected.categoryLabel} — {selected.title}
+                  {selected.description ? `\n${selected.description}` : ''}
+                </Text>
+                <Text style={[styles.summaryPrice, { color: c.text }]}>{selected.priceLabel}</Text>
+              </View>
+            ) : null}
 
             <Text style={[styles.sectionTitle, { color: c.text }]}>Lieferadresse</Text>
             <View style={styles.form}>
@@ -244,34 +340,40 @@ export default function CheckoutScreen() {
 
             {errorMsg ? (
               <View style={[styles.card, { borderColor: 'rgba(220,80,80,0.5)', backgroundColor: c.surface }]}>
+                <Text style={[styles.cardTitle, { color: c.text }]}>Zahlung nicht gestartet</Text>
                 <Text style={[styles.cardBody, { color: c.text }]}>{errorMsg}</Text>
               </View>
             ) : null}
 
             <Pressable
               accessibilityRole="button"
-              disabled={busy || !skusOk}
+              disabled={busy}
               onPress={() => void onPay()}
               style={({ pressed }) => [
                 styles.primaryBtn,
                 {
                   backgroundColor: c.tint,
-                  opacity: busy || !skusOk ? 0.5 : pressed ? 0.88 : 1,
+                  opacity: busy ? 0.55 : pressed ? 0.88 : 1,
                 },
               ]}>
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <View style={styles.busyRow}>
+                  <ActivityIndicator color="#fff" />
+                  <Text style={styles.primaryBtnText}>
+                    {status === 'uploading' ? 'Bild wird vorbereitet…' : 'Weiterleitung zu Stripe…'}
+                  </Text>
+                </View>
               ) : (
                 <Text style={styles.primaryBtnText}>
-                  {selectedOption?.priceLabel
-                    ? `Jetzt zahlen — ${selectedOption.priceLabel}`
+                  {selected?.priceLabel
+                    ? `Weiter zur Zahlung — ${selected.priceLabel}`
                     : 'Weiter zur Zahlung'}
                 </Text>
               )}
             </Pressable>
             <Text style={[styles.legal, { color: muted }]}>
-              Du wirst zu Stripe Checkout weitergeleitet. Nach erfolgreicher Zahlung wird die Druckbestellung
-              automatisch bei merchOne angelegt.
+              Sichere Zahlung über Stripe. Nach erfolgreicher Zahlung wird die Druckbestellung automatisch bei
+              merchOne angelegt.
             </Text>
           </ScrollView>
         )}
@@ -333,36 +435,62 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 13.5, fontWeight: '600' },
   hTitle: { flex: 1, fontSize: 17, fontWeight: '800', textAlign: 'center' },
-  scroll: { paddingBottom: 40, gap: 14 },
+  scroll: { paddingBottom: 48, gap: 14 },
   sectionTitle: { fontSize: 16, fontWeight: '800', marginTop: 4 },
-  previewCard: {
-    borderRadius: 20,
+  catRow: { gap: 8, paddingBottom: 2 },
+  catChip: {
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  catChipText: { fontSize: 13.5, fontWeight: '750' },
+  productGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  productCard: {
+    borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-    aspectRatio: 1,
-    maxHeight: 320,
-    alignSelf: 'center',
-    width: '100%',
+    paddingBottom: 10,
   },
-  previewImg: { width: '100%', height: '100%' },
+  productPhotoWrap: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#111',
+    position: 'relative',
+  },
+  productPhoto: { width: '100%', height: '100%' },
+  selectedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  selectedBadgeText: { color: '#fff', fontSize: 11.5, fontWeight: '800' },
+  productTitle: {
+    fontSize: 15.5,
+    fontWeight: '850',
+    marginTop: 10,
+    paddingHorizontal: 10,
+  },
+  productMeta: { fontSize: 12.5, marginTop: 2, paddingHorizontal: 10 },
+  productPrice: { fontSize: 14.5, fontWeight: '800', marginTop: 6, paddingHorizontal: 10 },
   card: {
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 14,
     gap: 8,
   },
+  summaryCard: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 14,
+    gap: 6,
+  },
   cardTitle: { fontSize: 15, fontWeight: '800' },
   cardBody: { fontSize: 14, lineHeight: 20 },
-  sizeRow: { flexDirection: 'column', gap: 10 },
-  sizePill: {
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 4,
-  },
-  sizePillText: { fontSize: 15, fontWeight: '700' },
-  sizePrice: { fontSize: 13.5, fontWeight: '600' },
+  summaryPrice: { fontSize: 18, fontWeight: '850', marginTop: 4 },
   form: { gap: 12 },
   field: { gap: 6 },
   label: { fontSize: 13, fontWeight: '600', opacity: 0.9 },
@@ -381,6 +509,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 52,
   },
-  primaryBtnText: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  busyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  primaryBtnText: { color: '#fff', fontSize: 16.5, fontWeight: '800' },
   legal: { fontSize: 12, lineHeight: 17, marginTop: 4 },
 });

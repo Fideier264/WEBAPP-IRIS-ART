@@ -87,6 +87,8 @@ Ruft `POST https://api.merchone.com/api/v1/orders` mit **Basic Auth** auf (Bluep
 | **`MERCHONE_SKU_CANVAS_60CM`** | Gleicher Wert wie `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_60CM` |
 | `STRIPE_AMOUNT_CENTS_30CM` | Preis in Cent, Standard `4990` (= 49,90 €) |
 | `STRIPE_AMOUNT_CENTS_60CM` | Preis in Cent, Standard `8990` |
+| `STRIPE_PRODUCT_CATALOG` | Optional JSON: `[{"sku":"…","amountCents":4990,"label":"…"}]` — bevorzugte Preisquelle |
+| `STRIPE_AMOUNT_BY_SKU` | Optional JSON-Map `{"sku":4990}` |
 | `STRIPE_CURRENCY` | Standard `eur` |
 | `APP_ORIGIN` | Öffentliche Web-URL (Success/Cancel), z. B. `https://deine-domain.de` |
 | `CHECKOUT_ALLOWED_ORIGINS` | Optional: Allowlist für `appOrigin` aus der App |
