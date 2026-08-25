@@ -50,7 +50,7 @@ npm start
 | Build-Befehl | `npm run build` |
 | Start-Befehl | `npm start` |
 | Entry-Datei | `server.js` |
-| Node.js-Version | **20.x** |
+| Node.js-Version | **22.x** |
 
 4. **Environment Variables** — **vor dem ersten Deploy** setzen (werden beim **Build** in die App eingebettet):
 

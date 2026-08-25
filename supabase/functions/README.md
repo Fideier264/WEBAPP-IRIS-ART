@@ -1,5 +1,7 @@
 # Edge Functions
 
+> **Accounts / cloud gallery:** see [`AUTH.md`](./AUTH.md) for Email + Google Auth setup and the `user_irises` migration.
+
 ## Reproduzierbarkeit (gleiches Foto → gleiche App-Daten)
 
 Generative Modelle bleiben **nicht zu 100 % deterministisch** (Google garantiert das auch bei `seed` nicht). Wir machen das Verhalten **praktisch stabil** durch:

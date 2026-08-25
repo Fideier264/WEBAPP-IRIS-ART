@@ -3,7 +3,17 @@ import { resolveDisplayUri } from './platformFileSystem';
 
 import { cropToEyeRectangle, cropToUserEyeRectangle, uploadTempImage } from './aiEnhance';
 import { IRIS_NANO_BANANA_ART_STYLE, requestNanoBananaIris } from './inpaintApi';
-import { upsertUserIris } from './userIrisLibrary';
+import { isAuthRequiredError, upsertUserIris } from './userIrisLibrary';
+
+async function trySaveToAccount(localUri: string, fingerprint?: string) {
+  try {
+    await upsertUserIris(localUri, fingerprint);
+  } catch (e) {
+    // Generation should succeed for guests; cloud save requires login.
+    if (isAuthRequiredError(e)) return;
+    console.warn('iris library save failed', e instanceof Error ? e.message : String(e));
+  }
+}
 
 const enhanceCacheByFingerprint = new Map<string, { outputUrl: string; seg: any }>();
 const enhanceInflightByFingerprint = new Map<string, Promise<{ outputUrl: string; seg: any }>>();
@@ -98,7 +108,7 @@ export async function enhanceIrisTextureWithInpaint(
           },
         };
         enhanceCacheByFingerprint.set(key, res);
-        await upsertUserIris(res.outputUrl, key);
+        await trySaveToAccount(persistedOutput, key);
         return res;
       }
       persistedEnhanceMap.delete(key);
@@ -140,7 +150,7 @@ export async function enhanceIrisTextureWithInpaint(
       enhanceCacheByFingerprint.set(key, res);
       persistedEnhanceMap.set(key, outUri);
       await flushPersistedEnhance();
-      await upsertUserIris(res.outputUrl, key);
+      await trySaveToAccount(outUri, key);
       return res;
     })()
       .finally(() => {
