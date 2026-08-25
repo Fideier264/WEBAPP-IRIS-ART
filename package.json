@@ -4,7 +4,7 @@
   "private": true,
   "main": "server.js",
   "engines": {
-    "node": "20.x"
+    "node": ">=18"
   },
   "scripts": {
     "install:app": "npm ci --prefix irisart-app",
