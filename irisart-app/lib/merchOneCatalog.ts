@@ -1,24 +1,16 @@
 /**
  * Shop product catalog for checkout.
  *
- * UI: photo cards with title (currently size). Later: posters, framed prints, etc.
- *
- * Preferred — EXPO_PUBLIC_MERCHONE_CATALOG JSON:
- * [
- *   {
- *     "sku": "YOUR_SKU",
- *     "title": "30 × 30 cm",
- *     "category": "canvas",
- *     "categoryLabel": "Leinwand",
- *     "priceEur": 49.9,
- *     "imageUrl": "https://…/product-preview.jpg"
- *   }
- * ]
- *
- * Legacy:
- *   EXPO_PUBLIC_MERCHONE_SKU_CANVAS_30CM / _60CM
- *   EXPO_PUBLIC_PRICE_EUR_30CM / _60CM
+ * Priority:
+ * 1) EXPO_PUBLIC_MERCHONE_CATALOG (or expo.extra.merchoneCatalog)
+ * 2) irisart-app/config/productCatalog.json  ← easiest to edit in the repo
+ * 3) Legacy EXPO_PUBLIC_MERCHONE_SKU_CANVAS_<N>CM + PRICE_EUR_<N>CM
+ * 4) Demo cards (no SKU — payment blocked)
  */
+
+import Constants from 'expo-constants';
+
+import bundledCatalog from '@/config/productCatalog.json';
 
 export type CatalogProduct = {
   id: string;
@@ -33,6 +25,10 @@ export type CatalogProduct = {
   /** Optional merch / mock photo URL; checkout falls back to the customer artwork */
   imageUrl?: string;
   description?: string;
+};
+
+type Extra = {
+  merchoneCatalog?: string | unknown;
 };
 
 function envString(key: string): string {
@@ -66,13 +62,13 @@ type RawProduct = {
   priceEur?: number | string;
   imageUrl?: string;
   description?: string;
-  /** legacy fields mapped into title */
   sizeLabel?: string;
   size?: string;
   label?: string;
 };
 
 function normalizeProduct(raw: RawProduct, index: number): CatalogProduct | null {
+  if (!raw || typeof raw !== 'object') return null;
   const sku = typeof raw.sku === 'string' ? raw.sku.trim() : '';
   const title =
     String(raw.title ?? raw.sizeLabel ?? raw.size ?? raw.label ?? '').trim() || `Produkt ${index + 1}`;
@@ -93,41 +89,78 @@ function normalizeProduct(raw: RawProduct, index: number): CatalogProduct | null
   };
 }
 
-function legacyProducts(): CatalogProduct[] {
-  const out: CatalogProduct[] = [];
-  const s30 = envString('EXPO_PUBLIC_MERCHONE_SKU_CANVAS_30CM');
-  const s60 = envString('EXPO_PUBLIC_MERCHONE_SKU_CANVAS_60CM');
-  const p30 = parsePrice(envString('EXPO_PUBLIC_PRICE_EUR_30CM'), 49.9);
-  const p60 = parsePrice(envString('EXPO_PUBLIC_PRICE_EUR_60CM'), 89.9);
+function sanitizeCatalogJson(raw: string): string {
+  let s = raw.trim().replace(/^\uFEFF/, '');
+  if (
+    (s.startsWith("'") && s.endsWith("'")) ||
+    (s.startsWith('`') && s.endsWith('`'))
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+  // Hostinger / Word-style quotes
+  s = s.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
+  return s;
+}
 
-  if (s30) {
+function parseCatalogList(raw: unknown): CatalogProduct[] {
+  let data = raw;
+  if (typeof data === 'string') {
+    try {
+      data = JSON.parse(sanitizeCatalogJson(data));
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(data)) return [];
+  return data.map((row, i) => normalizeProduct(row as RawProduct, i)).filter((p): p is CatalogProduct => Boolean(p));
+}
+
+function catalogFromEnvOrExtra(): CatalogProduct[] {
+  const extra = (Constants.expoConfig?.extra ?? {}) as Extra;
+  if (extra.merchoneCatalog != null) {
+    const list = parseCatalogList(extra.merchoneCatalog);
+    if (list.length) return list;
+  }
+  const fromProcess = envString('EXPO_PUBLIC_MERCHONE_CATALOG');
+  if (fromProcess) {
+    const list = parseCatalogList(fromProcess);
+    if (list.length) return list;
+  }
+  return [];
+}
+
+/** EXPO_PUBLIC_MERCHONE_SKU_CANVAS_20CM + EXPO_PUBLIC_PRICE_EUR_20CM, any size. */
+function legacyProductsFromEnv(): CatalogProduct[] {
+  const out: CatalogProduct[] = [];
+  const env = process.env ?? {};
+  const skuRe = /^EXPO_PUBLIC_MERCHONE_SKU_CANVAS_(\d+)CM$/i;
+
+  for (const [key, value] of Object.entries(env)) {
+    if (typeof value !== 'string' || !value.trim()) continue;
+    const m = key.match(skuRe);
+    if (!m) continue;
+    const cm = m[1]!;
+    const price = parsePrice(env[`EXPO_PUBLIC_PRICE_EUR_${cm}CM`], Number(cm) <= 25 ? 19.99 : Number(cm) <= 35 ? 49.9 : 89.9);
     out.push({
-      id: 'canvas_30',
-      sku: s30,
-      title: '30 × 30 cm',
+      id: `canvas_${cm}`,
+      sku: value.trim(),
+      title: `${cm} × ${cm} cm`,
       category: 'canvas',
       categoryLabel: 'Leinwand',
-      priceEur: p30,
-      priceLabel: formatEur(p30),
-      description: 'Quadratische Galerie-Leinwand',
+      priceEur: price,
+      priceLabel: formatEur(price),
+      description: 'Galerie-Leinwand',
     });
   }
-  if (s60) {
-    out.push({
-      id: 'canvas_60',
-      sku: s60,
-      title: '60 × 60 cm',
-      category: 'canvas',
-      categoryLabel: 'Leinwand',
-      priceEur: p60,
-      priceLabel: formatEur(p60),
-      description: 'Quadratische Galerie-Leinwand',
-    });
-  }
+
+  out.sort((a, b) => a.title.localeCompare(b.title, 'de'));
   return out;
 }
 
-/** Visible demo cards when no SKUs are configured yet (payment still needs real SKUs). */
+function bundledProducts(): CatalogProduct[] {
+  return parseCatalogList(bundledCatalog);
+}
+
 function demoProducts(): CatalogProduct[] {
   return [
     {
@@ -138,7 +171,7 @@ function demoProducts(): CatalogProduct[] {
       categoryLabel: 'Leinwand',
       priceEur: 49.9,
       priceLabel: formatEur(49.9),
-      description: 'Galerie-Leinwand',
+      description: 'Galerie-Leinwand (Demo — SKU fehlt)',
     },
     {
       id: 'demo_canvas_60',
@@ -148,34 +181,45 @@ function demoProducts(): CatalogProduct[] {
       categoryLabel: 'Leinwand',
       priceEur: 89.9,
       priceLabel: formatEur(89.9),
-      description: 'Galerie-Leinwand',
+      description: 'Galerie-Leinwand (Demo — SKU fehlt)',
     },
   ];
 }
 
 let cached: CatalogProduct[] | null = null;
+let catalogSource: 'env' | 'bundled' | 'legacy' | 'demo' = 'demo';
+
+export function getCatalogSource(): typeof catalogSource {
+  getCatalogProducts();
+  return catalogSource;
+}
 
 export function getCatalogProducts(): CatalogProduct[] {
   if (cached) return cached;
 
-  const rawJson = envString('EXPO_PUBLIC_MERCHONE_CATALOG');
-  if (rawJson) {
-    try {
-      const parsed = JSON.parse(rawJson) as RawProduct[];
-      if (Array.isArray(parsed)) {
-        const list = parsed.map(normalizeProduct).filter((p): p is CatalogProduct => Boolean(p));
-        if (list.length) {
-          cached = list;
-          return cached;
-        }
-      }
-    } catch {
-      console.warn('EXPO_PUBLIC_MERCHONE_CATALOG is invalid JSON');
-    }
+  const fromEnv = catalogFromEnvOrExtra();
+  if (fromEnv.length) {
+    catalogSource = 'env';
+    cached = fromEnv;
+    return cached;
   }
 
-  const legacy = legacyProducts();
-  cached = legacy.length ? legacy : demoProducts();
+  const bundled = bundledProducts().filter((p) => Boolean(p.sku));
+  if (bundled.length) {
+    catalogSource = 'bundled';
+    cached = bundled;
+    return cached;
+  }
+
+  const legacy = legacyProductsFromEnv();
+  if (legacy.length) {
+    catalogSource = 'legacy';
+    cached = legacy;
+    return cached;
+  }
+
+  catalogSource = 'demo';
+  cached = demoProducts();
   return cached;
 }
 

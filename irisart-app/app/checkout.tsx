@@ -27,6 +27,7 @@ import {
 import {
   catalogHasPayableSkus,
   getCatalogProducts,
+  getCatalogSource,
   uniqueCategories,
   type CatalogProduct,
 } from '@/lib/merchOneCatalog';
@@ -226,10 +227,11 @@ export default function CheckoutScreen() {
 
             {!payable ? (
               <View style={[styles.card, { borderColor: 'rgba(220,160,40,0.55)', backgroundColor: c.surface }]}>
-                <Text style={[styles.cardTitle, { color: c.text }]}>SKU-Konfiguration fehlt</Text>
+                <Text style={[styles.cardTitle, { color: c.text }]}>Produktkatalog ohne SKU</Text>
                 <Text style={[styles.cardBody, { color: muted }]}>
-                  Produkte sind wählbar, aber ohne echte merchOne-SKUs in EXPO_PUBLIC_MERCHONE_CATALOG (oder
-                  Legacy-SKU-Env) schlägt die Zahlung fehl.
+                  Es läuft der Demo-Katalog (Quelle: {getCatalogSource()}). Bearbeite{' '}
+                  <Text style={{ fontWeight: '700' }}>irisart-app/config/productCatalog.json</Text> im Repo oder setze
+                  EXPO_PUBLIC_MERCHONE_CATALOG und starte danach einen neuen Deploy/Build.
                 </Text>
               </View>
             ) : null}
