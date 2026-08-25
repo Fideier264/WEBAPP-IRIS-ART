@@ -73,7 +73,7 @@ export default function LibraryScreen() {
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.headerRow}>
-          <View style={{ flex: 1, gap: 4 }}>
+          <View style={{ flex: 1, gap: 4, paddingRight: 88 }}>
             <Text style={[styles.hTitle, { color: c.text }]}>Meine Galerie</Text>
             <Text style={[styles.sub, { color: muted }]}>
               {user
@@ -81,18 +81,6 @@ export default function LibraryScreen() {
                 : 'Zum Speichern und Anzeigen deiner Iris-Bilder bitte anmelden.'}
             </Text>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/account')}
-            style={({ pressed }) => [
-              styles.accountChip,
-              { borderColor: c.border, backgroundColor: c.surface },
-              pressed && { opacity: 0.85 },
-            ]}>
-            <Text style={[styles.accountChipText, { color: c.text }]}>
-              {authLoading ? '…' : user ? 'Account' : 'Login'}
-            </Text>
-          </Pressable>
         </View>
 
         {!user && !authLoading ? (
@@ -178,13 +166,6 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   hTitle: { fontSize: 22, fontWeight: '900' },
   sub: { fontSize: 13.5, lineHeight: 18.5, marginBottom: 6 },
-  accountChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  accountChipText: { fontSize: 13.5, fontWeight: '750' },
   grid: { gap: 10, paddingBottom: 120, flexDirection: 'row', flexWrap: 'wrap' },
   card: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', padding: 10, gap: 10 },
   thumb: { width: '100%', height: 150, borderRadius: 12, backgroundColor: '#000' },

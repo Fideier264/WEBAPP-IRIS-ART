@@ -115,7 +115,7 @@ export default function ReviewScreen() {
             ]}>
             <Text style={[styles.chipText, { color: c.text }]}>Back</Text>
           </Pressable>
-          <View style={{ width: 56 }} />
+          <View style={{ width: 88 }} />
         </View>
 
         <View style={styles.hero}>

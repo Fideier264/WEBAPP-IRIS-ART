@@ -181,51 +181,65 @@ async function requestIrisAnalyze(imageUrl: string): Promise<{
   fingerprint?: string;
   provenance?: 'cache' | 'model';
 }> {
-  const invoke = await invokeEdgeFunction('iris-analyze', { imageUrl });
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+    const invoke = await invokeEdgeFunction('iris-analyze', { imageUrl });
 
-  if (invoke.error) {
-    const anyErr = invoke.error as any;
-    const status =
-      typeof anyErr?.context?.status === 'number'
-        ? anyErr.context.status
-        : typeof anyErr?.status === 'number'
-          ? anyErr.status
-          : undefined;
-    const bodyText =
-      typeof anyErr?.context?.body === 'string'
-        ? anyErr.context.body
-        : typeof anyErr?.context?.response === 'string'
-          ? anyErr.context.response
-          : undefined;
-    throw new Error(
-      [
-        `Edge function iris-analyze failed${status ? ` (HTTP ${status})` : ''}.`,
-        anyErr?.message ? `Message: ${String(anyErr.message)}` : undefined,
-        bodyText ? `Body: ${bodyText}` : undefined,
-      ]
-        .filter(Boolean)
-        .join('\n')
-    );
-  }
+    if (invoke.error) {
+      const anyErr = invoke.error as any;
+      const status =
+        typeof anyErr?.context?.status === 'number'
+          ? anyErr.context.status
+          : typeof anyErr?.status === 'number'
+            ? anyErr.status
+            : undefined;
+      const bodyText =
+        typeof anyErr?.context?.body === 'string'
+          ? anyErr.context.body
+          : typeof anyErr?.context?.response === 'string'
+            ? anyErr.context.response
+            : undefined;
+      lastError = new Error(
+        [
+          `Edge function iris-analyze failed${status ? ` (HTTP ${status})` : ''}.`,
+          anyErr?.message ? `Message: ${String(anyErr.message)}` : undefined,
+          bodyText ? `Body: ${bodyText}` : undefined,
+        ]
+          .filter(Boolean)
+          .join('\n')
+      );
+      const retryable = status === 429 || status === 500 || status === 503 || status === 546 || status === 504;
+      if (!retryable) throw lastError;
+      continue;
+    }
 
-  const data = invoke.data as
-    | {
-        ok?: boolean;
-        analysis?: EdgeAnalysis;
-        error?: string;
-        fingerprint?: string;
-        source?: 'cache' | 'model';
-      }
-    | null;
-  if (!data) throw new Error('Iris analysis failed (no response data).');
-  if (data.ok === false || !data.analysis) {
-    throw new Error(data.error ?? 'Iris analysis failed.');
+    const data = invoke.data as
+      | {
+          ok?: boolean;
+          analysis?: EdgeAnalysis;
+          error?: string;
+          fingerprint?: string;
+          source?: 'cache' | 'model';
+        }
+      | null;
+    if (!data) {
+      lastError = new Error('Iris analysis failed (no response data).');
+      continue;
+    }
+    if (data.ok === false || !data.analysis) {
+      lastError = new Error(data.error ?? 'Iris analysis failed.');
+      continue;
+    }
+    return {
+      analysis: data.analysis,
+      fingerprint: typeof data.fingerprint === 'string' ? data.fingerprint : undefined,
+      provenance: data.source === 'cache' || data.source === 'model' ? data.source : undefined,
+    };
   }
-  return {
-    analysis: data.analysis,
-    fingerprint: typeof data.fingerprint === 'string' ? data.fingerprint : undefined,
-    provenance: data.source === 'cache' || data.source === 'model' ? data.source : undefined,
-  };
+  throw lastError ?? new Error('Iris analysis failed.');
 }
 
 async function analyzeIrisUncached(uri: string): Promise<IrisAnalysis> {

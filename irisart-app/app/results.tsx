@@ -38,6 +38,7 @@ export default function ResultsScreen() {
   const analysisUri = sourceUri ?? uri;
   const stableKey = irisId ?? irisFingerprint;
 
+  const [retryNonce, setRetryNonce] = useState(0);
   const [status, setStatus] = useState<Status>(() => {
     if (!analysisUri && !stableKey) return { kind: 'error', message: 'Missing photo.' };
     if (stableKey) {
@@ -69,7 +70,7 @@ export default function ResultsScreen() {
       }
 
       try {
-        if (stableKey) {
+        if (retryNonce === 0 && stableKey) {
           const local = peekIrisAnalysisByStableKey(stableKey);
           if (local) {
             if (analysisUri) seedIrisAnalysisCache(analysisUri, local, stableKey);
@@ -94,12 +95,14 @@ export default function ResultsScreen() {
           return;
         }
 
-        const cached = peekIrisAnalysisCache(analysisUri);
-        if (cached) {
-          if (stableKey) seedIrisAnalysisCache(analysisUri, cached, stableKey);
-          await persistAccount(cached);
-          if (!cancelled) setStatus({ kind: 'ready', result: cached });
-          return;
+        if (retryNonce === 0) {
+          const cached = peekIrisAnalysisCache(analysisUri);
+          if (cached) {
+            if (stableKey) seedIrisAnalysisCache(analysisUri, cached, stableKey);
+            await persistAccount(cached);
+            if (!cancelled) setStatus({ kind: 'ready', result: cached });
+            return;
+          }
         }
 
         setStatus({ kind: 'loading' });
@@ -117,7 +120,7 @@ export default function ResultsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [analysisUri, stableKey, irisId, irisFingerprint]);
+  }, [analysisUri, stableKey, irisId, irisFingerprint, retryNonce]);
 
   const title = useMemo(() => {
     if (status.kind !== 'ready') return 'Analyse';
@@ -153,7 +156,7 @@ export default function ResultsScreen() {
             <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
               {title}
             </Text>
-            <View style={{ width: 56 }} />
+            <View style={{ width: 88 }} />
           </View>
 
           {uri ? (
@@ -188,14 +191,38 @@ export default function ResultsScreen() {
                 ]}>
                 {status.message}
               </Text>
+              <Text
+                style={[
+                  styles.cardBody,
+                  {
+                    color: scheme === 'dark' ? 'rgba(243,245,255,0.55)' : 'rgba(10,11,16,0.55)',
+                    marginTop: 8,
+                  },
+                ]}>
+                Ohne erfolgreiche Analyse wird nichts im Account gespeichert. Bitte erneut versuchen.
+              </Text>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => router.replace('/capture')}
+                onPress={() => setRetryNonce((n) => n + 1)}
                 style={({ pressed }) => [
                   styles.primaryBtn,
                   { backgroundColor: c.tint, opacity: pressed ? 0.9 : 1, marginTop: 14 },
                 ]}>
-                <Text style={styles.primaryText}>Retake Photo</Text>
+                <Text style={styles.primaryText}>Analyse erneut versuchen</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.replace('/capture')}
+                style={({ pressed }) => [
+                  styles.secondaryBtn,
+                  {
+                    borderColor: c.border,
+                    backgroundColor: c.surfaceAlt,
+                    opacity: pressed ? 0.9 : 1,
+                    marginTop: 10,
+                  },
+                ]}>
+                <Text style={[styles.secondaryText, { color: c.text }]}>Retake Photo</Text>
               </Pressable>
             </View>
           ) : (

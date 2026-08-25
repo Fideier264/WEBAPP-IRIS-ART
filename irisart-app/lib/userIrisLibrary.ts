@@ -66,6 +66,14 @@ function isIrisAnalysis(value: unknown): value is IrisAnalysis {
   return typeof v.primaryHex === 'string' && typeof v.rarityText === 'string' && Array.isArray(v.palette);
 }
 
+function isMissingAnalysisColumnError(error: { message?: string; code?: string } | null | undefined) {
+  const msg = (error?.message ?? '').toLowerCase();
+  return (
+    msg.includes('analysis') &&
+    (msg.includes('column') || msg.includes('does not exist') || msg.includes('schema cache') || error?.code === '42703')
+  );
+}
+
 export async function getUserIrisLibrary(): Promise<UserIrisItem[]> {
   let userId: string;
   try {
@@ -75,11 +83,28 @@ export async function getUserIrisLibrary(): Promise<UserIrisItem[]> {
     throw e;
   }
 
-  const { data, error } = await supabase
-    .from('user_irises')
-    .select('id, storage_path, fingerprint, created_at, last_used_at, analysis')
-    .eq('user_id', userId)
-    .order('last_used_at', { ascending: false });
+  let data: any[] | null = null;
+  let error: { message?: string; code?: string } | null = null;
+
+  {
+    const res = await supabase
+      .from('user_irises')
+      .select('id, storage_path, fingerprint, created_at, last_used_at, analysis')
+      .eq('user_id', userId)
+      .order('last_used_at', { ascending: false });
+    data = res.data;
+    error = res.error;
+  }
+
+  if (error && isMissingAnalysisColumnError(error)) {
+    const res = await supabase
+      .from('user_irises')
+      .select('id, storage_path, fingerprint, created_at, last_used_at')
+      .eq('user_id', userId)
+      .order('last_used_at', { ascending: false });
+    data = res.data;
+    error = res.error;
+  }
 
   if (error) throw new Error(error.message);
   if (!data?.length) return [];
@@ -119,7 +144,10 @@ export async function getUserIrisAnalysis(opts: {
   else return null;
 
   const { data, error } = await query.maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingAnalysisColumnError(error)) return null;
+    throw new Error(error.message);
+  }
   return isIrisAnalysis(data?.analysis) ? data.analysis : null;
 }
 
@@ -148,7 +176,16 @@ export async function saveUserIrisAnalysis(
   if (opts.id) existing = existing.eq('id', opts.id);
   else if (opts.fingerprint) existing = existing.eq('fingerprint', opts.fingerprint);
 
-  const { data: row, error: readErr } = await existing.maybeSingle();
+  let { data: row, error: readErr } = await existing.maybeSingle();
+  if (readErr && isMissingAnalysisColumnError(readErr)) {
+    let fallback = supabase.from('user_irises').select('id').eq('user_id', userId);
+    if (opts.id) fallback = fallback.eq('id', opts.id);
+    else if (opts.fingerprint) fallback = fallback.eq('fingerprint', opts.fingerprint);
+    const fb = await fallback.maybeSingle();
+    if (fb.error) throw new Error(fb.error.message);
+    row = fb.data ? { id: fb.data.id, analysis: null } : null;
+    readErr = null;
+  }
   if (readErr) throw new Error(readErr.message);
 
   if (!row?.id) {
@@ -166,7 +203,16 @@ export async function saveUserIrisAnalysis(
     .update({ analysis })
     .eq('id', row.id)
     .eq('user_id', userId);
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingAnalysisColumnError(error)) {
+      if (opts.fingerprint) pendingAnalysisByFingerprint.set(opts.fingerprint, analysis);
+      console.warn(
+        'user_irises.analysis column missing — run migration 20260425130000_user_irises_analysis.sql'
+      );
+      return;
+    }
+    throw new Error(error.message);
+  }
   if (opts.fingerprint) pendingAnalysisByFingerprint.delete(opts.fingerprint);
 }
 
@@ -179,20 +225,41 @@ export async function upsertUserIris(uri: string, fingerprint?: string) {
       : undefined;
 
   if (fingerprint) {
-    const existing = await supabase
+    let existing = await supabase
       .from('user_irises')
       .select('id, storage_path, analysis')
       .eq('user_id', userId)
       .eq('fingerprint', fingerprint)
       .maybeSingle();
 
+    if (existing.error && isMissingAnalysisColumnError(existing.error)) {
+      existing = await supabase
+        .from('user_irises')
+        .select('id, storage_path')
+        .eq('user_id', userId)
+        .eq('fingerprint', fingerprint)
+        .maybeSingle();
+    }
+    if (existing.error) throw new Error(existing.error.message);
+
     if (existing.data?.id) {
       const patch: { last_used_at: string; analysis?: IrisAnalysis } = { last_used_at: nowIso };
-      if (!isIrisAnalysis(existing.data.analysis) && pending) {
+      let wroteAnalysis = false;
+      if (!isIrisAnalysis((existing.data as { analysis?: unknown }).analysis) && pending) {
         patch.analysis = pending;
+        wroteAnalysis = true;
       }
-      await supabase.from('user_irises').update(patch).eq('id', existing.data.id).eq('user_id', userId);
-      if (pending) pendingAnalysisByFingerprint.delete(fingerprint);
+      let upd = await supabase.from('user_irises').update(patch).eq('id', existing.data.id).eq('user_id', userId);
+      if (upd.error && patch.analysis && isMissingAnalysisColumnError(upd.error)) {
+        wroteAnalysis = false;
+        upd = await supabase
+          .from('user_irises')
+          .update({ last_used_at: nowIso })
+          .eq('id', existing.data.id)
+          .eq('user_id', userId);
+      }
+      if (upd.error) throw new Error(upd.error.message);
+      if (pending && wroteAnalysis) pendingAnalysisByFingerprint.delete(fingerprint);
       return;
     }
   }
@@ -207,14 +274,26 @@ export async function upsertUserIris(uri: string, fingerprint?: string) {
   });
   if (upload.error) throw new Error(upload.error.message);
 
-  const insert = await supabase.from('user_irises').insert({
+  const insertPayload: Record<string, unknown> = {
     user_id: userId,
     storage_path: storagePath,
     fingerprint: fingerprint ?? null,
-    analysis: pending ?? null,
     created_at: nowIso,
     last_used_at: nowIso,
-  });
+  };
+  if (pending) insertPayload.analysis = pending;
+
+  let insert = await supabase.from('user_irises').insert(insertPayload);
+  if (insert.error && pending && isMissingAnalysisColumnError(insert.error)) {
+    delete insertPayload.analysis;
+    insert = await supabase.from('user_irises').insert(insertPayload);
+    if (!insert.error && fingerprint && pending) {
+      pendingAnalysisByFingerprint.set(fingerprint, pending);
+      console.warn(
+        'user_irises.analysis column missing — run migration 20260425130000_user_irises_analysis.sql'
+      );
+    }
+  }
   if (insert.error) {
     await supabase.storage.from(BUCKET).remove([storagePath]);
     throw new Error(insert.error.message);

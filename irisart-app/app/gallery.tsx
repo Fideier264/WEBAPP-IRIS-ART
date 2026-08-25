@@ -157,7 +157,7 @@ export default function ArtGalleryScreen() {
           <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
             Shop
           </Text>
-          <View style={{ width: 56 }} />
+          <View style={{ width: 88 }} />
         </View>
 
         {!textureUri ? (

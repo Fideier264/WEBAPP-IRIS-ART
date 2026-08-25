@@ -100,7 +100,7 @@ export default function IrisPrepScreen() {
             <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
               {title}
             </Text>
-            <View style={{ width: 56 }} />
+            <View style={{ width: 88 }} />
           </View>
 
           <View style={[styles.stage, { backgroundColor: c.surface, borderColor: c.border }]}>

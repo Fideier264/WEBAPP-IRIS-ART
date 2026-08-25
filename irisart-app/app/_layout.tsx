@@ -10,6 +10,8 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { AuthProvider } from '@/lib/auth';
+import { AppAccountButton } from '@/components/AppAccountButton';
+import { View } from 'react-native';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -67,19 +69,22 @@ function RootLayoutNav() {
             border: Colors[colorScheme].border,
           },
         }}>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="library" options={{ headerShown: false }} />
-          <Stack.Screen name="account" options={{ headerShown: false }} />
-          <Stack.Screen name="capture" options={{ headerShown: false }} />
-          <Stack.Screen name="iris" options={{ headerShown: false }} />
-          <Stack.Screen name="review" options={{ headerShown: false }} />
-          <Stack.Screen name="gallery" options={{ headerShown: false }} />
-          <Stack.Screen name="shop" options={{ headerShown: false }} />
-          <Stack.Screen name="checkout" options={{ headerShown: false }} />
-          <Stack.Screen name="results" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
+        <View style={{ flex: 1 }}>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="library" options={{ headerShown: false }} />
+            <Stack.Screen name="account" options={{ headerShown: false }} />
+            <Stack.Screen name="capture" options={{ headerShown: false }} />
+            <Stack.Screen name="iris" options={{ headerShown: false }} />
+            <Stack.Screen name="review" options={{ headerShown: false }} />
+            <Stack.Screen name="gallery" options={{ headerShown: false }} />
+            <Stack.Screen name="shop" options={{ headerShown: false }} />
+            <Stack.Screen name="checkout" options={{ headerShown: false }} />
+            <Stack.Screen name="results" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <AppAccountButton />
+        </View>
       </ThemeProvider>
     </AuthProvider>
   );

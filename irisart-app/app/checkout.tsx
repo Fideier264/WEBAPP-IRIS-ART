@@ -151,7 +151,7 @@ export default function CheckoutScreen() {
           <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
             Bestellen
           </Text>
-          <View style={{ width: 72 }} />
+          <View style={{ width: 88 }} />
         </View>
 
         {!textureUri ? (
