@@ -9,16 +9,62 @@ export type PricedProduct = {
 type CatalogRow = {
   sku?: string;
   amountCents?: number;
+  priceEur?: number | string;
   label?: string;
   title?: string;
 };
 
+/** Fallback when no Stripe catalog secrets are set (keep in sync with irisart-app/config/productCatalog.json). */
+const BUNDLED_CATALOG: PricedProduct[] = [
+  {
+    sku: "CVS0200201LMF2-PIC83638470",
+    amountCents: 1999,
+    label: "IrisArt Leinwand 20 × 20 cm",
+  },
+];
+
+function amountFromRow(row: CatalogRow): number | null {
+  if (typeof row.amountCents === "number" && row.amountCents > 0) {
+    return Math.round(row.amountCents);
+  }
+  if (typeof row.priceEur === "number" && row.priceEur > 0) {
+    return Math.round(row.priceEur * 100);
+  }
+  if (typeof row.priceEur === "string" && row.priceEur.trim()) {
+    const n = Number(row.priceEur.replace(",", "."));
+    if (Number.isFinite(n) && n > 0) return Math.round(n * 100);
+  }
+  return null;
+}
+
+function legacySizeCatalog(): PricedProduct[] {
+  const out: PricedProduct[] = [];
+  const skuRe = /^MERCHONE_SKU_CANVAS_(\d+)CM$/i;
+
+  for (const [key, value] of Object.entries(Deno.env.toObject())) {
+    const m = key.match(skuRe);
+    if (!m || !value?.trim()) continue;
+    const size = m[1];
+    const amountRaw = Deno.env.get(`STRIPE_AMOUNT_CENTS_${size}CM`) ??
+      Deno.env.get(`STRIPE_AMOUNT_CENTS_${size}cm`);
+    const amount = parseInt(amountRaw ?? "", 10);
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+    out.push({
+      sku: value.trim(),
+      amountCents: amount,
+      label: `IrisArt Leinwand ${size} × ${size} cm`,
+    });
+  }
+  return out;
+}
+
 /**
  * Resolve price for a merchOne SKU.
  * Priority:
- * 1) STRIPE_PRODUCT_CATALOG JSON [{sku, amountCents, label}]
- * 2) STRIPE_AMOUNT_BY_SKU JSON {"sku":4990}
- * 3) Legacy MERCHONE_SKU_CANVAS_30CM/60CM + STRIPE_AMOUNT_CENTS_*
+ * 1) STRIPE_PRODUCT_CATALOG JSON [{sku, amountCents|priceEur, label}]
+ * 2) STRIPE_AMOUNT_BY_SKU JSON {"sku":1999}
+ * 3) Any MERCHONE_SKU_CANVAS_<N>CM + STRIPE_AMOUNT_CENTS_<N>CM
+ * 4) Bundled default catalog (repo productCatalog.json)
  */
 export function resolvePricedProduct(productSku: string): PricedProduct | null {
   const sku = productSku.trim();
@@ -30,10 +76,11 @@ export function resolvePricedProduct(productSku: string): PricedProduct | null {
       const rows = JSON.parse(catalogRaw) as CatalogRow[];
       if (Array.isArray(rows)) {
         const hit = rows.find((r) => typeof r.sku === "string" && r.sku.trim() === sku);
-        if (hit && typeof hit.amountCents === "number" && hit.amountCents > 0) {
+        const amount = hit ? amountFromRow(hit) : null;
+        if (hit && amount) {
           return {
             sku,
-            amountCents: Math.round(hit.amountCents),
+            amountCents: amount,
             label: String(hit.label ?? hit.title ?? `IrisArt (${sku})`).trim(),
           };
         }
@@ -56,17 +103,11 @@ export function resolvePricedProduct(productSku: string): PricedProduct | null {
     }
   }
 
-  const s30 = Deno.env.get("MERCHONE_SKU_CANVAS_30CM")?.trim() ?? "";
-  const s60 = Deno.env.get("MERCHONE_SKU_CANVAS_60CM")?.trim() ?? "";
-  const a30 = parseInt(Deno.env.get("STRIPE_AMOUNT_CENTS_30CM") ?? "4990", 10);
-  const a60 = parseInt(Deno.env.get("STRIPE_AMOUNT_CENTS_60CM") ?? "8990", 10);
+  const legacyHit = legacySizeCatalog().find((p) => p.sku === sku);
+  if (legacyHit) return legacyHit;
 
-  if (s30 && sku === s30 && Number.isFinite(a30) && a30 > 0) {
-    return { sku, amountCents: a30, label: "IrisArt Leinwand 30 × 30 cm" };
-  }
-  if (s60 && sku === s60 && Number.isFinite(a60) && a60 > 0) {
-    return { sku, amountCents: a60, label: "IrisArt Leinwand 60 × 60 cm" };
-  }
+  const bundled = BUNDLED_CATALOG.find((p) => p.sku === sku);
+  if (bundled) return bundled;
 
   return null;
 }

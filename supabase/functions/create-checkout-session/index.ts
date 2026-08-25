@@ -1,6 +1,7 @@
 // Supabase Edge Function: create-checkout-session
 // Creates a Stripe Checkout Session; merchOne fulfillment happens in stripe-webhook after payment.
-// Secrets: STRIPE_SECRET_KEY, MERCHONE_SKU_CANVAS_30CM/60CM, STRIPE_AMOUNT_CENTS_30CM/60CM
+// Secrets: STRIPE_SECRET_KEY; pricing via STRIPE_PRODUCT_CATALOG / STRIPE_AMOUNT_BY_SKU /
+// MERCHONE_SKU_CANVAS_<N>CM + STRIPE_AMOUNT_CENTS_<N>CM (or bundled defaults)
 // Optional: STRIPE_CURRENCY, APP_ORIGIN, CHECKOUT_ALLOWED_ORIGINS
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -123,7 +124,7 @@ serve(async (req) => {
       {
         ok: false,
         error:
-          "Unbekannte productSku / kein Preis. Setze STRIPE_PRODUCT_CATALOG oder MERCHONE_SKU_CANVAS_* + STRIPE_AMOUNT_CENTS_* auf der Function.",
+          `Unbekannte productSku / kein Preis für „${productSku}“. Setze in Supabase Secrets z. B. STRIPE_AMOUNT_BY_SKU={"${productSku}":1999} oder STRIPE_PRODUCT_CATALOG, dann Function neu deployen.`,
       },
       { status: 200, headers: cors },
     );
