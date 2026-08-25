@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
+import { BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 
 export default function OnboardingScreen() {
   const scheme = useColorScheme();
@@ -106,8 +107,8 @@ function Row({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  safe: { flex: 1, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14 },
-  hero: { gap: 10, paddingTop: 14 },
+  safe: { flex: 1, paddingHorizontal: 22, paddingTop: 18, paddingBottom: BOTTOM_BAR_CLEARANCE },
+  hero: { gap: 10, paddingTop: 14, paddingRight: 88 },
   brand: { fontSize: 44, fontWeight: '700', letterSpacing: 0.2 },
   tagline: { fontSize: 18, fontWeight: '600', letterSpacing: 0.25 },
   sub: { fontSize: 14.5, lineHeight: 21, marginTop: 6 },
@@ -124,13 +125,13 @@ const styles = StyleSheet.create({
   rowTitle: { fontSize: 14.5, fontWeight: '650' },
   rowBody: { fontSize: 13.5, lineHeight: 19 },
   cta: {
-    marginTop: 'auto',
+    marginTop: 22,
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ctaText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
-  foot: { marginTop: 12, fontSize: 12.5, textAlign: 'center' },
+  foot: { marginTop: 12, marginBottom: 8, fontSize: 12.5, textAlign: 'center' },
 });
 

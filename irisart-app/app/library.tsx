@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import { useAuth } from '@/lib/auth';
 import { getUserIrisLibrary, removeUserIris, type UserIrisItem } from '@/lib/userIrisLibrary';
 import { seedIrisAnalysisCache } from '@/lib/analyzeIris';
@@ -73,7 +74,7 @@ export default function LibraryScreen() {
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.headerRow}>
-          <View style={{ flex: 1, gap: 4, paddingRight: 88 }}>
+          <View style={{ flex: 1, gap: 4, paddingRight: ACCOUNT_HEADER_CLEARANCE }}>
             <Text style={[styles.hTitle, { color: c.text }]}>Meine Galerie</Text>
             <Text style={[styles.sub, { color: muted }]}>
               {user
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   hTitle: { fontSize: 22, fontWeight: '900' },
   sub: { fontSize: 13.5, lineHeight: 18.5, marginBottom: 6 },
-  grid: { gap: 10, paddingBottom: 120, flexDirection: 'row', flexWrap: 'wrap' },
+  grid: { gap: 10, paddingBottom: BOTTOM_BAR_CLEARANCE, flexDirection: 'row', flexWrap: 'wrap' },
   card: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', padding: 10, gap: 10 },
   thumb: { width: '100%', height: 150, borderRadius: 12, backgroundColor: '#000' },
   row: { flexDirection: 'column', gap: 6 },

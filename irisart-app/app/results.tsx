@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/components/useColorScheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import Colors from '@/constants/Colors';
+import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import {
   analyzeIris,
   peekIrisAnalysisByStableKey,
@@ -156,7 +157,7 @@ export default function ResultsScreen() {
             <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
               {title}
             </Text>
-            <View style={{ width: 88 }} />
+            <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
           </View>
 
           {uri ? (
@@ -355,7 +356,7 @@ function Swatch({ label, hex, scheme, compact }: { label: string; hex: string; s
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 14, gap: 14 },
-  scrollContent: { gap: 14, paddingBottom: 40 },
+  scrollContent: { gap: 14, paddingBottom: BOTTOM_BAR_CLEARANCE },
 
   header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   chip: {

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { ACCOUNT_HEADER_CLEARANCE } from '@/constants/Layout';
 import { analyzeIris, type IrisAnalysis } from '@/lib/analyzeIris';
 
 type ArtStyleId = 'cosmic' | 'watercolor' | 'cyberpunk';
@@ -115,7 +116,7 @@ export default function ReviewScreen() {
             ]}>
             <Text style={[styles.chipText, { color: c.text }]}>Back</Text>
           </Pressable>
-          <View style={{ width: 88 }} />
+          <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
         </View>
 
         <View style={styles.hero}>

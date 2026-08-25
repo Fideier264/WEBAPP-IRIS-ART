@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/components/useColorScheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import Colors from '@/constants/Colors';
+import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import { enhanceIrisTextureWithInpaint } from '@/lib/aiIrisInpaint';
 
 type Status =
@@ -100,7 +101,7 @@ export default function IrisPrepScreen() {
             <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
               {title}
             </Text>
-            <View style={{ width: 88 }} />
+            <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
           </View>
 
           <View style={[styles.stage, { backgroundColor: c.surface, borderColor: c.border }]}>
@@ -216,7 +217,7 @@ export default function IrisPrepScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 14, gap: 14 },
-  scrollContent: { flexGrow: 1, paddingBottom: 120, gap: 14 },
+  scrollContent: { flexGrow: 1, paddingBottom: BOTTOM_BAR_CLEARANCE, gap: 14 },
 
   header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   chip: {

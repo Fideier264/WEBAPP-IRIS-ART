@@ -21,6 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 
 type CaptureState =
   | { kind: 'camera' }
@@ -209,30 +210,31 @@ export default function CaptureScreen() {
             ]}>
             <Text style={[styles.chipText, { color: c.text }]}>Back</Text>
           </Pressable>
+          <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
+        </View>
 
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={pickFromGallery}
-              disabled={isPicking}
-              style={({ pressed }) => [
-                styles.chip,
-                { borderColor: c.border, backgroundColor: c.surface },
-                pressed && { opacity: 0.85 },
-              ]}>
-              <Text style={[styles.chipText, { color: c.text }]}>{isPicking ? 'Uploading…' : 'Upload'}</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setTorchOn((v) => !v)}
-              style={({ pressed }) => [
-                styles.chip,
-                { borderColor: c.border, backgroundColor: c.surface },
-                pressed && { opacity: 0.85 },
-              ]}>
-              <Text style={[styles.chipText, { color: c.text }]}>{torchOn ? 'Torch On' : 'Torch Off'}</Text>
-            </Pressable>
-          </View>
+        <View style={styles.toolRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={pickFromGallery}
+            disabled={isPicking}
+            style={({ pressed }) => [
+              styles.chip,
+              { borderColor: c.border, backgroundColor: c.surface },
+              pressed && { opacity: 0.85 },
+            ]}>
+            <Text style={[styles.chipText, { color: c.text }]}>{isPicking ? 'Uploading…' : 'Upload'}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setTorchOn((v) => !v)}
+            style={({ pressed }) => [
+              styles.chip,
+              { borderColor: c.border, backgroundColor: c.surface },
+              pressed && { opacity: 0.85 },
+            ]}>
+            <Text style={[styles.chipText, { color: c.text }]}>{torchOn ? 'Torch On' : 'Torch Off'}</Text>
+          </Pressable>
         </View>
 
         <View style={styles.stage}>
@@ -405,8 +407,9 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 0 },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 14, flexGrow: 1 },
+  scrollContent: { paddingBottom: BOTTOM_BAR_CLEARANCE, flexGrow: 1, gap: 10 },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  toolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingRight: 4 },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 9,

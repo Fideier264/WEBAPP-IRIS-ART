@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { ACCOUNT_HEADER_CLEARANCE } from '@/constants/Layout';
 import { requestCreateMerchOneOrder } from '@/lib/createMerchOneOrder';
 import { getCanvasProductOptions, hasConfiguredCanvasSkus } from '@/lib/merchOneCatalog';
 import { uploadOrderPrintFile } from '@/lib/orderPrintUpload';
@@ -151,7 +152,7 @@ export default function CheckoutScreen() {
           <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
             Bestellen
           </Text>
-          <View style={{ width: 88 }} />
+          <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
         </View>
 
         {!textureUri ? (

@@ -16,6 +16,7 @@ import { ArtTemplateComposite } from '@/components/ArtTemplateComposite';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import { ART_TEMPLATES, filterTemplatesByEyeFamilies } from '@/lib/artTemplates';
 import {
   analyzeIris,
@@ -157,7 +158,7 @@ export default function ArtGalleryScreen() {
           <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
             Shop
           </Text>
-          <View style={{ width: 88 }} />
+          <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
         </View>
 
         {!textureUri ? (
@@ -326,7 +327,7 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 13.5, fontWeight: '650' },
   hTitle: { flex: 1, fontSize: 16, fontWeight: '800', textAlign: 'center' },
-  scroll: { paddingBottom: 36, gap: 14 },
+  scroll: { paddingBottom: BOTTOM_BAR_CLEARANCE, gap: 14 },
   primaryCta: {
     borderRadius: 18,
     paddingVertical: 16,

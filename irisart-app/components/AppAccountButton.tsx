@@ -21,10 +21,11 @@ export function AppAccountButton() {
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.host, { top: Math.max(8, insets.top + 4), right: 14 }]}>
+      style={[styles.host, { top: Math.max(10, insets.top + 6), right: 18 }]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={user ? 'Account' : 'Login'}
+        hitSlop={8}
         onPress={() => router.push('/account')}
         style={({ pressed }) => [
           styles.chip,
