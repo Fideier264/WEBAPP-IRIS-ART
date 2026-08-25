@@ -173,18 +173,27 @@ export default function ArtGalleryScreen() {
             showsVerticalScrollIndicator={false}>
             <Pressable
               accessibilityRole="button"
+              disabled={!selected}
               onPress={() =>
                 router.push({
                   pathname: '/checkout',
-                  params: { textureUri },
+                  params: {
+                    textureUri,
+                    templateId: selected?.id ?? visibleTemplates[0]?.id ?? '',
+                  },
                 })
               }
               style={({ pressed }) => [
                 styles.primaryCta,
-                { backgroundColor: c.tint, opacity: pressed ? 0.9 : 1 },
+                {
+                  backgroundColor: c.tint,
+                  opacity: !selected ? 0.45 : pressed ? 0.9 : 1,
+                },
               ]}>
               <Text style={styles.primaryCtaText}>Leinwand bestellen</Text>
-              <Text style={styles.primaryCtaSub}>Native Kasse · Größe & Adresse in der App</Text>
+              <Text style={styles.primaryCtaSub}>
+                {selected ? `Template: ${selected.title}` : 'Vorlage wählen'} · Größe & Adresse in der App
+              </Text>
             </Pressable>
 
             <Text style={[styles.sub, { color: muted }]}>

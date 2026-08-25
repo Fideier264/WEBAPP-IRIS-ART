@@ -111,3 +111,9 @@ export function filterTemplatesByEyeFamilies(
 ): ArtTemplate[] {
   return templates.filter((t) => templateMatchesFamilies(t.colorFamilies, userFamilies));
 }
+
+export function getArtTemplateById(id: string): ArtTemplate | undefined {
+  const key = id.trim();
+  if (!key) return undefined;
+  return ART_TEMPLATES.find((t) => t.id === key);
+}

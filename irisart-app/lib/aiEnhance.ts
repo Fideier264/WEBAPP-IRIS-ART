@@ -111,12 +111,13 @@ export async function cropToUserEyeRectangle(
 
 export async function uploadTempImage(
   localUri: string,
-  opts?: { signedUrlExpiresSec?: number }
+  opts?: { signedUrlExpiresSec?: number; storagePrefix?: string }
 ) {
   // Avoid `fetch(file://...)` inconsistencies in React Native. Read as base64 and build a Blob.
   const contentType = localUri.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
   const ext = contentType === 'image/png' ? 'png' : 'jpg';
-  const fullPath = `temp/${randomKey()}.${ext}`;
+  const prefix = (opts?.storagePrefix ?? 'temp').replace(/^\/+|\/+$/g, '') || 'temp';
+  const fullPath = `${prefix}/${randomKey()}.${ext}`;
 
   const base64Encoding = (FileSystem as any).EncodingType?.Base64 ?? (FileSystem as any).EncodingType?.base64 ?? 'base64';
   const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: base64Encoding as any });

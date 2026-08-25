@@ -15,15 +15,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ArtTemplateComposite } from '@/components/ArtTemplateComposite';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { ACCOUNT_HEADER_CLEARANCE } from '@/constants/Layout';
 import {
   openCheckoutUrl,
+  rememberCheckoutTemplate,
   rememberCheckoutTexture,
   requestCreateCheckoutSession,
+  restoreCheckoutTemplate,
   restoreCheckoutTexture,
 } from '@/lib/createStripeCheckout';
+import { getArtTemplateById } from '@/lib/artTemplates';
 import {
   catalogHasPayableSkus,
   getCatalogProducts,
@@ -31,7 +35,7 @@ import {
   uniqueCategories,
   type CatalogProduct,
 } from '@/lib/merchOneCatalog';
-import { uploadOrderPrintFile } from '@/lib/orderPrintUpload';
+import { uploadCheckoutArtwork } from '@/lib/orderPrintUpload';
 
 function paramString(v: string | string[] | undefined): string | undefined {
   if (typeof v === 'string' && v.trim()) return v.trim();
@@ -47,21 +51,40 @@ export default function CheckoutScreen() {
   const { width } = useWindowDimensions();
   const cardW = Math.floor((width - 36 - 10) / 2);
 
-  const params = useLocalSearchParams<{ textureUri?: string | string[]; canceled?: string | string[] }>();
+  const params = useLocalSearchParams<{
+    textureUri?: string | string[];
+    templateId?: string | string[];
+    canceled?: string | string[];
+  }>();
   const paramTexture = paramString(params.textureUri);
+  const paramTemplateId = paramString(params.templateId);
   const canceled = paramString(params.canceled) === '1' || paramString(params.canceled) === 'true';
 
   const [textureUri, setTextureUri] = useState<string | undefined>(paramTexture);
+  const [templateId, setTemplateId] = useState<string | undefined>(paramTemplateId);
 
   useEffect(() => {
     if (paramTexture) {
       setTextureUri(paramTexture);
       rememberCheckoutTexture(paramTexture);
-      return;
+    } else {
+      const restored = restoreCheckoutTexture();
+      if (restored) setTextureUri(restored);
     }
-    const restored = restoreCheckoutTexture();
-    if (restored) setTextureUri(restored);
-  }, [paramTexture]);
+
+    if (paramTemplateId) {
+      setTemplateId(paramTemplateId);
+      rememberCheckoutTemplate(paramTemplateId);
+    } else {
+      const restoredTemplate = restoreCheckoutTemplate();
+      if (restoredTemplate) setTemplateId(restoredTemplate);
+    }
+  }, [paramTexture, paramTemplateId]);
+
+  const template = useMemo(
+    () => (templateId ? getArtTemplateById(templateId) : undefined),
+    [templateId]
+  );
 
   const products = useMemo(() => getCatalogProducts(), []);
   const categories = useMemo(() => uniqueCategories(products), [products]);
@@ -110,6 +133,11 @@ export default function CheckoutScreen() {
       setStatus('error');
       return;
     }
+    if (!templateId || !template) {
+      setErrorMsg('Kein Template gewählt. Bitte im Shop eine Vorlage auswählen und erneut bestellen.');
+      setStatus('error');
+      return;
+    }
     if (!selected) {
       setErrorMsg('Bitte ein Produkt auswählen.');
       setStatus('error');
@@ -143,14 +171,15 @@ export default function CheckoutScreen() {
     try {
       setStatus('uploading');
       rememberCheckoutTexture(textureUri);
-      const printFileUrl = await uploadOrderPrintFile(textureUri);
+      rememberCheckoutTemplate(templateId);
+      const { printFileUrl } = await uploadCheckoutArtwork({ textureUri, templateId });
 
       setStatus('redirecting');
       const stripeTitle = `${selected.categoryLabel} ${selected.title}`.trim();
       const res = await requestCreateCheckoutSession({
         printFileUrl,
         productSku: selected.sku,
-        productLabel: `IrisArt ${stripeTitle}`,
+        productLabel: `IrisArt ${stripeTitle} · ${template.title}`,
         shipping: {
           email: email.trim(),
           firstName: firstName.trim(),
@@ -210,6 +239,13 @@ export default function CheckoutScreen() {
               Bitte vom Shop aus „Leinwand bestellen“ wählen.
             </Text>
           </View>
+        ) : !template ? (
+          <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
+            <Text style={[styles.cardTitle, { color: c.text }]}>Kein Template</Text>
+            <Text style={[styles.cardBody, { color: muted }]}>
+              Bitte im Shop eine Vorlage wählen und erneut „Leinwand bestellen“ tippen.
+            </Text>
+          </View>
         ) : (
           <ScrollView
             style={{ flex: 1 }}
@@ -235,6 +271,17 @@ export default function CheckoutScreen() {
                 </Text>
               </View>
             ) : null}
+
+            <Text style={[styles.sectionTitle, { color: c.text }]}>Druckmotiv</Text>
+            <View style={[styles.summaryCard, { borderColor: c.border, backgroundColor: c.surface }]}>
+              <Text style={[styles.cardTitle, { color: c.text }]}>{template.title}</Text>
+              <View style={{ alignItems: 'center', marginTop: 8 }}>
+                <ArtTemplateComposite textureUri={textureUri} template={template} width={Math.min(width - 36, 320)} />
+              </View>
+              <Text style={[styles.cardBody, { color: muted }]}>
+                Beim Bezahlen wird dieses Motiv als Druckdatei hochgeladen und an merchOne übergeben.
+              </Text>
+            </View>
 
             <Text style={[styles.sectionTitle, { color: c.text }]}>Produkt wählen</Text>
             {categories.length > 1 ? (
@@ -362,7 +409,7 @@ export default function CheckoutScreen() {
                 <View style={styles.busyRow}>
                   <ActivityIndicator color="#fff" />
                   <Text style={styles.primaryBtnText}>
-                    {status === 'uploading' ? 'Bild wird vorbereitet…' : 'Weiterleitung zu Stripe…'}
+                    {status === 'uploading' ? 'Druckmotiv wird hochgeladen…' : 'Weiterleitung zu Stripe…'}
                   </Text>
                 </View>
               ) : (

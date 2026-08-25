@@ -131,6 +131,7 @@ export async function openCheckoutUrl(url: string): Promise<void> {
 }
 
 const TEXTURE_STORAGE_KEY = 'irisart_checkout_texture_uri';
+const TEMPLATE_STORAGE_KEY = 'irisart_checkout_template_id';
 
 export function rememberCheckoutTexture(uri: string) {
   try {
@@ -146,6 +147,27 @@ export function restoreCheckoutTexture(): string | undefined {
   try {
     if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
       return sessionStorage.getItem(TEXTURE_STORAGE_KEY) ?? undefined;
+    }
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}
+
+export function rememberCheckoutTemplate(templateId: string) {
+  try {
+    if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(TEMPLATE_STORAGE_KEY, templateId);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+export function restoreCheckoutTemplate(): string | undefined {
+  try {
+    if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem(TEMPLATE_STORAGE_KEY) ?? undefined;
     }
   } catch {
     /* ignore */
