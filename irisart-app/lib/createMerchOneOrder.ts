@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { invokeEdgeFunction } from './invokeEdgeFunction';
 
 export type OrderShippingInput = {
   email: string;
@@ -26,14 +26,15 @@ export type CreateMerchOneOrderResult =
   | { ok: false; error: string };
 
 export async function requestCreateMerchOneOrder(input: CreateMerchOneOrderInput): Promise<CreateMerchOneOrderResult> {
-  const invoke = await supabase.functions.invoke('create-merchone-order', {
-    body: {
+  const invoke = await invokeEdgeFunction<{ ok?: boolean; orderId?: string | null; isTest?: boolean; error?: string }>(
+    'create-merchone-order',
+    {
       printFileUrl: input.printFileUrl,
       productSku: input.productSku,
       shipping: input.shipping,
       externalId: input.externalId,
-    },
-  });
+    }
+  );
 
   if (invoke.error) {
     const anyErr = invoke.error as any;

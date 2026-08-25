@@ -2,7 +2,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from '@/lib/platformFileSystem';
 
 import { uploadTempImage } from './aiEnhance';
-import { supabase } from './supabase';
+import { invokeEdgeFunction } from './invokeEdgeFunction';
 
 /** Structured copy from Edge Function `iris-analyze` (German narrative + HEX list). */
 export type IrisGeminiDetails = {
@@ -160,9 +160,7 @@ async function requestIrisAnalyze(imageUrl: string): Promise<{
   fingerprint?: string;
   provenance?: 'cache' | 'model';
 }> {
-  const invoke = await supabase.functions.invoke('iris-analyze', {
-    body: { imageUrl },
-  });
+  const invoke = await invokeEdgeFunction('iris-analyze', { imageUrl });
 
   if (invoke.error) {
     const anyErr = invoke.error as any;

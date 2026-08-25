@@ -1,8 +1,10 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 
-import * as FileSystem from '@/lib/platformFileSystem';
-import { supabase } from './supabase';
 import { Buffer } from 'buffer';
+
+import * as FileSystem from '@/lib/platformFileSystem';
+import { invokeEdgeFunction } from './invokeEdgeFunction';
+import { supabase } from './supabase';
 
 const TEMP_BUCKET = 'iris-temp';
 
@@ -144,8 +146,10 @@ export async function uploadTempImage(
 }
 
 export async function requestReplicateEnhancement(imageUrl: string) {
-  const invoke = await supabase.functions.invoke('iris-enhance', {
-    body: { imageUrl, scale: 4, faceEnhance: false },
+  const invoke = await invokeEdgeFunction('iris-enhance', {
+    imageUrl,
+    scale: 4,
+    faceEnhance: false,
   });
 
   if (invoke.error) {

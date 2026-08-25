@@ -1,17 +1,9 @@
-import { supabase } from './supabase';
+import { extractStatus, invokeEdgeFunction } from './invokeEdgeFunction';
 
 export const IRIS_NANO_BANANA_ART_STYLE = 'iris_nanobanana_v1';
 
 async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function extractStatus(err: any): number | undefined {
-  return typeof err?.context?.status === 'number'
-    ? err.context.status
-    : typeof err?.status === 'number'
-      ? err.status
-      : undefined;
 }
 
 export async function requestNanoBananaIris({
@@ -24,17 +16,14 @@ export async function requestNanoBananaIris({
   /** Must stay stable for the same product look; changing this yields a new deterministic seed server-side. */
   artStyle?: string;
 }) {
-  let invoke = await supabase.functions.invoke('iris-enhance', {
-    body: { imageUrl, backgroundMode, artStyle },
-  });
+  const body = { imageUrl, backgroundMode, artStyle };
+  let invoke = await invokeEdgeFunction('iris-enhance', body);
   for (let i = 0; i < 2 && invoke.error; i++) {
     const status = extractStatus(invoke.error);
     const retryable = status === 546 || status === 503 || status === 429 || status === 500;
     if (!retryable) break;
     await sleep(450 * (i + 1));
-    invoke = await supabase.functions.invoke('iris-enhance', {
-      body: { imageUrl, backgroundMode, artStyle },
-    });
+    invoke = await invokeEdgeFunction('iris-enhance', body);
   }
 
   if (invoke.error) {
@@ -57,12 +46,7 @@ export async function requestNanoBananaIris({
       // ignore
     }
 
-    const status =
-      typeof anyErr?.context?.status === 'number'
-        ? anyErr.context.status
-        : typeof anyErr?.status === 'number'
-          ? anyErr.status
-          : undefined;
+    const status = extractStatus(anyErr);
     const bodyText =
       typeof anyErr?.context?.body === 'string'
         ? anyErr.context.body
@@ -76,6 +60,9 @@ export async function requestNanoBananaIris({
     throw new Error(
       [
         `Edge function iris-enhance failed${status ? ` (HTTP ${status})` : ''}.`,
+        status === 401
+          ? 'Unauthorized. Use the legacy anon JWT (eyJ…) as EXPO_PUBLIC_SUPABASE_ANON_KEY, or redeploy iris-enhance with verify_jwt disabled.'
+          : undefined,
         status === 546 ? 'Temporary compute limit reached. Please retry.' : undefined,
         status === 503 ? 'Temporary service overload. Please retry.' : undefined,
         anyErr?.message ? `Message: ${String(anyErr.message)}` : undefined,

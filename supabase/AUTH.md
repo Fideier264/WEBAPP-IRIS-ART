@@ -52,5 +52,6 @@ Bucket `user-irises` should exist (private). Policies restrict objects to folder
 ## Troubleshooting
 
 - **Google cancelled / no session**: check redirect URLs match exactly; rebuild/reload Expo after scheme changes.
+- **Edge Function HTTP 401** (`iris-enhance` / `iris-analyze`): the app calls these with the **anon key**. Use the legacy **anon public** JWT (`eyJ…`) from Project Settings → API as `EXPO_PUBLIC_SUPABASE_ANON_KEY` (not only a `sb_publishable_…` key). Redeploy functions so `supabase/config.toml` (`verify_jwt = false`) applies: `supabase functions deploy iris-enhance`.
 - **Upload fails**: confirm user is authenticated and migration + storage policies are applied.
 - **Empty signed URLs**: signed URL creation may fail if the storage path is wrong or the object was deleted.

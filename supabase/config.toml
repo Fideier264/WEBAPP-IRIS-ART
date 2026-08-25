@@ -1,0 +1,12 @@
+# IrisART Supabase project config (CLI deploy).
+
+[functions.iris-enhance]
+# Public generator: app sends the anon key. Disable gateway JWT checks to avoid
+# 401s from user-session tokens / new API key formats during verify_jwt.
+verify_jwt = false
+
+[functions.iris-analyze]
+verify_jwt = false
+
+[functions.create-merchone-order]
+verify_jwt = false
