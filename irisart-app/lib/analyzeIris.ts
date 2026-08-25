@@ -155,6 +155,27 @@ export function peekIrisAnalysisCache(uri: string): IrisAnalysis | undefined {
   return analysisCache.get(uri);
 }
 
+/** Seed URI / stable-key caches (e.g. gallery irisId or enhance fingerprint) without re-running Gemini. */
+export function seedIrisAnalysisCache(
+  uri: string | undefined,
+  analysis: IrisAnalysis,
+  stableKey?: string
+) {
+  if (uri) analysisCache.set(uri, analysis);
+  if (stableKey) {
+    analysisCacheByFingerprint.set(stableKey, analysis);
+    persistedAnalysisMap.set(stableKey, analysis);
+    void flushPersistedAnalysis();
+  }
+  if (analysis.imageFingerprint) {
+    analysisCacheByFingerprint.set(analysis.imageFingerprint, analysis);
+  }
+}
+
+export function peekIrisAnalysisByStableKey(stableKey: string): IrisAnalysis | undefined {
+  return analysisCacheByFingerprint.get(stableKey) ?? persistedAnalysisMap.get(stableKey);
+}
+
 async function requestIrisAnalyze(imageUrl: string): Promise<{
   analysis: EdgeAnalysis;
   fingerprint?: string;
@@ -260,9 +281,20 @@ async function analyzeIrisUncached(uri: string): Promise<IrisAnalysis> {
 
 /**
  * Gemini-Analyse (Edge `iris-analyze`). Gleiche URI = gecacht; parallele Aufrufe teilen eine Request.
+ * Optional `stableKey` (enhance fingerprint / iris id) pins the result across signed-URL changes.
  */
-export async function analyzeIris(uri: string): Promise<IrisAnalysis> {
+export async function analyzeIris(uri: string, opts?: { stableKey?: string }): Promise<IrisAnalysis> {
   await ensurePersistedAnalysisLoaded();
+  const stableKey = opts?.stableKey;
+
+  if (stableKey) {
+    const byKey = analysisCacheByFingerprint.get(stableKey) ?? persistedAnalysisMap.get(stableKey);
+    if (byKey) {
+      analysisCache.set(uri, byKey);
+      return byKey;
+    }
+  }
+
   const hit = analysisCache.get(uri);
   if (hit) return hit;
 
@@ -281,17 +313,31 @@ export async function analyzeIris(uri: string): Promise<IrisAnalysis> {
     const fpHit = analysisCacheByFingerprint.get(fp);
     if (fpHit) {
       analysisCache.set(uri, fpHit);
+      if (stableKey) {
+        analysisCacheByFingerprint.set(stableKey, fpHit);
+        persistedAnalysisMap.set(stableKey, fpHit);
+        await flushPersistedAnalysis();
+      }
       return fpHit;
     }
     const persisted = persistedAnalysisMap.get(fp);
     if (persisted) {
       analysisCacheByFingerprint.set(fp, persisted);
       analysisCache.set(uri, persisted);
+      if (stableKey) {
+        analysisCacheByFingerprint.set(stableKey, persisted);
+        persistedAnalysisMap.set(stableKey, persisted);
+        await flushPersistedAnalysis();
+      }
       return persisted;
     }
   }
 
-  let inflight = fp ? analysisInflightByFingerprint.get(fp) : analysisInflight.get(uri);
+  let inflight =
+    (stableKey ? analysisInflightByFingerprint.get(stableKey) : undefined) ??
+    (fp ? analysisInflightByFingerprint.get(fp) : undefined) ??
+    analysisInflight.get(uri);
+
   if (!inflight) {
     inflight = (async () => {
       try {
@@ -300,16 +346,22 @@ export async function analyzeIris(uri: string): Promise<IrisAnalysis> {
         if (fp) {
           analysisCacheByFingerprint.set(fp, result);
           persistedAnalysisMap.set(fp, result);
-          await flushPersistedAnalysis();
         }
+        if (stableKey) {
+          analysisCacheByFingerprint.set(stableKey, result);
+          persistedAnalysisMap.set(stableKey, result);
+        }
+        await flushPersistedAnalysis();
         return result;
       } finally {
         analysisInflight.delete(uri);
         if (fp) analysisInflightByFingerprint.delete(fp);
+        if (stableKey) analysisInflightByFingerprint.delete(stableKey);
       }
     })();
     analysisInflight.set(uri, inflight);
     if (fp) analysisInflightByFingerprint.set(fp, inflight);
+    if (stableKey) analysisInflightByFingerprint.set(stableKey, inflight);
   }
   return inflight;
 }

@@ -11,7 +11,7 @@ import { enhanceIrisTextureWithInpaint } from '@/lib/aiIrisInpaint';
 
 type Status =
   | { kind: 'loading' }
-  | { kind: 'ready'; textureUrl: string; maskedImageUri: string; maskImageUri: string }
+  | { kind: 'ready'; textureUrl: string; maskedImageUri: string; maskImageUri: string; fingerprint: string }
   | { kind: 'error'; message: string };
 
 export default function IrisPrepScreen() {
@@ -49,6 +49,7 @@ export default function IrisPrepScreen() {
           textureUrl: res.outputUrl,
           maskedImageUri: res.seg.maskedImageUri,
           maskImageUri: res.seg.maskImageUri,
+          fingerprint: res.fingerprint,
         });
       } catch (e) {
         if (cancelled) return;
@@ -151,7 +152,14 @@ export default function IrisPrepScreen() {
               <Pressable
                 accessibilityRole="button"
                 onPress={() =>
-                  router.push({ pathname: '/shop', params: { textureUri: status.textureUrl, sourceUri: uri } })
+                  router.push({
+                    pathname: '/shop',
+                    params: {
+                      textureUri: status.textureUrl,
+                      sourceUri: uri,
+                      irisFingerprint: status.fingerprint,
+                    },
+                  })
                 }
                 style={({ pressed }) => [
                   styles.primaryBtn,
@@ -171,7 +179,14 @@ export default function IrisPrepScreen() {
               <Pressable
                 accessibilityRole="button"
                 onPress={() =>
-                  router.push({ pathname: '/results', params: { uri: status.textureUrl, sourceUri: uri } })
+                  router.push({
+                    pathname: '/results',
+                    params: {
+                      uri: status.textureUrl,
+                      sourceUri: uri,
+                      irisFingerprint: status.fingerprint,
+                    },
+                  })
                 }
                 style={({ pressed }) => [
                   styles.secondaryBtn,

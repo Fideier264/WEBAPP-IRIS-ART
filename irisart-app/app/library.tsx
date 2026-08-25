@@ -9,6 +9,22 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/lib/auth';
 import { getUserIrisLibrary, removeUserIris, type UserIrisItem } from '@/lib/userIrisLibrary';
+import { seedIrisAnalysisCache } from '@/lib/analyzeIris';
+
+function openAnalysis(item: UserIrisItem) {
+  if (item.analysis) {
+    seedIrisAnalysisCache(item.uri, item.analysis, item.id);
+    if (item.fingerprint) seedIrisAnalysisCache(item.uri, item.analysis, item.fingerprint);
+  }
+  router.push({
+    pathname: '/results',
+    params: {
+      uri: item.uri,
+      irisId: item.id,
+      ...(item.fingerprint ? { irisFingerprint: item.fingerprint } : {}),
+    },
+  });
+}
 
 export default function LibraryScreen() {
   const scheme = useColorScheme();
@@ -102,15 +118,13 @@ export default function LibraryScreen() {
 
             {items.map((x) => (
               <View key={x.id} style={[styles.card, { width: cardW, borderColor: c.border, backgroundColor: c.surface }]}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => router.push({ pathname: '/results', params: { uri: x.uri } })}>
+                <Pressable accessibilityRole="button" onPress={() => openAnalysis(x)}>
                   <Image source={{ uri: x.uri }} style={styles.thumb} resizeMode="cover" />
                 </Pressable>
                 <View style={styles.row}>
                   <Pressable
                     accessibilityRole="button"
-                    onPress={() => router.push({ pathname: '/results', params: { uri: x.uri } })}
+                    onPress={() => openAnalysis(x)}
                     style={({ pressed }) => [
                       styles.smallBtn,
                       { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.9 : 1 },

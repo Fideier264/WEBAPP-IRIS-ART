@@ -17,17 +17,25 @@ import { AppBottomBar } from '@/components/AppBottomBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { ART_TEMPLATES, filterTemplatesByEyeFamilies } from '@/lib/artTemplates';
-import { analyzeIris, peekIrisAnalysisCache, type IrisAnalysis } from '@/lib/analyzeIris';
+import {
+  analyzeIris,
+  peekIrisAnalysisByStableKey,
+  peekIrisAnalysisCache,
+  seedIrisAnalysisCache,
+  type IrisAnalysis,
+} from '@/lib/analyzeIris';
 import { inferEyeColorFamilies } from '@/lib/irisColorFamily';
+import { saveUserIrisAnalysis } from '@/lib/userIrisLibrary';
 
 export default function ArtGalleryScreen() {
   const scheme = useColorScheme();
   const cs = scheme ?? 'light';
   const c = Colors[cs];
   const muted = cs === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
-  const params = useLocalSearchParams<{ textureUri?: string; sourceUri?: string }>();
+  const params = useLocalSearchParams<{ textureUri?: string; sourceUri?: string; irisFingerprint?: string }>();
   const textureUri = typeof params.textureUri === 'string' ? params.textureUri : undefined;
   const sourceUri = typeof params.sourceUri === 'string' ? params.sourceUri : undefined;
+  const irisFingerprint = typeof params.irisFingerprint === 'string' ? params.irisFingerprint : undefined;
   const analysisUri = sourceUri ?? textureUri;
 
   const [analysis, setAnalysis] = useState<IrisAnalysis | null>(null);
@@ -41,17 +49,44 @@ export default function ArtGalleryScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    const persistAccount = async (result: IrisAnalysis) => {
+      if (!irisFingerprint) return;
+      try {
+        await saveUserIrisAnalysis({ fingerprint: irisFingerprint }, result);
+      } catch (e) {
+        console.warn('save analysis to account failed', e instanceof Error ? e.message : String(e));
+      }
+    };
+
     const run = async () => {
       if (!analysisUri) return;
+      if (irisFingerprint) {
+        const byKey = peekIrisAnalysisByStableKey(irisFingerprint);
+        if (byKey) {
+          seedIrisAnalysisCache(analysisUri, byKey, irisFingerprint);
+          await persistAccount(byKey);
+          if (!cancelled) {
+            setAnalysis(byKey);
+            setAnalysisStatus('ready');
+          }
+          return;
+        }
+      }
       const cached = peekIrisAnalysisCache(analysisUri);
       if (cached) {
-        setAnalysis(cached);
-        setAnalysisStatus('ready');
+        if (irisFingerprint) seedIrisAnalysisCache(analysisUri, cached, irisFingerprint);
+        await persistAccount(cached);
+        if (!cancelled) {
+          setAnalysis(cached);
+          setAnalysisStatus('ready');
+        }
         return;
       }
       try {
         setAnalysisStatus('loading');
-        const res = await analyzeIris(analysisUri);
+        const res = await analyzeIris(analysisUri, { stableKey: irisFingerprint });
+        if (irisFingerprint) seedIrisAnalysisCache(analysisUri, res, irisFingerprint);
+        await persistAccount(res);
         if (cancelled) return;
         setAnalysis(res);
         setAnalysisStatus('ready');
@@ -64,7 +99,7 @@ export default function ArtGalleryScreen() {
     return () => {
       cancelled = true;
     };
-  }, [analysisUri]);
+  }, [analysisUri, irisFingerprint]);
 
   const userFamilies = useMemo(() => {
     if (!analysis) return inferEyeColorFamilies('#8B7355', []);
@@ -256,7 +291,11 @@ export default function ArtGalleryScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/results',
-                  params: { uri: textureUri, sourceUri: analysisUri },
+                  params: {
+                    uri: textureUri,
+                    sourceUri: analysisUri,
+                    ...(irisFingerprint ? { irisFingerprint } : {}),
+                  },
                 })
               }
               style={({ pressed }) => [

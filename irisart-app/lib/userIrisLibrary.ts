@@ -1,6 +1,7 @@
 import * as FileSystem from '@/lib/platformFileSystem';
 import { Buffer } from 'buffer';
 
+import type { IrisAnalysis } from './analyzeIris';
 import { supabase } from './supabase';
 
 export const AUTH_REQUIRED = 'AUTH_REQUIRED';
@@ -27,10 +28,14 @@ export type UserIrisItem = {
   createdAt: number;
   lastUsedAt: number;
   storagePath?: string;
+  analysis?: IrisAnalysis | null;
 };
 
 const BUCKET = 'user-irises';
 const SIGNED_TTL_SEC = 60 * 60 * 24 * 7; // 7 days
+
+/** Analysis that finished before the iris row existed (enhance still uploading). */
+const pendingAnalysisByFingerprint = new Map<string, IrisAnalysis>();
 
 function randomId() {
   return `${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;
@@ -55,6 +60,12 @@ async function readLocalFileBytes(uri: string): Promise<{ bytes: Buffer; content
   return { bytes: Buffer.from(base64, 'base64'), contentType, ext };
 }
 
+function isIrisAnalysis(value: unknown): value is IrisAnalysis {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.primaryHex === 'string' && typeof v.rarityText === 'string' && Array.isArray(v.palette);
+}
+
 export async function getUserIrisLibrary(): Promise<UserIrisItem[]> {
   let userId: string;
   try {
@@ -66,7 +77,7 @@ export async function getUserIrisLibrary(): Promise<UserIrisItem[]> {
 
   const { data, error } = await supabase
     .from('user_irises')
-    .select('id, storage_path, fingerprint, created_at, last_used_at')
+    .select('id, storage_path, fingerprint, created_at, last_used_at, analysis')
     .eq('user_id', userId)
     .order('last_used_at', { ascending: false });
 
@@ -84,29 +95,104 @@ export async function getUserIrisLibrary(): Promise<UserIrisItem[]> {
       createdAt: new Date(row.created_at).getTime(),
       lastUsedAt: new Date(row.last_used_at).getTime(),
       storagePath: row.storage_path,
+      analysis: isIrisAnalysis(row.analysis) ? row.analysis : null,
     });
   }
   return items;
 }
 
+export async function getUserIrisAnalysis(opts: {
+  id?: string;
+  fingerprint?: string;
+}): Promise<IrisAnalysis | null> {
+  let userId: string;
+  try {
+    userId = await requireUserId();
+  } catch (e) {
+    if (isAuthRequiredError(e)) return null;
+    throw e;
+  }
+
+  let query = supabase.from('user_irises').select('analysis').eq('user_id', userId);
+  if (opts.id) query = query.eq('id', opts.id);
+  else if (opts.fingerprint) query = query.eq('fingerprint', opts.fingerprint);
+  else return null;
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error(error.message);
+  return isIrisAnalysis(data?.analysis) ? data.analysis : null;
+}
+
+/**
+ * Store analysis on the account iris row once (never overwrite).
+ * If the row is not created yet, queues by fingerprint until upsertUserIris runs.
+ */
+export async function saveUserIrisAnalysis(
+  opts: { id?: string; fingerprint?: string },
+  analysis: IrisAnalysis
+): Promise<void> {
+  if (!opts.id && !opts.fingerprint) return;
+
+  let userId: string;
+  try {
+    userId = await requireUserId();
+  } catch (e) {
+    if (isAuthRequiredError(e)) {
+      if (opts.fingerprint) pendingAnalysisByFingerprint.set(opts.fingerprint, analysis);
+      return;
+    }
+    throw e;
+  }
+
+  let existing = supabase.from('user_irises').select('id, analysis').eq('user_id', userId);
+  if (opts.id) existing = existing.eq('id', opts.id);
+  else if (opts.fingerprint) existing = existing.eq('fingerprint', opts.fingerprint);
+
+  const { data: row, error: readErr } = await existing.maybeSingle();
+  if (readErr) throw new Error(readErr.message);
+
+  if (!row?.id) {
+    if (opts.fingerprint) pendingAnalysisByFingerprint.set(opts.fingerprint, analysis);
+    return;
+  }
+
+  if (isIrisAnalysis(row.analysis)) {
+    if (opts.fingerprint) pendingAnalysisByFingerprint.delete(opts.fingerprint);
+    return;
+  }
+
+  const { error } = await supabase
+    .from('user_irises')
+    .update({ analysis })
+    .eq('id', row.id)
+    .eq('user_id', userId);
+  if (error) throw new Error(error.message);
+  if (opts.fingerprint) pendingAnalysisByFingerprint.delete(opts.fingerprint);
+}
+
 export async function upsertUserIris(uri: string, fingerprint?: string) {
   const userId = await requireUserId();
   const nowIso = new Date().toISOString();
+  const pending =
+    fingerprint && pendingAnalysisByFingerprint.has(fingerprint)
+      ? pendingAnalysisByFingerprint.get(fingerprint)
+      : undefined;
 
   if (fingerprint) {
     const existing = await supabase
       .from('user_irises')
-      .select('id, storage_path')
+      .select('id, storage_path, analysis')
       .eq('user_id', userId)
       .eq('fingerprint', fingerprint)
       .maybeSingle();
 
     if (existing.data?.id) {
-      await supabase
-        .from('user_irises')
-        .update({ last_used_at: nowIso })
-        .eq('id', existing.data.id)
-        .eq('user_id', userId);
+      const patch: { last_used_at: string; analysis?: IrisAnalysis } = { last_used_at: nowIso };
+      if (!isIrisAnalysis(existing.data.analysis) && pending) {
+        patch.analysis = pending;
+      }
+      await supabase.from('user_irises').update(patch).eq('id', existing.data.id).eq('user_id', userId);
+      if (pending) pendingAnalysisByFingerprint.delete(fingerprint);
       return;
     }
   }
@@ -125,6 +211,7 @@ export async function upsertUserIris(uri: string, fingerprint?: string) {
     user_id: userId,
     storage_path: storagePath,
     fingerprint: fingerprint ?? null,
+    analysis: pending ?? null,
     created_at: nowIso,
     last_used_at: nowIso,
   });
@@ -132,6 +219,7 @@ export async function upsertUserIris(uri: string, fingerprint?: string) {
     await supabase.storage.from(BUCKET).remove([storagePath]);
     throw new Error(insert.error.message);
   }
+  if (fingerprint && pending) pendingAnalysisByFingerprint.delete(fingerprint);
 }
 
 export async function removeUserIris(id: string) {

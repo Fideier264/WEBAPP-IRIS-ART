@@ -79,6 +79,7 @@ export async function enhanceIrisTextureWithInpaint(
   if (cached) {
     return {
       outputUrl: cached.outputUrl,
+      fingerprint: key,
       seg: {
         ...cached.seg,
         maskedImageUri: croppedUri,
@@ -99,6 +100,7 @@ export async function enhanceIrisTextureWithInpaint(
       if (info.exists && (info.size ?? 0) > 0) {
         const res = {
           outputUrl: resolveDisplayUri(persistedOutput),
+          fingerprint: key,
           seg: {
             maskedImageUri: croppedUri,
             maskImageUri: croppedUri,
@@ -139,6 +141,7 @@ export async function enhanceIrisTextureWithInpaint(
 
       const res = {
         outputUrl: resolveDisplayUri(outUri),
+        fingerprint: key,
         seg: {
           maskedImageUri: croppedUri,
           maskImageUri: croppedUri,

@@ -7,7 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/components/useColorScheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import Colors from '@/constants/Colors';
-import { analyzeIris, peekIrisAnalysisCache, type IrisAnalysis } from '@/lib/analyzeIris';
+import {
+  analyzeIris,
+  peekIrisAnalysisByStableKey,
+  peekIrisAnalysisCache,
+  seedIrisAnalysisCache,
+  type IrisAnalysis,
+} from '@/lib/analyzeIris';
+import { getUserIrisAnalysis, saveUserIrisAnalysis } from '@/lib/userIrisLibrary';
 
 type Status =
   | { kind: 'loading' }
@@ -17,33 +24,88 @@ type Status =
 export default function ResultsScreen() {
   const scheme = useColorScheme();
   const c = Colors[scheme];
-  const params = useLocalSearchParams<{ uri?: string; sourceUri?: string }>();
+  const params = useLocalSearchParams<{
+    uri?: string;
+    sourceUri?: string;
+    irisId?: string;
+    irisFingerprint?: string;
+  }>();
 
   const uri = typeof params.uri === 'string' ? params.uri : undefined;
   const sourceUri = typeof params.sourceUri === 'string' ? params.sourceUri : undefined;
+  const irisId = typeof params.irisId === 'string' ? params.irisId : undefined;
+  const irisFingerprint = typeof params.irisFingerprint === 'string' ? params.irisFingerprint : undefined;
   const analysisUri = sourceUri ?? uri;
+  const stableKey = irisId ?? irisFingerprint;
+
   const [status, setStatus] = useState<Status>(() => {
-    if (!analysisUri) return { kind: 'error', message: 'Missing photo.' };
-    const cached = peekIrisAnalysisCache(analysisUri);
-    if (cached) return { kind: 'ready', result: cached };
+    if (!analysisUri && !stableKey) return { kind: 'error', message: 'Missing photo.' };
+    if (stableKey) {
+      const byKey = peekIrisAnalysisByStableKey(stableKey);
+      if (byKey) return { kind: 'ready', result: byKey };
+    }
+    if (analysisUri) {
+      const cached = peekIrisAnalysisCache(analysisUri);
+      if (cached) return { kind: 'ready', result: cached };
+    }
     return { kind: 'loading' };
   });
 
   useEffect(() => {
     let cancelled = false;
+    const persistAccount = async (result: IrisAnalysis) => {
+      if (!irisId && !irisFingerprint) return;
+      try {
+        await saveUserIrisAnalysis({ id: irisId, fingerprint: irisFingerprint }, result);
+      } catch (e) {
+        console.warn('save analysis to account failed', e instanceof Error ? e.message : String(e));
+      }
+    };
+
     const run = async () => {
-      if (!analysisUri) {
+      if (!analysisUri && !stableKey) {
         setStatus({ kind: 'error', message: 'Missing photo.' });
         return;
       }
-      const cached = peekIrisAnalysisCache(analysisUri);
-      if (cached) {
-        setStatus({ kind: 'ready', result: cached });
-        return;
-      }
+
       try {
+        if (stableKey) {
+          const local = peekIrisAnalysisByStableKey(stableKey);
+          if (local) {
+            if (analysisUri) seedIrisAnalysisCache(analysisUri, local, stableKey);
+            await persistAccount(local);
+            if (!cancelled) setStatus({ kind: 'ready', result: local });
+            return;
+          }
+
+          const cloud = await getUserIrisAnalysis({
+            id: irisId,
+            fingerprint: irisId ? undefined : irisFingerprint,
+          });
+          if (cloud) {
+            seedIrisAnalysisCache(analysisUri, cloud, stableKey);
+            if (!cancelled) setStatus({ kind: 'ready', result: cloud });
+            return;
+          }
+        }
+
+        if (!analysisUri) {
+          setStatus({ kind: 'error', message: 'Missing photo.' });
+          return;
+        }
+
+        const cached = peekIrisAnalysisCache(analysisUri);
+        if (cached) {
+          if (stableKey) seedIrisAnalysisCache(analysisUri, cached, stableKey);
+          await persistAccount(cached);
+          if (!cancelled) setStatus({ kind: 'ready', result: cached });
+          return;
+        }
+
         setStatus({ kind: 'loading' });
-        const result = await analyzeIris(analysisUri);
+        const result = await analyzeIris(analysisUri, { stableKey });
+        if (stableKey) seedIrisAnalysisCache(analysisUri, result, stableKey);
+        await persistAccount(result);
         if (cancelled) return;
         setStatus({ kind: 'ready', result });
       } catch (e) {
@@ -55,7 +117,7 @@ export default function ResultsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [analysisUri]);
+  }, [analysisUri, stableKey, irisId, irisFingerprint]);
 
   const title = useMemo(() => {
     if (status.kind !== 'ready') return 'Analyse';
@@ -199,7 +261,14 @@ export default function ResultsScreen() {
               <Pressable
                 accessibilityRole="button"
                 onPress={() => {
-                  router.push({ pathname: '/shop', params: { textureUri: uri, sourceUri: analysisUri } });
+                  router.push({
+                    pathname: '/shop',
+                    params: {
+                      textureUri: uri,
+                      sourceUri: analysisUri,
+                      ...(irisFingerprint ? { irisFingerprint } : {}),
+                    },
+                  });
                 }}
                 style={({ pressed }) => [
                   styles.primaryBtn,

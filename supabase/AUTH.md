@@ -19,7 +19,8 @@ OAuth redirect used by the app: `irisartapp://auth/callback` (via `Linking.creat
 
 Run the SQL in:
 
-`supabase/migrations/20260425120000_user_irises.sql`
+- `supabase/migrations/20260425120000_user_irises.sql`
+- `supabase/migrations/20260425130000_user_irises_analysis.sql` (stores Color Analyzer results so gallery never re-runs Gemini; analysis is written to the account on first run)
 
 (via `supabase db push`, SQL Editor, or your usual migration path).
 
