@@ -63,7 +63,9 @@ Falls die API **`seed` nicht unterstützt** (HTTP 400): **`GEMINI_IMAGE_NO_SEED=
 
 ### `create-merchone-order` (manuell / Admin)
 
-Ruft `POST https://api.merchone.com/api/v1/orders` mit **Basic Auth** auf (Blueprint-SKU + `file.front.url` = HTTPS-Druckdatei).
+Ruft `POST https://api.merchone.com/api/v1/orders` mit **Basic Auth** auf.
+
+**Wichtig — Custom-Druck:** Configurator-SKUs mit `-PIC…` / `-APO…` haben bereits Artwork eingebettet; merchOne **ignoriert** dann `file.front.url`. Die Function strippt diesen Suffix und bestellt die **Blueprint-SKU** (z. B. `CVS0200201LMF2-PIC83638470` → `CVS0200201LMF2`) inkl. `items[].file.front.url` = personalisierte HTTPS-Druckdatei.
 
 **Kundenbestellungen laufen über Stripe** (`create-checkout-session` + `stripe-webhook`). Direkte Aufrufe sind standardmäßig **gesperrt**, außer `MERCHONE_ALLOW_DIRECT_ORDERS=1`.
 

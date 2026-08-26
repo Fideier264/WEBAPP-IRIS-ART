@@ -40,7 +40,30 @@ export function merchOneSkuAllowed(sku: string): boolean {
   const raw = Deno.env.get("MERCHONE_ALLOWED_SKUS")?.trim();
   if (!raw) return true;
   const set = new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-  return set.has(sku);
+  // Allow either the configured SKU or its blueprint base (without -PIC/-APO).
+  if (set.has(sku)) return true;
+  return set.has(toBlueprintSku(sku));
+}
+
+/**
+ * Configurator product SKUs embed artwork as `-PIC########` / `-APO########`.
+ * When a custom print file is supplied, merchOne **ignores** the URL and prints
+ * the embedded design — so we must order the blank blueprint SKU instead.
+ *
+ * Example: CVS0200201LMF2-PIC83638470 → CVS0200201LMF2
+ */
+export function toBlueprintSku(sku: string): string {
+  const trimmed = sku.trim();
+  return trimmed.replace(/-(?:PIC|APO)\d+$/i, "");
+}
+
+function isHttpsUrl(s: string): boolean {
+  try {
+    const u = new URL(s);
+    return u.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export async function createMerchOneOrder(
@@ -52,11 +75,18 @@ export async function createMerchOneOrder(
   }
 
   const printFileUrl = params.printFileUrl.trim();
-  const productSku = params.productSku.trim();
+  const catalogSku = params.productSku.trim();
+  const productSku = toBlueprintSku(catalogSku);
   const sh = params.shipping;
 
-  if (!productSku) return { ok: false, error: "productSku is required." };
-  if (!merchOneSkuAllowed(productSku)) return { ok: false, error: "productSku is not allowed." };
+  if (!catalogSku) return { ok: false, error: "productSku is required." };
+  if (!printFileUrl) return { ok: false, error: "printFileUrl is required." };
+  if (!isHttpsUrl(printFileUrl)) {
+    return { ok: false, error: "printFileUrl must be a valid https URL." };
+  }
+  if (!merchOneSkuAllowed(catalogSku) && !merchOneSkuAllowed(productSku)) {
+    return { ok: false, error: "productSku is not allowed." };
+  }
 
   const email = String(sh.email ?? "").trim();
   const firstName = String(sh.firstName ?? "").trim();
@@ -78,6 +108,8 @@ export async function createMerchOneOrder(
     return { ok: false, error: "shipping.region is required for US and CA." };
   }
 
+  // Blueprint SKU + file.front.url = personalized print.
+  // Do NOT send a -PIC/-APO product SKU here — merchOne would keep the default artwork.
   const payload = {
     external_id: params.externalId?.trim().slice(0, 128) || undefined,
     shipping_type: "tracked",
@@ -99,10 +131,22 @@ export async function createMerchOneOrder(
       {
         quantity: 1,
         product_sku: productSku,
-        file: { front: { url: printFileUrl } },
+        file: {
+          front: {
+            url: printFileUrl,
+          },
+        },
       },
     ],
   };
+
+  console.log("merchOne: creating order with custom print file", {
+    catalogSku,
+    blueprintSku: productSku,
+    skuTransformed: catalogSku !== productSku,
+    printFileUrl,
+    externalId: payload.external_id ?? null,
+  });
 
   try {
     const resp = await fetch(`${MERCHONE_API}/orders`, {
@@ -128,12 +172,19 @@ export async function createMerchOneOrder(
         (parsed?.message as string) ??
         (parsed?.error as string) ??
         (typeof text === "string" && text.length ? text.slice(0, 500) : `HTTP ${resp.status}`);
+      console.error("merchOne: order failed", { status: resp.status, msg, blueprintSku: productSku });
       return { ok: false, error: `merchOne: ${msg}` };
     }
 
     const orderId =
       (parsed?.order_id as string) ??
       ((parsed?.data as Record<string, unknown> | undefined)?.order_id as string | undefined);
+
+    console.log("merchOne: order created", {
+      orderId: orderId ?? null,
+      blueprintSku: productSku,
+      printFileUrl,
+    });
 
     return {
       ok: true,

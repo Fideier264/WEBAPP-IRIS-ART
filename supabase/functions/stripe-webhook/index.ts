@@ -196,6 +196,8 @@ serve(async (req) => {
     });
   }
 
+  // createMerchOneOrder maps -PIC/-APO catalog SKUs → blueprint SKU + file.front.url
+  // so merchOne prints the personalized image instead of the default product artwork.
   const result = await createMerchOneOrder({
     printFileUrl,
     productSku,
