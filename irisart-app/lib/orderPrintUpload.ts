@@ -35,6 +35,8 @@ export type UploadCheckoutArtworkInput = {
   textureUri: string;
   templateId: string;
   outputWidth?: number;
+  /** MerchOne product print aspect (width/height). Square canvas = 1. */
+  printAspectRatio?: number;
 };
 
 export type UploadCheckoutArtworkResult = {
@@ -46,6 +48,7 @@ export type UploadCheckoutArtworkResult = {
 
 /**
  * Renders the final iris + template artwork, uploads to Supabase Storage, returns a signed URL.
+ * Output dimensions match the MerchOne SKU aspect ratio (e.g. 1:1 for square canvas).
  */
 export async function uploadCheckoutArtwork(
   input: UploadCheckoutArtworkInput
@@ -55,10 +58,16 @@ export async function uploadCheckoutArtwork(
     throw new Error(`Unbekanntes Template „${input.templateId}“. Bitte im Shop erneut wählen.`);
   }
 
+  const printAspectRatio =
+    typeof input.printAspectRatio === 'number' && input.printAspectRatio > 0
+      ? input.printAspectRatio
+      : 1;
+
   const compositeUri = await renderArtCompositeToLocalUri({
     textureUri: input.textureUri,
     template,
     outputWidth: input.outputWidth ?? 2048,
+    outputAspectRatio: printAspectRatio,
   });
 
   const localUri = await ensureLocalFile(compositeUri);

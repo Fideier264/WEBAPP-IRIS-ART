@@ -8,8 +8,13 @@ import type { ArtTemplate } from './artTemplates';
 export type RenderArtCompositeInput = {
   textureUri: string;
   template: ArtTemplate;
-  /** Output width in px; height follows template aspect ratio */
+  /** Longest edge in px (default 2048). Final size follows outputAspectRatio. */
   outputWidth?: number;
+  /**
+   * Product print aspect ratio (width / height), e.g. 1 for square canvas.
+   * Must match the MerchOne SKU variant. Template artwork is fitted (cover) into this frame.
+   */
+  outputAspectRatio?: number;
 };
 
 async function resolveImageUrl(source: string | ImageSourcePropType): Promise<string> {
@@ -128,34 +133,73 @@ function canvasToBase64(canvas: HTMLCanvasElement): Promise<string> {
   });
 }
 
-/** Render iris + template overlay to a local virtual file URI (web). */
+function resolveOutputSize(outputWidth: number, aspectRatio: number): { width: number; height: number } {
+  const ar = aspectRatio > 0 ? aspectRatio : 1;
+  // Keep the longer edge ≈ outputWidth so square and non-square get enough resolution.
+  if (ar >= 1) {
+    const width = outputWidth;
+    const height = Math.max(1, Math.round(width / ar));
+    return { width, height };
+  }
+  const height = outputWidth;
+  const width = Math.max(1, Math.round(height * ar));
+  return { width, height };
+}
+
+/** Render iris + template overlay into a local file sized for the MerchOne product aspect ratio. */
 export async function renderArtCompositeToLocalUri(input: RenderArtCompositeInput): Promise<string> {
-  const outputWidth = input.outputWidth ?? 2048;
-  const outputHeight = Math.max(1, Math.round(outputWidth / input.template.aspectRatio));
+  const longEdge = input.outputWidth ?? 2048;
+  const productAspect =
+    typeof input.outputAspectRatio === 'number' && input.outputAspectRatio > 0
+      ? input.outputAspectRatio
+      : 1; // MerchOne square canvases (e.g. CVS0200201…) expect 1:1
+
+  const { width: outW, height: outH } = resolveOutputSize(longEdge, productAspect);
 
   const [iris, overlaySrc] = await Promise.all([
     loadImage(input.textureUri),
     input.template.overlayImage ? resolveImageUrl(input.template.overlayImage) : Promise.resolve(null),
   ]);
 
-  const canvas = document.createElement('canvas');
-  canvas.width = outputWidth;
-  canvas.height = outputHeight;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas 2D not available.');
+  // 1) Compose at the template's native aspect ratio (hole coords + overlay stay correct).
+  const templateAr = input.template.aspectRatio > 0 ? input.template.aspectRatio : 1;
+  const designLong = Math.max(outW, outH);
+  const { width: designW, height: designH } = resolveOutputSize(designLong, templateAr);
 
-  ctx.fillStyle = '#07060c';
-  ctx.fillRect(0, 0, outputWidth, outputHeight);
+  const design = document.createElement('canvas');
+  design.width = designW;
+  design.height = designH;
+  const designCtx = design.getContext('2d');
+  if (!designCtx) throw new Error('Canvas 2D not available.');
 
-  drawIrisInSlot(ctx, iris, input.template, outputWidth, outputHeight);
+  designCtx.fillStyle = '#07060c';
+  designCtx.fillRect(0, 0, designW, designH);
+  drawIrisInSlot(designCtx, iris, input.template, designW, designH);
 
   if (overlaySrc) {
     const overlay = await loadImage(overlaySrc);
-    ctx.drawImage(overlay, 0, 0, outputWidth, outputHeight);
+    designCtx.drawImage(overlay, 0, 0, designW, designH);
   }
 
-  const base64 = await canvasToBase64(canvas);
-  const localUri = `${FileSystem.cacheDirectory}checkout_print_${Date.now()}.jpg`;
+  // 2) Fit (cover) onto the product print canvas so MerchOne gets the exact SKU aspect ratio.
+  const product = document.createElement('canvas');
+  product.width = outW;
+  product.height = outH;
+  const productCtx = product.getContext('2d');
+  if (!productCtx) throw new Error('Canvas 2D not available.');
+
+  productCtx.fillStyle = '#07060c';
+  productCtx.fillRect(0, 0, outW, outH);
+
+  const coverScale = Math.max(outW / designW, outH / designH);
+  const dw = designW * coverScale;
+  const dh = designH * coverScale;
+  const dx = (outW - dw) / 2;
+  const dy = (outH - dh) / 2;
+  productCtx.drawImage(design, dx, dy, dw, dh);
+
+  const base64 = await canvasToBase64(product);
+  const localUri = `${FileSystem.cacheDirectory}checkout_print_${outW}x${outH}_${Date.now()}.jpg`;
   await FileSystem.writeAsStringAsync(localUri, base64, { encoding: FileSystem.EncodingType.Base64 });
   return localUri;
 }

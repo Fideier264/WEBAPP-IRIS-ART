@@ -172,7 +172,11 @@ export default function CheckoutScreen() {
       setStatus('uploading');
       rememberCheckoutTexture(textureUri);
       rememberCheckoutTemplate(templateId);
-      const { printFileUrl } = await uploadCheckoutArtwork({ textureUri, templateId });
+      const { printFileUrl } = await uploadCheckoutArtwork({
+        textureUri,
+        templateId,
+        printAspectRatio: selected.printAspectRatio,
+      });
 
       setStatus('redirecting');
       const stripeTitle = `${selected.categoryLabel} ${selected.title}`.trim();

@@ -22,6 +22,11 @@ export type CatalogProduct = {
   categoryLabel: string;
   priceEur: number;
   priceLabel: string;
+  /**
+   * Print file aspect ratio (width / height) expected by MerchOne for this SKU.
+   * Square canvases = 1. Inferred from title "W × H cm" when omitted.
+   */
+  printAspectRatio: number;
   /** Optional merch / mock photo URL; checkout falls back to the customer artwork */
   imageUrl?: string;
   description?: string;
@@ -65,7 +70,28 @@ type RawProduct = {
   sizeLabel?: string;
   size?: string;
   label?: string;
+  printAspectRatio?: number | string;
+  aspectRatio?: number | string;
 };
+
+/** Parse "20 × 20 cm" / "30x40" → width/height. Square sizes → 1. */
+export function inferPrintAspectRatioFromTitle(title: string): number | null {
+  const m = title.match(/(\d+(?:[.,]\d+)?)\s*[×xX]\s*(\d+(?:[.,]\d+)?)/);
+  if (!m) return null;
+  const w = Number(m[1]!.replace(',', '.'));
+  const h = Number(m[2]!.replace(',', '.'));
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return null;
+  return w / h;
+}
+
+function parseAspect(raw: unknown, fallback: number): number {
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) return raw;
+  if (typeof raw === 'string' && raw.trim()) {
+    const n = Number(raw.trim().replace(',', '.'));
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return fallback;
+}
 
 function normalizeProduct(raw: RawProduct, index: number): CatalogProduct | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -75,6 +101,12 @@ function normalizeProduct(raw: RawProduct, index: number): CatalogProduct | null
   const priceEur = parsePrice(raw.priceEur, 49.9);
   const category = String(raw.category ?? 'canvas').trim() || 'canvas';
   const categoryLabel = String(raw.categoryLabel ?? (category === 'canvas' ? 'Leinwand' : category)).trim();
+  const inferred = inferPrintAspectRatioFromTitle(title);
+  const defaultAr = category === 'canvas' ? 1 : inferred ?? 1;
+  const printAspectRatio = parseAspect(
+    raw.printAspectRatio ?? raw.aspectRatio ?? inferred,
+    defaultAr
+  );
 
   return {
     id: String(raw.id ?? `${sku || 'product'}_${index}`).trim(),
@@ -84,6 +116,7 @@ function normalizeProduct(raw: RawProduct, index: number): CatalogProduct | null
     categoryLabel,
     priceEur,
     priceLabel: formatEur(priceEur),
+    printAspectRatio,
     imageUrl: typeof raw.imageUrl === 'string' && raw.imageUrl.trim() ? raw.imageUrl.trim() : undefined,
     description: typeof raw.description === 'string' ? raw.description.trim() : undefined,
   };
@@ -149,6 +182,7 @@ function legacyProductsFromEnv(): CatalogProduct[] {
       categoryLabel: 'Leinwand',
       priceEur: price,
       priceLabel: formatEur(price),
+      printAspectRatio: 1,
       description: 'Galerie-Leinwand',
     });
   }
@@ -171,6 +205,7 @@ function demoProducts(): CatalogProduct[] {
       categoryLabel: 'Leinwand',
       priceEur: 49.9,
       priceLabel: formatEur(49.9),
+      printAspectRatio: 1,
       description: 'Galerie-Leinwand (Demo — SKU fehlt)',
     },
     {
@@ -181,6 +216,7 @@ function demoProducts(): CatalogProduct[] {
       categoryLabel: 'Leinwand',
       priceEur: 89.9,
       priceLabel: formatEur(89.9),
+      printAspectRatio: 1,
       description: 'Galerie-Leinwand (Demo — SKU fehlt)',
     },
   ];

@@ -5,6 +5,7 @@
     "category": "canvas",
     "categoryLabel": "Leinwand",
     "priceEur": 19.99,
+    "printAspectRatio": 1,
     "description": "Galerie-Leinwand"
   }
 ]

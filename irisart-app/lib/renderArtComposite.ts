@@ -4,6 +4,8 @@ export type RenderArtCompositeInput = {
   textureUri: string;
   template: ArtTemplate;
   outputWidth?: number;
+  /** Product print aspect ratio (width/height), e.g. 1 for square canvas */
+  outputAspectRatio?: number;
 };
 
 /**
