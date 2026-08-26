@@ -106,11 +106,27 @@ function hslToRgb(h: number, s: number, l: number): RgbColor {
 }
 
 /**
- * Prefer the characteristic midtone iris hue (golden fibers etc.), not a muddy global mean.
- * Samples an annulus (skips pupil + outer rim) and averages the top saturated candidates.
+ * Mild polish of extracted iris color for tinting.
+ * Keep hue/lightness close to the real eye — avoid neon/overbright results.
+ */
+export function vividTintColor(c: RgbColor): RgbColor {
+  let { h, s, l } = rgbToHsl(c.r, c.g, c.b);
+  s = Math.min(0.7, Math.max(0.2, s * 1.1));
+  l = Math.min(0.48, Math.max(0.26, l));
+  return hslToRgb(h, s, l);
+}
+
+/** Alias kept for older imports */
+export function matchTintColor(c: RgbColor): RgbColor {
+  return vividTintColor(c);
+}
+
+/**
+ * Average iris RGB, ignoring transparent + near-black (pupil).
+ * Midtones with higher saturation are weighted more for a vibrant tint.
  */
 export function extractAverageIrisColor(iris: HTMLImageElement, cacheKey?: string): RgbColor {
-  const cacheId = cacheKey ? `v2:${cacheKey}` : undefined;
+  const cacheId = cacheKey ? `v1:${cacheKey}` : undefined;
   if (cacheId) {
     const hit = irisColorCache.get(cacheId);
     if (hit) return hit;
@@ -118,10 +134,10 @@ export function extractAverageIrisColor(iris: HTMLImageElement, cacheKey?: strin
 
   const iw = iris.naturalWidth || iris.width;
   const ih = iris.naturalHeight || iris.height;
-  const fallback = { r: 150, g: 110, b: 70 };
+  const fallback = { r: 140, g: 105, b: 75 };
   if (!iw || !ih) return fallback;
 
-  const maxSide = 320;
+  const maxSide = 256;
   const scale = Math.min(1, maxSide / Math.max(iw, ih));
   const sw = Math.max(1, Math.round(iw * scale));
   const sh = Math.max(1, Math.round(ih * scale));
@@ -135,89 +151,50 @@ export function extractAverageIrisColor(iris: HTMLImageElement, cacheKey?: strin
   ctx.drawImage(iris, 0, 0, sw, sh);
   const { data } = ctx.getImageData(0, 0, sw, sh);
 
-  type Cand = { r: number; g: number; b: number; score: number };
-  const cands: Cand[] = [];
-  const cx = (sw - 1) / 2;
-  const cy = (sh - 1) / 2;
-  const maxR = Math.hypot(cx, cy);
-
-  for (let y = 0; y < sh; y++) {
-    for (let x = 0; x < sw; x++) {
-      const i = (y * sw + x) * 4;
-      const a = data[i + 3]!;
-      if (a < 20) continue;
-
-      const dx = (x - cx) / maxR;
-      const dy = (y - cy) / maxR;
-      const rad = Math.hypot(dx, dy);
-      // Iris tissue ring — skip pupil core and outer limbal/black frame
-      if (rad < 0.18 || rad > 0.78) continue;
-
-      const r = data[i]!;
-      const g = data[i + 1]!;
-      const b = data[i + 2]!;
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      if (max < 40) continue;
-      if (min > 240) continue;
-
-      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-      if (lum < 35 || lum > 220) continue;
-
-      const sat = max === 0 ? 0 : (max - min) / max;
-      // Prefer colorful midtones (amber fibers), not dark muddy averages
-      const score = sat * 2.2 + (lum / 255) * 0.55;
-      cands.push({ r, g, b, score });
-    }
-  }
-
-  if (!cands.length) {
-    if (cacheId) irisColorCache.set(cacheId, fallback);
-    return fallback;
-  }
-
-  cands.sort((a, b) => b.score - a.score);
-  const topN = Math.max(24, Math.floor(cands.length * 0.28));
-  const top = cands.slice(0, topN);
-
   let rSum = 0;
   let gSum = 0;
   let bSum = 0;
   let wSum = 0;
-  for (const p of top) {
-    const w = 0.35 + p.score;
-    rSum += p.r * w;
-    gSum += p.g * w;
-    bSum += p.b * w;
-    wSum += w;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3]!;
+    if (a < 16) continue;
+
+    const r = data[i]!;
+    const g = data[i + 1]!;
+    const b = data[i + 2]!;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+
+    if (max < 36) continue; // pupil / void
+    if (min > 245) continue; // specular
+
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const sat = max === 0 ? 0 : (max - min) / max;
+    const weight = (a / 255) * (0.4 + sat * 1.8) * Math.min(1, lum / 70);
+
+    rSum += r * weight;
+    gSum += g * weight;
+    bSum += b * weight;
+    wSum += weight;
   }
 
-  const color = {
-    r: Math.round(Math.min(255, Math.max(0, rSum / wSum))),
-    g: Math.round(Math.min(255, Math.max(0, gSum / wSum))),
-    b: Math.round(Math.min(255, Math.max(0, bSum / wSum))),
-  };
+  const color =
+    wSum < 1e-6
+      ? fallback
+      : {
+          r: Math.round(Math.min(255, Math.max(0, rSum / wSum))),
+          g: Math.round(Math.min(255, Math.max(0, gSum / wSum))),
+          b: Math.round(Math.min(255, Math.max(0, bSum / wSum))),
+        };
 
   if (cacheId) irisColorCache.set(cacheId, color);
   return color;
 }
 
-/** Slight chroma lift only — keep hue/lightness of the sampled iris midtones. */
-export function matchTintColor(c: RgbColor): RgbColor {
-  let { h, s, l } = rgbToHsl(c.r, c.g, c.b);
-  s = Math.min(0.78, s * 1.12);
-  l = Math.min(0.55, Math.max(0.32, l));
-  return hslToRgb(h, s, l);
-}
-
-/** @deprecated use matchTintColor */
-export function vividTintColor(c: RgbColor): RgbColor {
-  return matchTintColor(c);
-}
-
 /**
- * Colorize grayscale template: keep each pixel's lightness from the PNG,
- * apply hue/saturation from the iris sample. Blacks stay black; brights keep punch.
+ * Colorize grayscale template with iris color; preserve PNG alpha (iris hole).
+ * `color` blend keeps template shading and applies iris hue/sat without blowing highlights.
  */
 export function tintGrayscaleTemplate(
   grayscale: HTMLImageElement,
@@ -228,32 +205,23 @@ export function tintGrayscaleTemplate(
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 2D not available.');
 
-  const tint = matchTintColor(color);
-  const { h, s } = rgbToHsl(tint.r, tint.g, tint.b);
+  const tint = vividTintColor(color);
+  const fill = `rgb(${tint.r}, ${tint.g}, ${tint.b})`;
 
   ctx.clearRect(0, 0, width, height);
   ctx.drawImage(grayscale, 0, 0, width, height);
-  const img = ctx.getImageData(0, 0, width, height);
-  const d = img.data;
 
-  for (let i = 0; i < d.length; i += 4) {
-    const a = d[i + 3]!;
-    if (a < 2) continue;
-    const r = d[i]!;
-    const g = d[i + 1]!;
-    const b = d[i + 2]!;
-    // Relative luminance of the grayscale artwork
-    const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-    const out = hslToRgb(h, s, lum);
-    d[i] = out.r;
-    d[i + 1] = out.g;
-    d[i + 2] = out.b;
-  }
+  ctx.globalCompositeOperation = 'color';
+  ctx.fillStyle = fill;
+  ctx.fillRect(0, 0, width, height);
 
-  ctx.putImageData(img, 0, 0);
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.drawImage(grayscale, 0, 0, width, height);
+
+  ctx.globalCompositeOperation = 'source-over';
   return canvas;
 }
 
