@@ -1,48 +1,80 @@
 # Art-Template Overlays
 
-PNG mit **transparentem Bereich** für die Iris (Rest: Rahmen, Deko, Text).
+PNG mit **transparentem Loch** für die Iris. Zwei Arten:
 
-Für den dynamischen Iris-Tint: Overlay idealerweise **Graustufen** (weiß/grau/schwarz + Alpha).
-Die App färbt das Template zur Laufzeit mit der gemittelten Iris-Farbe (Vorschau + Druck).
+| Typ | PNG | Flag | Ergebnis |
+|-----|-----|------|----------|
+| **Fertig eingefärbt** | z. B. blaue Galaxie | `tintWithIrisColor` weglassen / `false` | Overlay bleibt wie in der Datei |
+| **Graustufen + Iris-Tint** | weiß/grau/schwarz + Alpha | `tintWithIrisColor: true` | App färbt mit der Iris-Farbe (Vorschau + Druck) |
 
-## Datei anlegen (wichtig!)
+---
 
-1. PNG nach `irisart-app/assets/art-templates/` legen (z. B. `mein-template.png`)
-2. Eintrag in `lib/artTemplates.ts` mit `require('@/assets/art-templates/mein-template.png')`
-3. **PNG + `artTemplates.ts` committen und pushen** — ohne Git-Push fehlt die Datei auf Hostinger und die Vorlage erscheint nicht
-4. Hostinger neu deployen / App neu bauen
+## Checkliste: neues Template
 
-## Eintrag in `artTemplates.ts`
+1. **PNG exportieren** (idealerweise sRGB, ohne eingebettetes Farbprofil-Chaos)
+2. Datei nach `irisart-app/assets/art-templates/dein-name.png`
+3. **Pixelmaße notieren** (Breite × Höhe) — z. B. Explorer → Eigenschaften, oder Photoshop
+4. **Loch-Bounding-Box** messen (Rechteck um das transparente Loch, in px)
+5. Eintrag in `lib/artTemplates.ts` (siehe unten)
+6. **PNG + `artTemplates.ts` committen & pushen**
+7. Hostinger neu deployen
 
-`aspectRatio` = **exakt** `Pixelbreite ÷ Pixelhöhe` der PNG (Datei-Infos in Photoshop/Explorer).
-Falsche Werte (z. B. von einem anderen Template kopiert) **verzerren** Loch und Partikel.
+Ohne Git-Push der PNG erscheint die Vorlage live nicht.
+
+---
+
+## Felder richtig ausfüllen
 
 ```ts
 {
-  id: 'mein-template',
-  title: 'Mein Template',
-  aspectRatio: 2129 / 2048, // exakt Breite ÷ Höhe dieser PNG
-  colorFamilies: ['any'],   // Graustufen-Tint: immer anzeigen
-  irisHole: { x: 0.24, y: 0.22, w: 0.53, h: 0.55 },
-  irisScale: 1.05,
-  overlayImage: require('@/assets/art-templates/mein-template.png'),
+  id: 'shattered',                    // eindeutig, keine Leerzeichen nötig
+  title: 'Shattered',                 // Anzeigename im Shop
+  aspectRatio: 2129 / 2048,           // EXAKT Breite ÷ Höhe DIESER PNG
+  colorFamilies: ['any'],             // Filter; bei Tint-Vorlagen meist 'any'
+  tintWithIrisColor: true,            // nur bei Graustufen-PNG!
+  irisHole: {
+    x: 0.241,                         // links = LochLinksPx / Breite
+    y: 0.224,                         // oben  = LochObenPx / Höhe
+    w: 0.534,                         //      = LochBreitePx / Breite
+    h: 0.554,                         //      = LochHöhePx / Höhe
+    circular: true,                   // nur Hinweis; Form kommt aus PNG-Alpha
+  },
+  irisScale: 1.05,                    // optional Zoom der Iris im Slot
+  irisResizeMode: 'contain',          // oder 'cover'
+  overlayImage: require('@/assets/art-templates/dein-name.png'),
 },
 ```
 
-`colorFamilies`: `brown` | `blue` | `green` | `hazel` | `gray` | `amber` | **`any`**.  
-Bei farbgefilterten Vorlagen ohne Treffer: im Shop **„Alle Templates“** wählen.
+### `aspectRatio` (wichtig gegen Verzerrung)
 
-## Loch / Iris — keine App-Maske
+- Immer **diese** Datei messen: `Breite / Höhe` (z. B. `2129 / 2048`).
+- **Nie** Werte von einem anderen Template kopieren.
 
-- Die Iris-Textur liegt als ganzes Bild in einem rechteckigen Slot unter der PNG.
-- Sichtbare Form = nur die **Transparenz** der PNG.
-- `irisHole`: Bounding-Box des Lochs, normiert 0–1.
+### `irisHole`
 
-## Skalierung
+1. In Photoshop/Figma Rechteck um das **transparente Loch** ziehen.  
+2. Werte **durch Bildbreite bzw. -höhe teilen** → 0–1.  
+3. Loch in der PNG und `irisHole` sollen übereinstimmen, sonst sitzt die Iris falsch.
+
+Tipp: Bei kreisrundem Loch in px oft `w_px ≈ h_px`; in normierten Werten kann `w ≠ h` sein, wenn die PNG nicht quadratisch ist — das ist korrekt.
+
+### `tintWithIrisColor`
+
+- `true` → Graustufen-Overlay (Sterne/Shards hellgrau, Schatten dunkel, Loch transparent).  
+- `false` / weglassen → farbiges Overlay unverändert (Blue Galaxy bleibt blau).
+
+### `colorFamilies`
+
+`brown` | `blue` | `green` | `hazel` | `gray` | `amber` | **`any`**.  
+Shop-Filter „Passend zur Farbe“ blendet Vorlagen ohne Treffer aus — dann **„Alle Templates“** nutzen.
+
+---
+
+## Skalierung der Iris
 
 | Option | Bedeutung |
 |--------|-----------|
-| `irisResizeMode: 'contain'` (Standard) | Ganzes Iris-Bild sichtbar |
+| `irisResizeMode: 'contain'` | Ganzes Iris-Bild sichtbar |
 | `irisResizeMode: 'cover'` | Slot gefüllt, ggf. Ränder abgeschnitten |
 | `irisScale` | Extra-Zoom (1 = normal) |
 | `irisSlotBackground` | Farbe hinter der Iris, Standard `#000000` |

@@ -42,9 +42,14 @@ export type ArtTemplate = {
   irisSlotBackground?: string;
   /**
    * PNG mit transparentem Bereich für die Iris. Oben drüber, full-bleed.
-   * Später: `require('@/assets/art-templates/dein-overlay.png')`
+   * Für Iris-Tint: Graustufen-PNG verwenden und `tintWithIrisColor: true` setzen.
    */
   overlayImage?: ImageSourcePropType;
+  /**
+   * Wenn true: Overlay wird mit der gemittelten Iris-Farbe getintet (nur Graustufen-PNGs).
+   * Wenn false/undefined: Overlay-Farben bleiben unverändert (fertige Farb-Templates).
+   */
+  tintWithIrisColor?: boolean;
   /** Zoom um den Mittelpunkt des Slots (1 = kein Extra-Zoom). Erhöhen = näher ran, dabei mehr Rand abgeschnitten. */
   irisScale?: number;
 };
@@ -91,11 +96,10 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   id: 'template.shards.grau',
   title: 'Shattered',
   subtitle: 'Graustufen — wird mit Iris-Farbe getintet',
-  // PNG ist 2129×2048 — NICHT die Maße von galaxygreen kopieren (sonst Verzerrung)
   aspectRatio: 2129 / 2048,
   colorFamilies: ['any'],
+  tintWithIrisColor: true,
   irisHole: {
-    // Bounding-Box des transparenten Lochs (aus PNG gemessen)
     x: 0.241,
     y: 0.224,
     w: 0.534,
