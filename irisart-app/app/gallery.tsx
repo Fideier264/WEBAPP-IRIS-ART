@@ -25,6 +25,7 @@ import {
   seedIrisAnalysisCache,
   type IrisAnalysis,
 } from '@/lib/analyzeIris';
+import { useT } from '@/lib/i18n';
 import { inferEyeColorFamilies } from '@/lib/irisColorFamily';
 import { saveUserIrisAnalysis } from '@/lib/userIrisLibrary';
 
@@ -33,6 +34,7 @@ export default function ArtGalleryScreen() {
   const cs = scheme ?? 'light';
   const c = Colors[cs];
   const muted = cs === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
+  const t = useT();
   const params = useLocalSearchParams<{ textureUri?: string; sourceUri?: string; irisFingerprint?: string }>();
   const textureUri = typeof params.textureUri === 'string' ? params.textureUri : undefined;
   const sourceUri = typeof params.sourceUri === 'string' ? params.sourceUri : undefined;
@@ -120,12 +122,12 @@ export default function ArtGalleryScreen() {
   const familyLabel = userFamilies.slice(0, 4).join(', ');
 
   const selected = useMemo(
-    () => visibleTemplates.find((t) => t.id === selectedId) ?? visibleTemplates[0] ?? null,
+    () => visibleTemplates.find((tmpl) => tmpl.id === selectedId) ?? visibleTemplates[0] ?? null,
     [visibleTemplates, selectedId]
   );
 
   useEffect(() => {
-    if (visibleTemplates.length && !visibleTemplates.find((t) => t.id === selectedId)) {
+    if (visibleTemplates.length && !visibleTemplates.find((tmpl) => tmpl.id === selectedId)) {
       setSelectedId(visibleTemplates[0]!.id);
     }
   }, [visibleTemplates, selectedId]);
@@ -153,18 +155,18 @@ export default function ArtGalleryScreen() {
               { borderColor: c.border, backgroundColor: c.surface },
               pressed && { opacity: 0.85 },
             ]}>
-            <Text style={[styles.chipText, { color: c.text }]}>Back</Text>
+            <Text style={[styles.chipText, { color: c.text }]}>{t('shop.back')}</Text>
           </Pressable>
           <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
-            Shop
+            {t('shop.title')}
           </Text>
           <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
         </View>
 
         {!textureUri ? (
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Text style={[styles.cardTitle, { color: c.text }]}>Keine Iris-Textur</Text>
-            <Text style={[styles.cardBody, { color: muted }]}>Bitte zuerst scannen und verfeinern.</Text>
+            <Text style={[styles.cardTitle, { color: c.text }]}>{t('shop.noTexture')}</Text>
+            <Text style={[styles.cardBody, { color: muted }]}>{t('shop.noTextureBody')}</Text>
           </View>
         ) : (
           <ScrollView
@@ -190,16 +192,15 @@ export default function ArtGalleryScreen() {
                   opacity: !selected ? 0.45 : pressed ? 0.9 : 1,
                 },
               ]}>
-              <Text style={styles.primaryCtaText}>Leinwand bestellen</Text>
+              <Text style={styles.primaryCtaText}>{t('shop.orderCanvas')}</Text>
               <Text style={styles.primaryCtaSub}>
-                {selected ? `Template: ${selected.title}` : 'Vorlage wählen'} · Größe & Adresse in der App
+                {selected
+                  ? t('shop.orderSub', { title: selected.title })
+                  : t('shop.orderSubPick')}
               </Text>
             </Pressable>
 
-            <Text style={[styles.sub, { color: muted }]}>
-              Templates mit transparentem Loch legen sich über deine Nano-Banana-Iris — nur Skalierung &
-              Position aus den Metadaten.
-            </Text>
+            <Text style={[styles.sub, { color: muted }]}>{t('shop.intro')}</Text>
 
             <View style={styles.filterRow}>
               <Pressable
@@ -213,7 +214,7 @@ export default function ArtGalleryScreen() {
                     opacity: pressed ? 0.9 : 1,
                   },
                 ]}>
-                <Text style={[styles.filterText, { color: c.text }]}>Passend zur Farbe</Text>
+                <Text style={[styles.filterText, { color: c.text }]}>{t('shop.filterMatch')}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -226,21 +227,19 @@ export default function ArtGalleryScreen() {
                     opacity: pressed ? 0.9 : 1,
                   },
                 ]}>
-                <Text style={[styles.filterText, { color: c.text }]}>Alle Templates</Text>
+                <Text style={[styles.filterText, { color: c.text }]}>{t('shop.filterAll')}</Text>
               </Pressable>
             </View>
 
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.cardTitle, { color: c.text }]}>Erkannte Farbfamilien</Text>
+              <Text style={[styles.cardTitle, { color: c.text }]}>{t('shop.families')}</Text>
               {analysisStatus === 'loading' ? (
                 <View style={styles.rowCenter}>
                   <ActivityIndicator color={c.tint} />
-                  <Text style={[styles.cardBody, { color: muted }]}> Analyse…</Text>
+                  <Text style={[styles.cardBody, { color: muted }]}> {t('shop.familiesLoading')}</Text>
                 </View>
               ) : analysisStatus === 'error' ? (
-                <Text style={[styles.cardBody, { color: muted }]}>
-                  Farb-Filter nicht verfügbar — „Alle Templates“ nutzen.
-                </Text>
+                <Text style={[styles.cardBody, { color: muted }]}>{t('shop.familiesError')}</Text>
               ) : (
                 <Text style={[styles.cardBody, { color: muted }]}>{familyLabel}</Text>
               )}
@@ -248,27 +247,34 @@ export default function ArtGalleryScreen() {
 
             {selected && textureUri ? (
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-                <Text style={[styles.cardTitle, { color: c.text }]}>Vorschau: {selected.title}</Text>
+                <Text style={[styles.cardTitle, { color: c.text }]}>
+                  {t('shop.preview', { title: selected.title })}
+                </Text>
                 <View style={{ alignItems: 'center', marginTop: 8 }}>
                   <ArtTemplateComposite textureUri={textureUri} template={selected} width={cardWidth} />
                 </View>
                 <Text style={[styles.meta, { color: muted }]}>
-                  Loch: x {selected.irisHole.x.toFixed(2)} y {selected.irisHole.y.toFixed(2)} w{' '}
-                  {selected.irisHole.w.toFixed(2)} h {selected.irisHole.h.toFixed(2)} ·{' '}
-                  {selected.irisResizeMode ?? 'contain'} · scale {selected.irisScale ?? 1}
+                  {t('shop.holeMeta', {
+                    x: selected.irisHole.x.toFixed(2),
+                    y: selected.irisHole.y.toFixed(2),
+                    w: selected.irisHole.w.toFixed(2),
+                    h: selected.irisHole.h.toFixed(2),
+                    mode: selected.irisResizeMode ?? 'contain',
+                    scale: selected.irisScale ?? 1,
+                  })}
                 </Text>
               </View>
             ) : null}
 
-            <Text style={[styles.sectionLabel, { color: c.text }]}>Vorlagen</Text>
+            <Text style={[styles.sectionLabel, { color: c.text }]}>{t('shop.templates')}</Text>
             <View style={[styles.grid, { justifyContent: 'flex-start' }]}>
-              {visibleTemplates.map((t) => {
-                const active = t.id === (selectedId ?? selected?.id);
+              {visibleTemplates.map((tmpl) => {
+                const active = tmpl.id === (selectedId ?? selected?.id);
                 return (
                   <Pressable
-                    key={t.id}
+                    key={tmpl.id}
                     accessibilityRole="button"
-                    onPress={() => setSelectedId(t.id)}
+                    onPress={() => setSelectedId(tmpl.id)}
                     style={({ pressed }) => [
                       styles.thumbWrap,
                       {
@@ -279,10 +285,10 @@ export default function ArtGalleryScreen() {
                       },
                     ]}>
                     {textureUri ? (
-                      <ArtTemplateComposite textureUri={textureUri} template={t} width={thumbWidth} />
+                      <ArtTemplateComposite textureUri={textureUri} template={tmpl} width={thumbWidth} />
                     ) : null}
                     <Text style={[styles.thumbTitle, { color: c.text }]} numberOfLines={1}>
-                      {t.title}
+                      {tmpl.title}
                     </Text>
                   </Pressable>
                 );
@@ -291,8 +297,7 @@ export default function ArtGalleryScreen() {
 
             {visibleTemplates.length === 0 ? (
               <Text style={[styles.cardBody, { color: muted, textAlign: 'center', paddingVertical: 20 }]}>
-                Kein Template für diese Farbe — „Alle Templates“ wählen oder neue Vorlagen in{' '}
-                <Text style={{ fontWeight: '800' }}>lib/artTemplates.ts</Text> anlegen.
+                {t('shop.noTemplates')}
               </Text>
             ) : null}
 
@@ -312,7 +317,7 @@ export default function ArtGalleryScreen() {
                 styles.secondaryBtn,
                 { borderColor: c.border, backgroundColor: c.surface, opacity: pressed ? 0.9 : 1 },
               ]}>
-              <Text style={[styles.secondaryText, { color: c.text }]}>Color Analyzer</Text>
+              <Text style={[styles.secondaryText, { color: c.text }]}>{t('shop.colorAnalyzer')}</Text>
             </Pressable>
           </ScrollView>
         )}

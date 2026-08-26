@@ -9,6 +9,7 @@ import { AppBottomBar } from '@/components/AppBottomBar';
 import Colors from '@/constants/Colors';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import { enhanceIrisTextureWithInpaint } from '@/lib/aiIrisInpaint';
+import { useT } from '@/lib/i18n';
 
 type Status =
   | { kind: 'loading' }
@@ -17,7 +18,8 @@ type Status =
 
 export default function IrisPrepScreen() {
   const scheme = useColorScheme();
-  const c = Colors[scheme];
+  const c = Colors[scheme ?? 'light'];
+  const t = useT();
   const params = useLocalSearchParams<{ uri?: string; cropX?: string; cropY?: string; cropW?: string; cropH?: string }>();
   const uri = typeof params.uri === 'string' ? params.uri : undefined;
   const cropX = typeof params.cropX === 'string' ? Number(params.cropX) : undefined;
@@ -37,7 +39,7 @@ export default function IrisPrepScreen() {
     let cancelled = false;
     const run = async () => {
       if (!uri) {
-        setStatus({ kind: 'error', message: 'Missing photo.' });
+        setStatus({ kind: 'error', message: t('iris.missingPhoto') });
         return;
       }
       try {
@@ -56,7 +58,7 @@ export default function IrisPrepScreen() {
         if (cancelled) return;
         setStatus({
           kind: 'error',
-          message: e instanceof Error ? e.message : 'Failed to enhance iris.',
+          message: e instanceof Error ? e.message : t('iris.enhanceFailed'),
         });
       }
     };
@@ -66,7 +68,10 @@ export default function IrisPrepScreen() {
     };
   }, [uri, cropRect, regenNonce]);
 
-  const title = useMemo(() => (status.kind === 'ready' ? 'Iris Refined' : 'AI Iris Enhancement'), [status.kind]);
+  const title = useMemo(
+    () => (status.kind === 'ready' ? t('iris.titleReady') : t('iris.titleLoading')),
+    [status.kind, t]
+  );
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
@@ -96,7 +101,7 @@ export default function IrisPrepScreen() {
                 { borderColor: c.border, backgroundColor: c.surface },
                 pressed && { opacity: 0.85 },
               ]}>
-              <Text style={[styles.chipText, { color: c.text }]}>Back</Text>
+              <Text style={[styles.chipText, { color: c.text }]}>{t('iris.back')}</Text>
             </Pressable>
             <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
               {title}
@@ -117,12 +122,12 @@ export default function IrisPrepScreen() {
                     styles.body,
                     { color: scheme === 'dark' ? 'rgba(243,245,255,0.70)' : 'rgba(10,11,16,0.68)' },
                   ]}>
-                Generating Clean Iris...
+                  {t('iris.enhancing')}
                 </Text>
               </View>
             ) : status.kind === 'error' ? (
               <View style={styles.center}>
-                <Text style={[styles.title, { color: c.text }]}>Enhancement failed</Text>
+                <Text style={[styles.title, { color: c.text }]}>{t('iris.failed')}</Text>
                 <Text
                   style={[
                     styles.body,
@@ -137,7 +142,7 @@ export default function IrisPrepScreen() {
           {status.kind === 'ready' ? (
             <>
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.title, { color: c.text, fontSize: 14.5 }]}>Source Eye Crop</Text>
+              <Text style={[styles.title, { color: c.text, fontSize: 14.5 }]}>{t('iris.sourceCrop')}</Text>
               <View style={{ borderRadius: 14, overflow: 'hidden', height: 130, backgroundColor: 'black' }}>
                 <Image source={{ uri: status.maskedImageUri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
               </View>
@@ -146,7 +151,7 @@ export default function IrisPrepScreen() {
                     styles.body,
                     { color: scheme === 'dark' ? 'rgba(243,245,255,0.65)' : 'rgba(10,11,16,0.65)' },
                   ]}>
-                AI generates the clean iris artwork from this crop.
+                  {t('iris.sourceHint')}
                 </Text>
               </View>
 
@@ -166,7 +171,7 @@ export default function IrisPrepScreen() {
                   styles.primaryBtn,
                   { backgroundColor: c.tint, opacity: pressed ? 0.9 : 1 },
                 ]}>
-                <Text style={styles.primaryText}>Art Gallery</Text>
+                <Text style={styles.primaryText}>{t('iris.artGallery')}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -175,7 +180,7 @@ export default function IrisPrepScreen() {
                   styles.secondaryBtn,
                   { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.92 : 1, marginTop: 10 },
                 ]}>
-                <Text style={[styles.secondaryText, { color: c.text }]}>Neu generieren</Text>
+                <Text style={[styles.secondaryText, { color: c.text }]}>{t('iris.regenerate')}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -193,7 +198,7 @@ export default function IrisPrepScreen() {
                   styles.secondaryBtn,
                   { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.92 : 1, marginTop: 10 },
                 ]}>
-                <Text style={[styles.secondaryText, { color: c.text }]}>Analyze Color Profile</Text>
+                <Text style={[styles.secondaryText, { color: c.text }]}>{t('iris.analyze')}</Text>
               </Pressable>
             </>
           ) : (
@@ -204,7 +209,7 @@ export default function IrisPrepScreen() {
                 styles.secondaryBtn,
                 { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.92 : 1 },
               ]}>
-              <Text style={[styles.secondaryText, { color: c.text }]}>Retake Photo</Text>
+              <Text style={[styles.secondaryText, { color: c.text }]}>{t('iris.retake')}</Text>
             </Pressable>
           )}
         </ScrollView>
@@ -263,4 +268,3 @@ const styles = StyleSheet.create({
 
   canvasMeta: { fontSize: 12.5, lineHeight: 18, marginTop: 6 },
 });
-

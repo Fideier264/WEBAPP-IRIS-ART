@@ -22,6 +22,7 @@ import { AppBottomBar } from '@/components/AppBottomBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
+import { useT } from '@/lib/i18n';
 
 type CaptureState =
   | { kind: 'camera' }
@@ -38,7 +39,8 @@ type DragState = {
 
 export default function CaptureScreen() {
   const scheme = useColorScheme();
-  const c = Colors[scheme];
+  const c = Colors[scheme ?? 'light'];
+  const t = useT();
 
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -127,7 +129,7 @@ export default function CaptureScreen() {
       setCropRect({ cx: 0.5, cy: 0.5, scale: 1 });
       setState({ kind: 'preview', uri: photo.uri });
     } catch (e) {
-      Alert.alert('Camera error', e instanceof Error ? e.message : 'Failed to take photo.');
+      Alert.alert(t('capture.cameraError'), e instanceof Error ? e.message : t('common.errorGeneric'));
     } finally {
       setIsCapturing(false);
     }
@@ -139,7 +141,7 @@ export default function CaptureScreen() {
       setIsPicking(true);
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert('Permission needed', 'Allow photo access to upload an eye image.');
+        Alert.alert(t('capture.permissionNeeded'), t('capture.permissionPhotos'));
         return;
       }
 
@@ -155,7 +157,7 @@ export default function CaptureScreen() {
       setCropRect({ cx: 0.5, cy: 0.5, scale: 1 });
       setState({ kind: 'preview', uri });
     } catch (e) {
-      Alert.alert('Upload error', e instanceof Error ? e.message : 'Failed to pick image.');
+      Alert.alert(t('capture.uploadError'), e instanceof Error ? e.message : t('common.errorGeneric'));
     } finally {
       setIsPicking(false);
     }
@@ -208,7 +210,7 @@ export default function CaptureScreen() {
               { borderColor: c.border, backgroundColor: c.surface },
               pressed && { opacity: 0.85 },
             ]}>
-            <Text style={[styles.chipText, { color: c.text }]}>Back</Text>
+            <Text style={[styles.chipText, { color: c.text }]}>{t('capture.back')}</Text>
           </Pressable>
           <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
         </View>
@@ -223,7 +225,9 @@ export default function CaptureScreen() {
               { borderColor: c.border, backgroundColor: c.surface },
               pressed && { opacity: 0.85 },
             ]}>
-            <Text style={[styles.chipText, { color: c.text }]}>{isPicking ? 'Uploading…' : 'Upload'}</Text>
+            <Text style={[styles.chipText, { color: c.text }]}>
+              {isPicking ? t('capture.uploading') : t('capture.upload')}
+            </Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -233,20 +237,22 @@ export default function CaptureScreen() {
               { borderColor: c.border, backgroundColor: c.surface },
               pressed && { opacity: 0.85 },
             ]}>
-            <Text style={[styles.chipText, { color: c.text }]}>{torchOn ? 'Torch On' : 'Torch Off'}</Text>
+            <Text style={[styles.chipText, { color: c.text }]}>
+              {torchOn ? t('capture.torchOn') : t('capture.torchOff')}
+            </Text>
           </Pressable>
         </View>
 
         <View style={styles.stage}>
           {!canUseCamera ? (
             <View style={[styles.permissionCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.permissionTitle, { color: c.text }]}>Camera access required</Text>
+              <Text style={[styles.permissionTitle, { color: c.text }]}>{t('capture.permissionTitle')}</Text>
               <Text
                 style={[
                   styles.permissionBody,
                   { color: scheme === 'dark' ? 'rgba(243,245,255,0.70)' : 'rgba(10,11,16,0.68)' },
                 ]}>
-                IrisArt needs the camera to capture a macro photo of your eye.
+                {t('capture.permissionBody')}
               </Text>
               <Pressable
                 accessibilityRole="button"
@@ -255,7 +261,7 @@ export default function CaptureScreen() {
                   styles.permissionButton,
                   { backgroundColor: c.tint, opacity: pressed ? 0.9 : 1 },
                 ]}>
-                <Text style={styles.permissionButtonText}>Allow Camera</Text>
+                <Text style={styles.permissionButtonText}>{t('capture.allowCamera')}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -265,7 +271,9 @@ export default function CaptureScreen() {
                   styles.permissionButton,
                   { backgroundColor: c.surfaceAlt, borderColor: c.border, opacity: pressed ? 0.92 : 1, borderWidth: StyleSheet.hairlineWidth },
                 ]}>
-                <Text style={[styles.permissionButtonText, { color: c.text }]}>{isPicking ? 'Uploading…' : 'Upload Instead'}</Text>
+                <Text style={[styles.permissionButtonText, { color: c.text }]}>
+                  {isPicking ? t('capture.uploading') : t('capture.uploadInstead')}
+                </Text>
               </Pressable>
             </View>
           ) : state.kind === 'preview' ? (
@@ -289,7 +297,7 @@ export default function CaptureScreen() {
                   styles.hint,
                   { color: scheme === 'dark' ? 'rgba(243,245,255,0.70)' : 'rgba(10,11,16,0.70)' },
                 ]}>
-                Keep the whole eye in the rectangle
+                {t('capture.hint')}
               </Text>
             </View>
           )}
@@ -298,7 +306,7 @@ export default function CaptureScreen() {
         {state.kind === 'camera' ? (
           <View style={styles.zoomRow}>
             <Text style={[styles.zoomLabel, { color: scheme === 'dark' ? 'rgba(243,245,255,0.75)' : 'rgba(10,11,16,0.75)' }]}>
-              Zoom { (1 + zoom * 3).toFixed(1) }×
+              {t('capture.zoom')} {(1 + zoom * 3).toFixed(1)}×
             </Text>
             <Slider
               style={styles.slider}
@@ -317,9 +325,9 @@ export default function CaptureScreen() {
           {state.kind === 'preview' ? (
             <>
               <View style={styles.cropPanel}>
-                <Text style={[styles.cropTitle, { color: c.text }]}>Crop Eye Area</Text>
+                <Text style={[styles.cropTitle, { color: c.text }]}>{t('capture.cropTitle')}</Text>
                 <Text style={[styles.cropHint, { color: scheme === 'dark' ? 'rgba(243,245,255,0.72)' : 'rgba(10,11,16,0.72)' }]}>
-                  Move rectangle over the eye. Include eyelid + brow.
+                  {t('capture.cropHint')}
                 </Text>
                 <Slider
                   style={styles.cropSlider}
@@ -354,7 +362,7 @@ export default function CaptureScreen() {
                     source={require('@/assets/crop-eye-example.png')}
                     style={styles.exampleImage}
                     resizeMode="cover"
-                    accessibilityLabel="Example: crop rectangle over the eye including eyelid and brow"
+                    accessibilityLabel={t('capture.cropHint')}
                   />
                 </View>
               </View>
@@ -367,7 +375,7 @@ export default function CaptureScreen() {
                     { borderColor: c.border, backgroundColor: c.surface },
                     pressed && { opacity: 0.9 },
                   ]}>
-                  <Text style={[styles.secondaryText, { color: c.text }]}>Retake</Text>
+                  <Text style={[styles.secondaryText, { color: c.text }]}>{t('capture.retake')}</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
@@ -376,7 +384,7 @@ export default function CaptureScreen() {
                     styles.primaryBtn,
                     { backgroundColor: c.tint, opacity: pressed ? 0.9 : 1 },
                   ]}>
-                  <Text style={styles.primaryText}>Use Photo</Text>
+                  <Text style={styles.primaryText}>{t('capture.usePhoto')}</Text>
                 </Pressable>
               </View>
             </>
@@ -532,4 +540,3 @@ const styles = StyleSheet.create({
   },
   secondaryText: { fontSize: 15.5, fontWeight: '750' },
 });
-

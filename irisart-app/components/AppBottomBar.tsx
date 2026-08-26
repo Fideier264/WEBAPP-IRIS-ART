@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Colors from '@/constants/Colors';
+import { useT } from '@/lib/i18n';
 import { useColorScheme } from './useColorScheme';
 
 export function AppBottomBar({
@@ -14,8 +15,9 @@ export function AppBottomBar({
   shopTextureUri?: string;
 }) {
   const scheme = useColorScheme();
-  const c = Colors[scheme];
+  const c = Colors[scheme ?? 'light'];
   const insets = useSafeAreaInsets();
+  const t = useT();
 
   return (
     <View
@@ -23,21 +25,21 @@ export function AppBottomBar({
       style={[styles.host, { paddingBottom: Math.max(8, insets.bottom) }]}>
       <View style={[styles.wrap, { borderColor: c.border, backgroundColor: c.surface }]}>
       <BarBtn
-        label="Galerie"
+        label={t('nav.gallery')}
         active={active === 'library'}
         onPress={() => router.replace('/library')}
         tint={c.tint}
         text={c.text}
       />
       <BarBtn
-        label="Scan"
+        label={t('nav.scan')}
         active={active === 'scan'}
         onPress={() => router.replace('/')}
         tint={c.tint}
         text={c.text}
       />
       <BarBtn
-        label="Shop"
+        label={t('nav.shop')}
         active={active === 'shop'}
         onPress={() => router.replace({ pathname: '/shop', params: shopTextureUri ? { textureUri: shopTextureUri } : {} })}
         tint={c.tint}

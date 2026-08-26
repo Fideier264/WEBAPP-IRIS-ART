@@ -8,10 +8,12 @@ import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
+import { useT } from '@/lib/i18n';
 
 export default function OnboardingScreen() {
   const scheme = useColorScheme();
-  const c = Colors[scheme];
+  const c = Colors[scheme ?? 'light'];
+  const t = useT();
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
@@ -29,21 +31,16 @@ export default function OnboardingScreen() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.hero}>
           <Text style={[styles.brand, { color: c.text }]}>IrisArt</Text>
-          <Text style={[styles.tagline, { color: c.text }]}>Science of Your Eye</Text>
+          <Text style={[styles.tagline, { color: c.text }]}>{t('home.tagline')}</Text>
           <Text style={[styles.sub, { color: scheme === 'dark' ? 'rgba(243,245,255,0.72)' : 'rgba(10,11,16,0.70)' }]}>
-            Capture a macro iris photo. We’ll extract dominant colors and generate a rarity profile—then transform your
-            iris into premium digital art.
+            {t('home.sub')}
           </Text>
         </View>
 
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <Row title="Macro capture guide" body="Align your iris inside the ring for best color accuracy." scheme={scheme} />
-          <Row
-            title="Color profile"
-            body="Primary + secondary HEX palette from the iris core (mocked in Phase 2)."
-            scheme={scheme}
-          />
-          <Row title="Artwork → Canvas" body="Preview styles, then order a physical print (Phase 4)." scheme={scheme} />
+          <Row title={t('home.tip1Title')} body={t('home.tip1Body')} scheme={scheme ?? 'light'} />
+          <Row title={t('home.tip2Title')} body={t('home.tip2Body')} scheme={scheme ?? 'light'} />
+          <Row title={t('home.tip3Title')} body={t('home.tip3Body')} scheme={scheme ?? 'light'} />
         </View>
 
         <Pressable
@@ -56,7 +53,7 @@ export default function OnboardingScreen() {
               opacity: pressed ? 0.88 : 1,
             },
           ]}>
-          <Text style={styles.ctaText}>Begin Iris Scan</Text>
+          <Text style={styles.ctaText}>{t('home.cta')}</Text>
         </Pressable>
 
         <Text
@@ -64,7 +61,7 @@ export default function OnboardingScreen() {
             styles.foot,
             { color: scheme === 'dark' ? 'rgba(243,245,255,0.46)' : 'rgba(10,11,16,0.46)' },
           ]}>
-          Tip: For best lighting, use the rear camera + flashlight and a mirror.
+          {t('home.foot')}
         </Text>
         <AppBottomBar active="scan" />
       </SafeAreaView>
@@ -120,18 +117,16 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  dot: { width: 10, height: 10, borderRadius: 999, marginTop: 6, borderWidth: 1 },
+  dot: { width: 12, height: 12, borderRadius: 6, marginTop: 4, borderWidth: StyleSheet.hairlineWidth },
   rowText: { flex: 1, gap: 3 },
-  rowTitle: { fontSize: 14.5, fontWeight: '650' },
-  rowBody: { fontSize: 13.5, lineHeight: 19 },
+  rowTitle: { fontSize: 14.5, fontWeight: '750' },
+  rowBody: { fontSize: 13, lineHeight: 18 },
   cta: {
     marginTop: 22,
-    borderRadius: 16,
-    paddingVertical: 14,
+    borderRadius: 18,
+    paddingVertical: 16,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  ctaText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
-  foot: { marginTop: 12, marginBottom: 8, fontSize: 12.5, textAlign: 'center' },
+  ctaText: { color: '#fff', fontSize: 16.5, fontWeight: '850' },
+  foot: { marginTop: 14, fontSize: 12.5, lineHeight: 18, textAlign: 'center' },
 });
-

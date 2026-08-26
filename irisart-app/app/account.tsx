@@ -15,12 +15,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/lib/auth';
+import { LOCALES, useLocale, type Locale } from '@/lib/i18n';
 
 export default function AccountScreen() {
   const scheme = useColorScheme();
-  const c = Colors[scheme];
+  const c = Colors[scheme ?? 'light'];
   const muted = scheme === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
   const { user, loading, signInEmail, signUpEmail, signInGoogle, signOut } = useAuth();
+  const { t, locale, setLocale } = useLocale();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,7 +45,7 @@ export default function AccountScreen() {
     try {
       await fn();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.');
+      setError(e instanceof Error ? e.message : t('common.errorGeneric'));
     } finally {
       setBusy(false);
     }
@@ -62,18 +64,47 @@ export default function AccountScreen() {
               { borderColor: c.border, backgroundColor: c.surface },
               pressed && { opacity: 0.85 },
             ]}>
-            <Text style={[styles.chipText, { color: c.text }]}>Back</Text>
+            <Text style={[styles.chipText, { color: c.text }]}>{t('common.back')}</Text>
           </Pressable>
-          <Text style={[styles.hTitle, { color: c.text }]}>Account</Text>
-          <View style={{ width: 56 }} />
+          <Text style={[styles.hTitle, { color: c.text }]}>{t('account.title')}</Text>
+          <View style={{ width: 72 }} />
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.language')}</Text>
+            <Text style={[styles.body, { color: muted }]}>{t('account.languageHint')}</Text>
+            <View style={styles.langRow}>
+              {LOCALES.map((opt) => {
+                const active = locale === opt.id;
+                return (
+                  <Pressable
+                    key={opt.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    onPress={() => setLocale(opt.id as Locale)}
+                    style={({ pressed }) => [
+                      styles.langChip,
+                      {
+                        borderColor: active ? c.tint : c.border,
+                        backgroundColor: active ? 'rgba(124,92,255,0.16)' : c.surfaceAlt,
+                        opacity: pressed ? 0.9 : 1,
+                      },
+                    ]}>
+                    <Text style={[styles.langChipText, { color: c.text }]}>
+                      {opt.id === 'de' ? t('account.lang.de') : t('account.lang.en')}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
           {loading ? (
             <ActivityIndicator color={c.tint} />
           ) : user ? (
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.cardTitle, { color: c.text }]}>Signed in</Text>
+              <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.signedIn')}</Text>
               <Text style={[styles.body, { color: muted }]}>{user.email ?? user.id}</Text>
               <Pressable
                 accessibilityRole="button"
@@ -83,21 +114,19 @@ export default function AccountScreen() {
                   styles.secondaryBtn,
                   { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
                 ]}>
-                <Text style={[styles.secondaryText, { color: c.text }]}>Sign out</Text>
+                <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.signOut')}</Text>
               </Pressable>
             </View>
           ) : (
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.cardTitle, { color: c.text }]}>Save your iris gallery</Text>
-              <Text style={[styles.body, { color: muted }]}>
-                Sign in with email or Google to save generated iris images to your account.
-              </Text>
+              <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.saveGalleryTitle')}</Text>
+              <Text style={[styles.body, { color: muted }]}>{t('account.saveGalleryBody')}</Text>
 
               <TextInput
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
-                placeholder="Email"
+                placeholder={t('account.email')}
                 placeholderTextColor={muted}
                 value={email}
                 onChangeText={setEmail}
@@ -105,7 +134,7 @@ export default function AccountScreen() {
               />
               <TextInput
                 secureTextEntry
-                placeholder="Password (min. 6 characters)"
+                placeholder={t('account.password')}
                 placeholderTextColor={muted}
                 value={password}
                 onChangeText={setPassword}
@@ -118,14 +147,14 @@ export default function AccountScreen() {
                 onPress={() =>
                   run(async () => {
                     await signInEmail(email, password);
-                    setInfo('Signed in.');
+                    setInfo(t('account.signedInInfo'));
                   })
                 }
                 style={({ pressed }) => [
                   styles.primaryBtn,
                   { backgroundColor: c.tint, opacity: pressed || busy ? 0.9 : 1 },
                 ]}>
-                <Text style={styles.primaryText}>Sign in</Text>
+                <Text style={styles.primaryText}>{t('account.signIn')}</Text>
               </Pressable>
 
               <Pressable
@@ -134,14 +163,14 @@ export default function AccountScreen() {
                 onPress={() =>
                   run(async () => {
                     await signUpEmail(email, password);
-                    setInfo('Account created. You can sign in now (confirm email if required by your project).');
+                    setInfo(t('account.createdInfo'));
                   })
                 }
                 style={({ pressed }) => [
                   styles.secondaryBtn,
                   { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
                 ]}>
-                <Text style={[styles.secondaryText, { color: c.text }]}>Create account</Text>
+                <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.createAccount')}</Text>
               </Pressable>
 
               <Pressable
@@ -152,7 +181,7 @@ export default function AccountScreen() {
                   styles.secondaryBtn,
                   { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
                 ]}>
-                <Text style={[styles.secondaryText, { color: c.text }]}>Continue with Google</Text>
+                <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.continueGoogle')}</Text>
               </Pressable>
             </View>
           )}
@@ -175,7 +204,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    width: 56,
+    minWidth: 72,
     alignItems: 'center',
   },
   chipText: { fontSize: 13.5, fontWeight: '650' },
@@ -189,6 +218,15 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 16, fontWeight: '850' },
   body: { fontSize: 13.5, lineHeight: 19 },
+  langRow: { flexDirection: 'row', gap: 10 },
+  langChip: {
+    flex: 1,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  langChipText: { fontSize: 14.5, fontWeight: '800' },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 14,

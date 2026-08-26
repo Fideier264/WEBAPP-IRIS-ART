@@ -5,18 +5,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/lib/auth';
+import { useT } from '@/lib/i18n';
 import { useColorScheme } from './useColorScheme';
 
 /** Floating top-right Account / Login control on every screen. */
 export function AppAccountButton() {
   const scheme = useColorScheme();
-  const c = Colors[scheme];
+  const c = Colors[scheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { user, loading } = useAuth();
+  const t = useT();
 
   // Already on the account screen — no need for a second entry.
   if (pathname === '/account') return null;
+
+  const label = loading ? t('common.loading') : user ? t('common.account') : t('common.login');
 
   return (
     <View
@@ -24,7 +28,7 @@ export function AppAccountButton() {
       style={[styles.host, { top: Math.max(10, insets.top + 6), right: 18 }]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={user ? 'Account' : 'Login'}
+        accessibilityLabel={label}
         hitSlop={8}
         onPress={() => router.push('/account')}
         style={({ pressed }) => [
@@ -32,9 +36,7 @@ export function AppAccountButton() {
           { borderColor: c.border, backgroundColor: c.surface },
           pressed && { opacity: 0.85 },
         ]}>
-        <Text style={[styles.txt, { color: c.text }]}>
-          {loading ? '…' : user ? 'Account' : 'Login'}
-        </Text>
+        <Text style={[styles.txt, { color: c.text }]}>{label}</Text>
       </Pressable>
     </View>
   );

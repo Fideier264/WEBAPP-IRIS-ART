@@ -28,6 +28,7 @@ import {
   restoreCheckoutTexture,
 } from '@/lib/createStripeCheckout';
 import { getArtTemplateById } from '@/lib/artTemplates';
+import { useT, type TranslationKey } from '@/lib/i18n';
 import {
   catalogHasPayableSkus,
   getCatalogProducts,
@@ -37,10 +38,25 @@ import {
 } from '@/lib/merchOneCatalog';
 import { uploadCheckoutArtwork } from '@/lib/orderPrintUpload';
 
+type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => string;
+
 function paramString(v: string | string[] | undefined): string | undefined {
   if (typeof v === 'string' && v.trim()) return v.trim();
   if (Array.isArray(v) && typeof v[0] === 'string' && v[0].trim()) return v[0].trim();
   return undefined;
+}
+
+function translateCategoryLabel(category: string, categoryLabel: string, t: TFn): string {
+  if (category === 'canvas') return t('catalog.canvas');
+  return categoryLabel;
+}
+
+function translateDescription(description: string | undefined, t: TFn): string | undefined {
+  if (!description) return undefined;
+  if (description === 'Galerie-Leinwand' || description === 'Gallery canvas') {
+    return t('catalog.galleryCanvas');
+  }
+  return description;
 }
 
 export default function CheckoutScreen() {
@@ -50,6 +66,7 @@ export default function CheckoutScreen() {
   const muted = cs === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
   const { width } = useWindowDimensions();
   const cardW = Math.floor((width - 36 - 10) / 2);
+  const t = useT();
 
   const params = useLocalSearchParams<{
     textureUri?: string | string[];
@@ -124,46 +141,48 @@ export default function CheckoutScreen() {
 
   const inputSurface = { backgroundColor: c.surfaceAlt, borderColor: c.border, color: c.text };
   const busy = status === 'uploading' || status === 'redirecting';
+  const selectedCatLabel = selected
+    ? translateCategoryLabel(selected.category, selected.categoryLabel, t)
+    : '';
+  const selectedDesc = selected ? translateDescription(selected.description, t) : undefined;
 
   async function onPay() {
     setErrorMsg(null);
 
     if (!textureUri) {
-      setErrorMsg('Kein Kunstwerk gefunden. Bitte vom Shop aus „Leinwand bestellen“ wählen.');
+      setErrorMsg(t('checkout.errNoArt'));
       setStatus('error');
       return;
     }
     if (!templateId || !template) {
-      setErrorMsg('Kein Template gewählt. Bitte im Shop eine Vorlage auswählen und erneut bestellen.');
+      setErrorMsg(t('checkout.errNoTemplate'));
       setStatus('error');
       return;
     }
     if (!selected) {
-      setErrorMsg('Bitte ein Produkt auswählen.');
+      setErrorMsg(t('checkout.errNoProduct'));
       setStatus('error');
       return;
     }
     if (!selected.sku) {
-      setErrorMsg(
-        'Für dieses Produkt fehlt noch die merchOne-SKU. Trage EXPO_PUBLIC_MERCHONE_CATALOG oder die Legacy-SKU-Env-Vars ein und baue die App neu.'
-      );
+      setErrorMsg(t('checkout.errNoSku'));
       setStatus('error');
       return;
     }
 
     const cc = country.trim().toUpperCase().slice(0, 2);
     if (cc.length !== 2) {
-      setErrorMsg('Land als ISO-2 Code (z. B. DE).');
+      setErrorMsg(t('checkout.errCountry'));
       setStatus('error');
       return;
     }
     if ((cc === 'US' || cc === 'CA') && !region.trim()) {
-      setErrorMsg('Bundesland/Region für US/CA erforderlich.');
+      setErrorMsg(t('checkout.errRegion'));
       setStatus('error');
       return;
     }
     if (!email.trim() || !firstName.trim() || !lastName.trim() || !street.trim() || !city.trim() || !postcode.trim()) {
-      setErrorMsg('Bitte alle Pflichtfelder der Lieferadresse ausfüllen.');
+      setErrorMsg(t('checkout.errRequired'));
       setStatus('error');
       return;
     }
@@ -179,7 +198,8 @@ export default function CheckoutScreen() {
       });
 
       setStatus('redirecting');
-      const stripeTitle = `${selected.categoryLabel} ${selected.title}`.trim();
+      const catLabel = translateCategoryLabel(selected.category, selected.categoryLabel, t);
+      const stripeTitle = `${catLabel} ${selected.title}`.trim();
       const res = await requestCreateCheckoutSession({
         printFileUrl,
         templateId,
@@ -229,27 +249,23 @@ export default function CheckoutScreen() {
               { borderColor: c.border, backgroundColor: c.surface },
               pressed && { opacity: 0.85 },
             ]}>
-            <Text style={[styles.chipText, { color: c.text }]}>Zurück</Text>
+            <Text style={[styles.chipText, { color: c.text }]}>{t('checkout.back')}</Text>
           </Pressable>
           <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
-            Bestellen
+            {t('checkout.title')}
           </Text>
           <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
         </View>
 
         {!textureUri ? (
           <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
-            <Text style={[styles.cardTitle, { color: c.text }]}>Kein Bild</Text>
-            <Text style={[styles.cardBody, { color: muted }]}>
-              Bitte vom Shop aus „Leinwand bestellen“ wählen.
-            </Text>
+            <Text style={[styles.cardTitle, { color: c.text }]}>{t('checkout.noImage')}</Text>
+            <Text style={[styles.cardBody, { color: muted }]}>{t('checkout.noImageBody')}</Text>
           </View>
         ) : !template ? (
           <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
-            <Text style={[styles.cardTitle, { color: c.text }]}>Kein Template</Text>
-            <Text style={[styles.cardBody, { color: muted }]}>
-              Bitte im Shop eine Vorlage wählen und erneut „Leinwand bestellen“ tippen.
-            </Text>
+            <Text style={[styles.cardTitle, { color: c.text }]}>{t('checkout.noTemplate')}</Text>
+            <Text style={[styles.cardBody, { color: muted }]}>{t('checkout.noTemplateBody')}</Text>
           </View>
         ) : (
           <ScrollView
@@ -259,36 +275,30 @@ export default function CheckoutScreen() {
             showsVerticalScrollIndicator={false}>
             {canceled ? (
               <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
-                <Text style={[styles.cardTitle, { color: c.text }]}>Zahlung abgebrochen</Text>
-                <Text style={[styles.cardBody, { color: muted }]}>
-                  Produkt wählen und Adresse prüfen, danach erneut zur Zahlung.
-                </Text>
+                <Text style={[styles.cardTitle, { color: c.text }]}>{t('checkout.canceledTitle')}</Text>
+                <Text style={[styles.cardBody, { color: muted }]}>{t('checkout.canceledBody')}</Text>
               </View>
             ) : null}
 
             {!payable ? (
               <View style={[styles.card, { borderColor: 'rgba(220,160,40,0.55)', backgroundColor: c.surface }]}>
-                <Text style={[styles.cardTitle, { color: c.text }]}>Produktkatalog ohne SKU</Text>
+                <Text style={[styles.cardTitle, { color: c.text }]}>{t('checkout.catalogNoSku')}</Text>
                 <Text style={[styles.cardBody, { color: muted }]}>
-                  Es läuft der Demo-Katalog (Quelle: {getCatalogSource()}). Bearbeite{' '}
-                  <Text style={{ fontWeight: '700' }}>irisart-app/config/productCatalog.json</Text> im Repo oder setze
-                  EXPO_PUBLIC_MERCHONE_CATALOG und starte danach einen neuen Deploy/Build.
+                  {t('checkout.catalogNoSkuBody', { source: getCatalogSource() })}
                 </Text>
               </View>
             ) : null}
 
-            <Text style={[styles.sectionTitle, { color: c.text }]}>Druckmotiv</Text>
+            <Text style={[styles.sectionTitle, { color: c.text }]}>{t('checkout.printMotif')}</Text>
             <View style={[styles.summaryCard, { borderColor: c.border, backgroundColor: c.surface }]}>
               <Text style={[styles.cardTitle, { color: c.text }]}>{template.title}</Text>
               <View style={{ alignItems: 'center', marginTop: 8 }}>
                 <ArtTemplateComposite textureUri={textureUri} template={template} width={Math.min(width - 36, 320)} />
               </View>
-              <Text style={[styles.cardBody, { color: muted }]}>
-                Beim Bezahlen wird dieses Motiv als Druckdatei hochgeladen und an merchOne übergeben.
-              </Text>
+              <Text style={[styles.cardBody, { color: muted }]}>{t('checkout.printHint')}</Text>
             </View>
 
-            <Text style={[styles.sectionTitle, { color: c.text }]}>Produkt wählen</Text>
+            <Text style={[styles.sectionTitle, { color: c.text }]}>{t('checkout.pickProduct')}</Text>
             {categories.length > 1 ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
                 {categories.map((cat) => {
@@ -307,7 +317,9 @@ export default function CheckoutScreen() {
                           opacity: pressed ? 0.9 : 1,
                         },
                       ]}>
-                      <Text style={[styles.catChipText, { color: c.text }]}>{cat.label}</Text>
+                      <Text style={[styles.catChipText, { color: c.text }]}>
+                        {translateCategoryLabel(cat.id, cat.label, t)}
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -318,6 +330,8 @@ export default function CheckoutScreen() {
               {visibleProducts.map((p) => {
                 const active = p.id === selected?.id;
                 const photoUri = p.imageUrl || textureUri;
+                const catLabel = translateCategoryLabel(p.category, p.categoryLabel, t);
+                const desc = translateDescription(p.description, t);
                 return (
                   <Pressable
                     key={p.id}
@@ -337,7 +351,7 @@ export default function CheckoutScreen() {
                       <Image source={{ uri: photoUri }} style={styles.productPhoto} resizeMode="cover" />
                       {active ? (
                         <View style={[styles.selectedBadge, { backgroundColor: c.tint }]}>
-                          <Text style={styles.selectedBadgeText}>Gewählt</Text>
+                          <Text style={styles.selectedBadgeText}>{t('common.selected')}</Text>
                         </View>
                       ) : null}
                     </View>
@@ -345,8 +359,8 @@ export default function CheckoutScreen() {
                       {p.title}
                     </Text>
                     <Text style={[styles.productMeta, { color: muted }]} numberOfLines={1}>
-                      {p.categoryLabel}
-                      {p.description ? ` · ${p.description}` : ''}
+                      {catLabel}
+                      {desc ? ` · ${desc}` : ''}
                     </Text>
                     <Text style={[styles.productPrice, { color: c.text }]}>{p.priceLabel}</Text>
                   </Pressable>
@@ -356,45 +370,45 @@ export default function CheckoutScreen() {
 
             {selected ? (
               <View style={[styles.summaryCard, { borderColor: c.border, backgroundColor: c.surface }]}>
-                <Text style={[styles.cardTitle, { color: c.text }]}>Auswahl</Text>
+                <Text style={[styles.cardTitle, { color: c.text }]}>{t('checkout.selection')}</Text>
                 <Text style={[styles.cardBody, { color: muted }]}>
-                  {selected.categoryLabel} — {selected.title}
-                  {selected.description ? `\n${selected.description}` : ''}
+                  {selectedCatLabel} — {selected.title}
+                  {selectedDesc ? `\n${selectedDesc}` : ''}
                 </Text>
                 <Text style={[styles.summaryPrice, { color: c.text }]}>{selected.priceLabel}</Text>
               </View>
             ) : null}
 
-            <Text style={[styles.sectionTitle, { color: c.text }]}>Lieferadresse</Text>
+            <Text style={[styles.sectionTitle, { color: c.text }]}>{t('checkout.shipping')}</Text>
             <View style={styles.form}>
-              <LabeledInput label="E-Mail" value={email} onChangeText={setEmail} keyboardType="email-address" style={inputSurface} />
-              <LabeledInput label="Vorname" value={firstName} onChangeText={setFirstName} style={inputSurface} />
-              <LabeledInput label="Nachname" value={lastName} onChangeText={setLastName} style={inputSurface} />
-              <LabeledInput label="Firma (optional)" value={company} onChangeText={setCompany} style={inputSurface} />
-              <LabeledInput label="Straße, Nr." value={street} onChangeText={setStreet} style={inputSurface} />
-              <LabeledInput label="Adresszusatz" value={street2} onChangeText={setStreet2} style={inputSurface} />
-              <LabeledInput label="PLZ" value={postcode} onChangeText={setPostcode} style={inputSurface} />
-              <LabeledInput label="Stadt" value={city} onChangeText={setCity} style={inputSurface} />
+              <LabeledInput label={t('checkout.email')} value={email} onChangeText={setEmail} keyboardType="email-address" style={inputSurface} />
+              <LabeledInput label={t('checkout.firstName')} value={firstName} onChangeText={setFirstName} style={inputSurface} />
+              <LabeledInput label={t('checkout.lastName')} value={lastName} onChangeText={setLastName} style={inputSurface} />
+              <LabeledInput label={t('checkout.company')} value={company} onChangeText={setCompany} style={inputSurface} />
+              <LabeledInput label={t('checkout.street')} value={street} onChangeText={setStreet} style={inputSurface} />
+              <LabeledInput label={t('checkout.street2')} value={street2} onChangeText={setStreet2} style={inputSurface} />
+              <LabeledInput label={t('checkout.postcode')} value={postcode} onChangeText={setPostcode} style={inputSurface} />
+              <LabeledInput label={t('checkout.city')} value={city} onChangeText={setCity} style={inputSurface} />
               <LabeledInput
-                label="Land (ISO-2, z. B. DE)"
+                label={t('checkout.country')}
                 value={country}
-                onChangeText={(t) => setCountry(t.toUpperCase().slice(0, 2))}
+                onChangeText={(v) => setCountry(v.toUpperCase().slice(0, 2))}
                 autoCapitalize="characters"
                 maxLength={2}
                 style={inputSurface}
               />
               <LabeledInput
-                label="Region/Bundesland (Pflicht für US/CA)"
+                label={t('checkout.region')}
                 value={region}
                 onChangeText={setRegion}
                 style={inputSurface}
               />
-              <LabeledInput label="Telefon" value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" style={inputSurface} />
+              <LabeledInput label={t('checkout.telephone')} value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" style={inputSurface} />
             </View>
 
             {errorMsg ? (
               <View style={[styles.card, { borderColor: 'rgba(220,80,80,0.5)', backgroundColor: c.surface }]}>
-                <Text style={[styles.cardTitle, { color: c.text }]}>Zahlung nicht gestartet</Text>
+                <Text style={[styles.cardTitle, { color: c.text }]}>{t('checkout.payFailed')}</Text>
                 <Text style={[styles.cardBody, { color: c.text }]}>{errorMsg}</Text>
               </View>
             ) : null}
@@ -414,21 +428,18 @@ export default function CheckoutScreen() {
                 <View style={styles.busyRow}>
                   <ActivityIndicator color="#fff" />
                   <Text style={styles.primaryBtnText}>
-                    {status === 'uploading' ? 'Druckmotiv wird hochgeladen…' : 'Weiterleitung zu Stripe…'}
+                    {status === 'uploading' ? t('checkout.uploading') : t('checkout.redirecting')}
                   </Text>
                 </View>
               ) : (
                 <Text style={styles.primaryBtnText}>
                   {selected?.priceLabel
-                    ? `Weiter zur Zahlung — ${selected.priceLabel}`
-                    : 'Weiter zur Zahlung'}
+                    ? t('checkout.payCtaPrice', { price: selected.priceLabel })
+                    : t('checkout.payCta')}
                 </Text>
               )}
             </Pressable>
-            <Text style={[styles.legal, { color: muted }]}>
-              Sichere Zahlung über Stripe. Nach erfolgreicher Zahlung wird die Druckbestellung automatisch bei
-              merchOne angelegt.
-            </Text>
+            <Text style={[styles.legal, { color: muted }]}>{t('checkout.legal')}</Text>
           </ScrollView>
         )}
       </SafeAreaView>

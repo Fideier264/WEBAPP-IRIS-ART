@@ -1,0 +1,228 @@
+/** German UI strings (default). */
+const de = {
+  // Shared
+  'common.back': 'Zurück',
+  'common.shop': 'Shop',
+  'common.scan': 'Scan',
+  'common.gallery': 'Galerie',
+  'common.account': 'Konto',
+  'common.login': 'Anmelden',
+  'common.loading': '…',
+  'common.errorGeneric': 'Etwas ist schiefgelaufen.',
+  'common.selected': 'Gewählt',
+
+  // Bottom bar / chrome
+  'nav.gallery': 'Galerie',
+  'nav.scan': 'Scan',
+  'nav.shop': 'Shop',
+
+  // Account
+  'account.title': 'Konto',
+  'account.signedIn': 'Angemeldet',
+  'account.signOut': 'Abmelden',
+  'account.saveGalleryTitle': 'Iris-Galerie speichern',
+  'account.saveGalleryBody':
+    'Melde dich mit E-Mail oder Google an, um generierte Iris-Bilder in deinem Konto zu speichern.',
+  'account.email': 'E-Mail',
+  'account.password': 'Passwort (min. 6 Zeichen)',
+  'account.signIn': 'Anmelden',
+  'account.createAccount': 'Konto erstellen',
+  'account.continueGoogle': 'Weiter mit Google',
+  'account.signedInInfo': 'Angemeldet.',
+  'account.createdInfo':
+    'Konto erstellt. Du kannst dich jetzt anmelden (E-Mail ggf. im Projekt bestätigen).',
+  'account.language': 'Sprache',
+  'account.languageHint': 'App-Sprache für alle Texte.',
+  'account.lang.de': 'Deutsch',
+  'account.lang.en': 'English',
+
+  // Home / scan
+  'home.tagline': 'Die Wissenschaft deines Auges',
+  'home.sub':
+    'Nimm ein Makro-Foto deiner Iris auf. Wir extrahieren dominante Farben und ein Seltenheitsprofil — und verwandeln deine Iris in Premium-Kunst.',
+  'home.tip1Title': 'Makro-Aufnahmetipp',
+  'home.tip1Body': 'Richte die Iris im Ring aus für beste Farbgenauigkeit.',
+  'home.tip2Title': 'Farbprofil',
+  'home.tip2Body': 'Primäre und sekundäre HEX-Palette aus dem Iris-Kern.',
+  'home.tip3Title': 'Kunstwerk → Leinwand',
+  'home.tip3Body': 'Styles wählen, dann physischen Druck bestellen.',
+  'home.cta': 'Iris-Scan starten',
+  'home.foot': 'Tipp: Beste Ergebnisse mit Rückkamera, Blitz und Spiegel.',
+
+  // Capture
+  'capture.back': 'Zurück',
+  'capture.upload': 'Hochladen',
+  'capture.uploading': 'Lädt…',
+  'capture.torchOn': 'Blitz an',
+  'capture.torchOff': 'Blitz aus',
+  'capture.permissionTitle': 'Kamerazugriff erforderlich',
+  'capture.permissionBody': 'Erlaube die Kamera, um deine Iris aufzunehmen.',
+  'capture.allowCamera': 'Kamera erlauben',
+  'capture.uploadInstead': 'Stattdessen hochladen',
+  'capture.hint': 'Halte still und zentriere die Iris im Ring.',
+  'capture.zoom': 'Zoom',
+  'capture.cropTitle': 'Augenbereich zuschneiden',
+  'capture.cropHint': 'Rahmen so setzen, dass Lid und Braue mit erfasst sind.',
+  'capture.retake': 'Erneut',
+  'capture.usePhoto': 'Foto verwenden',
+  'capture.cameraError': 'Kamerafehler',
+  'capture.uploadError': 'Upload-Fehler',
+  'capture.permissionNeeded': 'Berechtigung nötig',
+  'capture.permissionPhotos': 'Erlaube Fotozugriff, um ein Augenbild hochzuladen.',
+
+  // Iris enhance
+  'iris.back': 'Zurück',
+  'iris.titleLoading': 'KI-Iris-Veredelung',
+  'iris.titleReady': 'Iris veredelt',
+  'iris.enhancing': 'Iris wird veredelt…',
+  'iris.failed': 'Veredelung fehlgeschlagen',
+  'iris.sourceCrop': 'Quell-Ausschnitt',
+  'iris.sourceHint': 'Das zugeschnittene Auge vor der KI-Veredelung.',
+  'iris.artGallery': 'Kunst-Galerie',
+  'iris.regenerate': 'Neu generieren',
+  'iris.analyze': 'Farbprofil analysieren',
+  'iris.retake': 'Foto erneut aufnehmen',
+  'iris.missingPhoto': 'Kein Foto vorhanden.',
+  'iris.enhanceFailed': 'Iris-Veredelung fehlgeschlagen.',
+
+  // Review (legacy)
+  'review.back': 'Zurück',
+  'review.title': 'Iris-Textur-Vorschau',
+  'review.missing': 'Iris-Textur fehlt',
+  'review.missingBody': 'Zurückgehen und erneut aufnehmen.',
+  'review.chooseStyle': 'Kunststil wählen',
+  'review.preview': 'Kunstwerk-Vorschau',
+  'review.black': 'Schwarz',
+  'review.white': 'Weiß',
+  'review.cleanIris': 'Reine Iris (isoliert)',
+  'review.analyze': 'Farbprofil analysieren',
+  'review.retake': 'Foto erneut aufnehmen',
+
+  // Results / analysis
+  'results.back': 'Zurück',
+  'results.titleLoading': 'Analyse',
+  'results.titleReady': 'Seltenheit & Farbprofil',
+  'results.analyzing': 'Iris wird analysiert',
+  'results.analyzingBody': 'Farbprofil und Seltenheit werden berechnet…',
+  'results.failed': 'Analyse fehlgeschlagen',
+  'results.retry': 'Analyse erneut versuchen',
+  'results.retake': 'Foto erneut aufnehmen',
+  'results.geminiSection': 'Auswertung (Gemini)',
+  'results.baseRarity': 'Seltenheit der Grundfarbe',
+  'results.features': 'Besonderheiten',
+  'results.combinedRarity': 'Kombinierte Seltenheit',
+  'results.uniqueStructure': 'Einzigartige Struktur',
+  'results.uniqueStructureFallback': 'Jede Iris weist einzigartige Strukturen auf.',
+  'results.inheritance': 'Wahrscheinlichkeit der Vererbung',
+  'results.analyzeAnother': 'Weiteres Auge analysieren',
+  'results.palette': 'Iris-Farbpalette',
+  'results.toGallery': 'Zur Kunst-Galerie',
+  'results.missingPhoto': 'Kein Foto vorhanden.',
+
+  // Library
+  'library.title': 'Meine Galerie',
+  'library.subSignedIn':
+    'Alle gespeicherten Iris-Renderings. Tippe auf eine Iris für Analyse oder Shop.',
+  'library.subSignedOut': 'Zum Speichern und Anzeigen deiner Iris-Bilder bitte anmelden.',
+  'library.loginRequired':
+    'Anmeldung nötig, um deine Iris-Galerie zu speichern und anzusehen. Die Generierung funktioniert auch ohne Konto.',
+  'library.loginCta': 'Anmelden / Konto erstellen',
+  'library.analyze': 'Analyse',
+  'library.shop': 'Shop',
+  'library.delete': 'Löschen',
+  'library.empty':
+    'Noch keine Iris gespeichert. Starte einen neuen Scan — fertige Renderings werden automatisch in deinem Account gespeichert.',
+
+  // Shop / gallery templates
+  'shop.back': 'Zurück',
+  'shop.title': 'Shop',
+  'shop.noTexture': 'Keine Iris-Textur',
+  'shop.noTextureBody': 'Bitte zuerst scannen und verfeinern.',
+  'shop.orderCanvas': 'Leinwand bestellen',
+  'shop.orderSub': 'Template: {{title}} · Größe & Adresse in der App',
+  'shop.orderSubPick': 'Vorlage wählen · Größe & Adresse in der App',
+  'shop.intro':
+    'Templates mit transparentem Loch legen sich über deine Iris — Skalierung & Position aus den Metadaten.',
+  'shop.filterMatch': 'Passend zur Farbe',
+  'shop.filterAll': 'Alle Templates',
+  'shop.families': 'Erkannte Farbfamilien',
+  'shop.familiesLoading': 'Analyse…',
+  'shop.familiesError': 'Farb-Filter nicht verfügbar — „Alle Templates“ nutzen.',
+  'shop.preview': 'Vorschau: {{title}}',
+  'shop.templates': 'Vorlagen',
+  'shop.noTemplates':
+    'Kein Template für diese Farbe — „Alle Templates“ wählen oder neue Vorlagen anlegen.',
+  'shop.colorAnalyzer': 'Farbanalyse',
+  'shop.holeMeta':
+    'Loch: x {{x}} y {{y}} w {{w}} h {{h}} · {{mode}} · scale {{scale}}',
+  'shop.overlayPlaceholder': 'Eigenes Overlay-PNG (Loch transparent)',
+
+  // Checkout
+  'checkout.back': 'Zurück',
+  'checkout.title': 'Bestellen',
+  'checkout.noImage': 'Kein Bild',
+  'checkout.noImageBody': 'Bitte vom Shop aus „Leinwand bestellen“ wählen.',
+  'checkout.noTemplate': 'Kein Template',
+  'checkout.noTemplateBody':
+    'Bitte im Shop eine Vorlage wählen und erneut „Leinwand bestellen“ tippen.',
+  'checkout.canceledTitle': 'Zahlung abgebrochen',
+  'checkout.canceledBody':
+    'Produkt wählen und Adresse prüfen, danach erneut zur Zahlung.',
+  'checkout.catalogNoSku': 'Produktkatalog ohne SKU',
+  'checkout.catalogNoSkuBody':
+    'Es läuft der Demo-Katalog (Quelle: {{source}}). Bearbeite productCatalog.json oder setze EXPO_PUBLIC_MERCHONE_CATALOG und starte einen neuen Deploy.',
+  'checkout.printMotif': 'Druckmotiv',
+  'checkout.printHint':
+    'Beim Bezahlen wird dieses Motiv als Druckdatei hochgeladen und an merchOne übergeben.',
+  'checkout.pickProduct': 'Produkt wählen',
+  'checkout.selection': 'Auswahl',
+  'checkout.shipping': 'Lieferadresse',
+  'checkout.email': 'E-Mail',
+  'checkout.firstName': 'Vorname',
+  'checkout.lastName': 'Nachname',
+  'checkout.company': 'Firma (optional)',
+  'checkout.street': 'Straße, Nr.',
+  'checkout.street2': 'Adresszusatz',
+  'checkout.postcode': 'PLZ',
+  'checkout.city': 'Stadt',
+  'checkout.country': 'Land (ISO-2, z. B. DE)',
+  'checkout.region': 'Region/Bundesland (Pflicht für US/CA)',
+  'checkout.telephone': 'Telefon',
+  'checkout.payFailed': 'Zahlung nicht gestartet',
+  'checkout.uploading': 'Druckmotiv wird hochgeladen…',
+  'checkout.redirecting': 'Weiterleitung zu Stripe…',
+  'checkout.payCta': 'Weiter zur Zahlung',
+  'checkout.payCtaPrice': 'Weiter zur Zahlung — {{price}}',
+  'checkout.legal':
+    'Sichere Zahlung über Stripe. Nach erfolgreicher Zahlung wird die Druckbestellung automatisch bei merchOne angelegt.',
+  'checkout.errNoArt':
+    'Kein Kunstwerk gefunden. Bitte vom Shop aus „Leinwand bestellen“ wählen.',
+  'checkout.errNoTemplate':
+    'Kein Template gewählt. Bitte im Shop eine Vorlage auswählen und erneut bestellen.',
+  'checkout.errNoProduct': 'Bitte ein Produkt auswählen.',
+  'checkout.errNoSku':
+    'Für dieses Produkt fehlt noch die merchOne-SKU. Trage den Katalog ein und baue die App neu.',
+  'checkout.errCountry': 'Land als ISO-2 Code (z. B. DE).',
+  'checkout.errRegion': 'Bundesland/Region für US/CA erforderlich.',
+  'checkout.errRequired': 'Bitte alle Pflichtfelder der Lieferadresse ausfüllen.',
+
+  // Order success
+  'orderSuccess.title': 'Danke',
+  'orderSuccess.heading': 'Zahlung erfolgreich',
+  'orderSuccess.body':
+    'Deine Zahlung ist eingegangen. Die Druckbestellung wird jetzt automatisch bei merchOne angelegt. Du erhältst in der Regel eine Bestätigung an die angegebene E-Mail.',
+  'orderSuccess.session': 'Stripe Session: {{id}}',
+  'orderSuccess.toGallery': 'Zur Galerie',
+  'orderSuccess.newScan': 'Neuer Scan',
+
+  // Catalog labels
+  'catalog.canvas': 'Leinwand',
+  'catalog.galleryCanvas': 'Galerie-Leinwand',
+
+  // Not found
+  'notFound.title': 'Diese Seite gibt es nicht.',
+  'notFound.home': 'Zur Startseite',
+} as const;
+
+export type TranslationKey = keyof typeof de;
+export default de;

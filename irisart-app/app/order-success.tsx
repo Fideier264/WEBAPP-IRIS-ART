@@ -7,13 +7,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { ACCOUNT_HEADER_CLEARANCE } from '@/constants/Layout';
+import { useT } from '@/lib/i18n';
 
 export default function OrderSuccessScreen() {
   const scheme = useColorScheme();
-  const c = Colors[scheme];
+  const c = Colors[scheme ?? 'light'];
   const muted = scheme === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
   const params = useLocalSearchParams<{ session_id?: string }>();
   const sessionId = typeof params.session_id === 'string' ? params.session_id : undefined;
+  const t = useT();
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
@@ -30,18 +32,15 @@ export default function OrderSuccessScreen() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <View style={{ width: 72 }} />
-          <Text style={[styles.hTitle, { color: c.text }]}>Danke</Text>
+          <Text style={[styles.hTitle, { color: c.text }]}>{t('orderSuccess.title')}</Text>
           <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
         </View>
 
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <Text style={[styles.cardTitle, { color: c.text }]}>Zahlung erfolgreich</Text>
-          <Text style={[styles.body, { color: muted }]}>
-            Deine Zahlung ist eingegangen. Die Druckbestellung wird jetzt automatisch bei merchOne angelegt.
-            Du erhältst in der Regel eine Bestätigung an die angegebene E-Mail.
-          </Text>
+          <Text style={[styles.cardTitle, { color: c.text }]}>{t('orderSuccess.heading')}</Text>
+          <Text style={[styles.body, { color: muted }]}>{t('orderSuccess.body')}</Text>
           {sessionId ? (
-            <Text style={[styles.meta, { color: muted }]}>Stripe Session: {sessionId}</Text>
+            <Text style={[styles.meta, { color: muted }]}>{t('orderSuccess.session', { id: sessionId })}</Text>
           ) : null}
         </View>
 
@@ -52,7 +51,7 @@ export default function OrderSuccessScreen() {
             styles.primaryBtn,
             { backgroundColor: c.tint, opacity: pressed ? 0.9 : 1 },
           ]}>
-          <Text style={styles.primaryText}>Zur Galerie</Text>
+          <Text style={styles.primaryText}>{t('orderSuccess.toGallery')}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -61,7 +60,7 @@ export default function OrderSuccessScreen() {
             styles.secondaryBtn,
             { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.9 : 1 },
           ]}>
-          <Text style={[styles.secondaryText, { color: c.text }]}>Neuer Scan</Text>
+          <Text style={[styles.secondaryText, { color: c.text }]}>{t('orderSuccess.newScan')}</Text>
         </Pressable>
       </SafeAreaView>
     </View>

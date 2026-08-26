@@ -15,6 +15,7 @@ import {
   seedIrisAnalysisCache,
   type IrisAnalysis,
 } from '@/lib/analyzeIris';
+import { useT } from '@/lib/i18n';
 import { getUserIrisAnalysis, saveUserIrisAnalysis } from '@/lib/userIrisLibrary';
 
 type Status =
@@ -24,7 +25,9 @@ type Status =
 
 export default function ResultsScreen() {
   const scheme = useColorScheme();
-  const c = Colors[scheme];
+  const cs = scheme ?? 'light';
+  const c = Colors[cs];
+  const t = useT();
   const params = useLocalSearchParams<{
     uri?: string;
     sourceUri?: string;
@@ -66,7 +69,7 @@ export default function ResultsScreen() {
 
     const run = async () => {
       if (!analysisUri && !stableKey) {
-        setStatus({ kind: 'error', message: 'Missing photo.' });
+        setStatus({ kind: 'error', message: t('results.missingPhoto') });
         return;
       }
 
@@ -92,7 +95,7 @@ export default function ResultsScreen() {
         }
 
         if (!analysisUri) {
-          setStatus({ kind: 'error', message: 'Missing photo.' });
+          setStatus({ kind: 'error', message: t('results.missingPhoto') });
           return;
         }
 
@@ -114,7 +117,7 @@ export default function ResultsScreen() {
         setStatus({ kind: 'ready', result });
       } catch (e) {
         if (cancelled) return;
-        setStatus({ kind: 'error', message: e instanceof Error ? e.message : 'Analysis failed.' });
+        setStatus({ kind: 'error', message: e instanceof Error ? e.message : t('results.failed') });
       }
     };
     run();
@@ -124,15 +127,15 @@ export default function ResultsScreen() {
   }, [analysisUri, stableKey, irisId, irisFingerprint, retryNonce]);
 
   const title = useMemo(() => {
-    if (status.kind !== 'ready') return 'Analyse';
-    return 'Seltenheit & Farbprofil';
-  }, [status.kind]);
+    if (status.kind !== 'ready') return t('results.titleLoading');
+    return t('results.titleReady');
+  }, [status.kind, t]);
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
       <LinearGradient
         colors={
-          scheme === 'dark'
+          cs === 'dark'
             ? ['rgba(124,92,255,0.26)', 'rgba(0,212,255,0.08)', 'rgba(5,6,10,0)']
             : ['rgba(91,92,255,0.16)', 'rgba(0,212,255,0.05)', 'rgba(247,248,255,0)']
         }
@@ -152,7 +155,7 @@ export default function ResultsScreen() {
                 { borderColor: c.border, backgroundColor: c.surface },
                 pressed && { opacity: 0.85 },
               ]}>
-              <Text style={[styles.chipText, { color: c.text }]}>Back</Text>
+              <Text style={[styles.chipText, { color: c.text }]}>{t('results.back')}</Text>
             </Pressable>
             <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
               {title}
@@ -171,36 +174,26 @@ export default function ResultsScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <ActivityIndicator color={c.tint} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.cardTitle, { color: c.text }]}>Iris wird analysiert</Text>
+                  <Text style={[styles.cardTitle, { color: c.text }]}>{t('results.analyzing')}</Text>
                   <Text
                     style={[
                       styles.cardBody,
-                      { color: scheme === 'dark' ? 'rgba(243,245,255,0.68)' : 'rgba(10,11,16,0.66)' },
+                      { color: cs === 'dark' ? 'rgba(243,245,255,0.68)' : 'rgba(10,11,16,0.66)' },
                     ]}>
-                    Wir analysieren dein Iris-Bild (einmal pro Bild; bei erneutem Öffnen aus Cache)…
+                    {t('results.analyzingBody')}
                   </Text>
                 </View>
               </View>
             </View>
           ) : status.kind === 'error' ? (
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.cardTitle, { color: c.text }]}>Analysis failed</Text>
+              <Text style={[styles.cardTitle, { color: c.text }]}>{t('results.failed')}</Text>
               <Text
                 style={[
                   styles.cardBody,
-                  { color: scheme === 'dark' ? 'rgba(243,245,255,0.68)' : 'rgba(10,11,16,0.66)' },
+                  { color: cs === 'dark' ? 'rgba(243,245,255,0.68)' : 'rgba(10,11,16,0.66)' },
                 ]}>
                 {status.message}
-              </Text>
-              <Text
-                style={[
-                  styles.cardBody,
-                  {
-                    color: scheme === 'dark' ? 'rgba(243,245,255,0.55)' : 'rgba(10,11,16,0.55)',
-                    marginTop: 8,
-                  },
-                ]}>
-                Ohne erfolgreiche Analyse wird nichts im Account gespeichert. Bitte erneut versuchen.
               </Text>
               <Pressable
                 accessibilityRole="button"
@@ -209,7 +202,7 @@ export default function ResultsScreen() {
                   styles.primaryBtn,
                   { backgroundColor: c.tint, opacity: pressed ? 0.9 : 1, marginTop: 14 },
                 ]}>
-                <Text style={styles.primaryText}>Analyse erneut versuchen</Text>
+                <Text style={styles.primaryText}>{t('results.retry')}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -223,41 +216,41 @@ export default function ResultsScreen() {
                     marginTop: 10,
                   },
                 ]}>
-                <Text style={[styles.secondaryText, { color: c.text }]}>Retake Photo</Text>
+                <Text style={[styles.secondaryText, { color: c.text }]}>{t('results.retake')}</Text>
               </Pressable>
             </View>
           ) : (
             <>
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-                <Text style={[styles.sectionTitle, { color: c.text }]}>Auswertung (Gemini)</Text>
+                <Text style={[styles.sectionTitle, { color: c.text }]}>{t('results.geminiSection')}</Text>
                 <AnalysisBlock
-                  title="Seltenheit der Grundfarbe"
+                  title={t('results.baseRarity')}
                   body={status.result.gemini.baseColorRaritySentence}
                   percent={status.result.gemini.baseColorRarityPercent}
-                  scheme={scheme}
+                  scheme={cs}
                 />
                 <AnalysisBlock
-                  title="Besonderheiten"
+                  title={t('results.features')}
                   body={status.result.gemini.specialFeaturesSentence}
-                  scheme={scheme}
+                  scheme={cs}
                 />
                 <AnalysisBlock
-                  title="Kombinierte Seltenheit"
+                  title={t('results.combinedRarity')}
                   body={`${status.result.gemini.combinedRaritySentences[0]} ${status.result.gemini.combinedRaritySentences[1]}`}
                   percent={status.result.gemini.combinedRarityPercent}
-                  scheme={scheme}
+                  scheme={cs}
                 />
                 <AnalysisBlock
-                  title=""
-                  body={status.result.gemini.uniqueStructureNote ?? 'Jede Iris weist einzigartige Strukturen auf.'}
-                  scheme={scheme}
+                  title={t('results.uniqueStructure')}
+                  body={status.result.gemini.uniqueStructureNote ?? t('results.uniqueStructureFallback')}
+                  scheme={cs}
                   standalone
                 />
                 <AnalysisBlock
-                  title="Wahrscheinlichkeit der Vererbung"
+                  title={t('results.inheritance')}
                   body={status.result.gemini.inheritanceSentence}
                   percent={status.result.gemini.inheritancePercent}
-                  scheme={scheme}
+                  scheme={cs}
                 />
 
                 <Pressable
@@ -267,19 +260,19 @@ export default function ResultsScreen() {
                     styles.secondaryBtn,
                     { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.92 : 1 },
                   ]}>
-                  <Text style={[styles.secondaryText, { color: c.text }]}>Analyze Another Eye</Text>
+                  <Text style={[styles.secondaryText, { color: c.text }]}>{t('results.analyzeAnother')}</Text>
                 </Pressable>
               </View>
 
               <View style={[styles.card, styles.paletteCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-                <Text style={[styles.sectionTitle, { color: c.text }]}>Iris-Farbpalette</Text>
+                <Text style={[styles.sectionTitle, { color: c.text }]}>{t('results.palette')}</Text>
                 <View style={styles.paletteGrid}>
                   {status.result.palette.map((p, idx) => (
                     <Swatch
                       key={`${p.hex}-${idx}`}
                       label={idx === 0 ? '1' : idx === 1 ? '2' : `${idx + 1}`}
                       hex={p.hex}
-                      scheme={scheme}
+                      scheme={cs}
                       compact
                     />
                   ))}
@@ -302,7 +295,7 @@ export default function ResultsScreen() {
                   styles.primaryBtn,
                   { backgroundColor: c.tint, opacity: pressed ? 0.9 : 1 },
                 ]}>
-                <Text style={styles.primaryText}>Zur Art Gallery</Text>
+                <Text style={styles.primaryText}>{t('results.toGallery')}</Text>
               </Pressable>
             </>
           )}
@@ -416,4 +409,3 @@ const styles = StyleSheet.create({
   },
   secondaryText: { fontSize: 15, fontWeight: '750' },
 });
-

@@ -8,6 +8,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { ACCOUNT_HEADER_CLEARANCE } from '@/constants/Layout';
 import { analyzeIris, type IrisAnalysis } from '@/lib/analyzeIris';
+import { useT } from '@/lib/i18n';
 
 type ArtStyleId = 'cosmic' | 'watercolor' | 'cyberpunk';
 
@@ -43,7 +44,8 @@ const ART_STYLES: Array<{
 
 export default function ReviewScreen() {
   const scheme = useColorScheme();
-  const c = Colors[scheme];
+  const c = Colors[scheme ?? 'light'];
+  const t = useT();
   const params = useLocalSearchParams<{ textureUri?: string; sourceUri?: string; style?: string }>();
 
   const textureUri = typeof params.textureUri === 'string' ? params.textureUri : undefined;
@@ -114,13 +116,13 @@ export default function ReviewScreen() {
               { borderColor: c.border, backgroundColor: c.surface },
               pressed && { opacity: 0.85 },
             ]}>
-            <Text style={[styles.chipText, { color: c.text }]}>Back</Text>
+            <Text style={[styles.chipText, { color: c.text }]}>{t('review.back')}</Text>
           </Pressable>
           <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
         </View>
 
         <View style={styles.hero}>
-          <Text style={[styles.hTitle, { color: c.text }]}>Iris Texture Preview</Text>
+          <Text style={[styles.hTitle, { color: c.text }]}>{t('review.title')}</Text>
           <Text
             style={[
               styles.sub,
@@ -132,13 +134,13 @@ export default function ReviewScreen() {
 
         {!textureUri ? (
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Text style={[styles.cardTitle, { color: c.text }]}>Missing iris texture</Text>
-            <Text style={[styles.cardBody, { color: c.text }]}>Go back and capture again.</Text>
+            <Text style={[styles.cardTitle, { color: c.text }]}>{t('review.missing')}</Text>
+            <Text style={[styles.cardBody, { color: c.text }]}>{t('review.missingBody')}</Text>
           </View>
         ) : (
           <View style={styles.grid}>
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.cardTitle, { color: c.text }]}>Choose Art Style</Text>
+              <Text style={[styles.cardTitle, { color: c.text }]}>{t('review.chooseStyle')}</Text>
               <View style={styles.styleRow}>
                 {ART_STYLES.map((s) => {
                   const active = s.id === styleId;
@@ -166,7 +168,7 @@ export default function ReviewScreen() {
             </View>
 
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.cardTitle, { color: c.text }]}>Artwork Preview</Text>
+              <Text style={[styles.cardTitle, { color: c.text }]}>{t('review.preview')}</Text>
               <View style={styles.bgToggleRow}>
                 <Pressable
                   accessibilityRole="button"
@@ -179,7 +181,7 @@ export default function ReviewScreen() {
                       opacity: pressed ? 0.92 : 1,
                     },
                   ]}>
-                  <Text style={[styles.bgToggleText, { color: c.text }]}>Black</Text>
+                  <Text style={[styles.bgToggleText, { color: c.text }]}>{t('review.black')}</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
@@ -192,7 +194,7 @@ export default function ReviewScreen() {
                       opacity: pressed ? 0.92 : 1,
                     },
                   ]}>
-                  <Text style={[styles.bgToggleText, { color: c.text }]}>White</Text>
+                  <Text style={[styles.bgToggleText, { color: c.text }]}>{t('review.white')}</Text>
                 </Pressable>
               </View>
               <View style={[styles.posterFrame, { backgroundColor: surfaceMode }]}>
@@ -253,7 +255,7 @@ export default function ReviewScreen() {
             </View>
 
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.cardTitle, { color: c.text }]}>Clean Iris (isolated)</Text>
+              <Text style={[styles.cardTitle, { color: c.text }]}>{t('review.cleanIris')}</Text>
               <View style={styles.textureWrap}>
                 <Image source={{ uri: textureUri }} style={styles.texture} resizeMode="contain" />
               </View>
@@ -286,7 +288,7 @@ export default function ReviewScreen() {
               styles.primaryBtn,
               { backgroundColor: c.tint, opacity: pressed ? 0.9 : 1 },
             ]}>
-            <Text style={styles.primaryText}>Analyze Color Profile</Text>
+            <Text style={styles.primaryText}>{t('review.analyze')}</Text>
           </Pressable>
         ) : null}
 
@@ -297,7 +299,7 @@ export default function ReviewScreen() {
             styles.secondaryBtn,
             { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.92 : 1 },
           ]}>
-          <Text style={[styles.secondaryText, { color: c.text }]}>Retake Photo</Text>
+          <Text style={[styles.secondaryText, { color: c.text }]}>{t('review.retake')}</Text>
         </Pressable>
         </ScrollView>
       </SafeAreaView>

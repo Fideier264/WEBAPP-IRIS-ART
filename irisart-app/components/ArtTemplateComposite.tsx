@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import type { ArtTemplate } from '@/lib/artTemplates';
+import { useT } from '@/lib/i18n';
 
 type Props = {
   textureUri: string;
@@ -18,6 +19,7 @@ type Props = {
  * `resizeMode contain`: komplettes Iris-Bild sichtbar; `cover`: Slot füllen, ggf. Ränder abschneiden.
  */
 export function ArtTemplateComposite({ textureUri, template, width }: Props) {
+  const t = useT();
   const height = width / template.aspectRatio;
   const hole = template.irisHole;
   const left = hole.x * width;
@@ -71,7 +73,7 @@ export function ArtTemplateComposite({ textureUri, template, width }: Props) {
               },
             ]}
           />
-          <Text style={styles.placeholderHint}>Eigenes Overlay-PNG (Loch transparent)</Text>
+          <Text style={styles.placeholderHint}>{t('shop.overlayPlaceholder')}</Text>
         </View>
       )}
     </View>
