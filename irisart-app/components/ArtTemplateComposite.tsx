@@ -12,11 +12,8 @@ type Props = {
 };
 
 /**
- * Iris liegt **unten**, Template-PNG **oben**. Es gibt **keinen elliptischen App-Clip**:
- * Die sichtbare Form kommt nur aus der **Transparenz** deiner PNG.
- *
- * `irisHole` = rechteckige Bounding-Box desselben Lochs (0–1) — nur für Position & Slot-Größe.
- * `resizeMode contain`: komplettes Iris-Bild sichtbar; `cover`: Slot füllen, ggf. Ränder abschneiden.
+ * Native fallback preview (no canvas tint). Web uses ArtTemplateComposite.web.tsx
+ * with the same dynamic color-tinting as the print export.
  */
 export function ArtTemplateComposite({ textureUri, template, width }: Props) {
   const t = useT();
@@ -29,13 +26,10 @@ export function ArtTemplateComposite({ textureUri, template, width }: Props) {
   const irisScale = template.irisScale ?? 1;
   const resizeMode = template.irisResizeMode ?? 'contain';
   const slotBg = template.irisSlotBackground ?? '#000000';
-
-  // Platzhalter-Rahmen: optional noch „circular“ aus Metadaten
   const ringRadius = hole.circular ? Math.min(w, h) / 2 : 10;
 
   return (
     <View style={[styles.root, { width, height }]}>
-      {/* Rechteckiger Slot — keine Ellipse. Form = nur PNG-Alpha. */}
       <View
         style={[
           styles.irisSlot,
