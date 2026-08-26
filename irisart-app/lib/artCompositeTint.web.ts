@@ -28,8 +28,10 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
       let url = src;
       let revoke: string | undefined;
       try {
-        if (src.startsWith('http://') || src.startsWith('https://')) {
-          const res = await fetch(src);
+        // Absolute http(s) or protocol-relative — fetch as blob to avoid CORS taint when possible
+        if (/^https?:\/\//i.test(src) || src.startsWith('//')) {
+          const abs = src.startsWith('//') ? `${window.location.protocol}${src}` : src;
+          const res = await fetch(abs);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const blob = await res.blob();
           revoke = URL.createObjectURL(blob);
@@ -49,9 +51,69 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
         if (revoke) URL.revokeObjectURL(revoke);
         reject(new Error(`Failed to load image: ${src.slice(0, 120)}`));
       };
+      // Relative /assets/… paths from Expo work as-is on same origin
       img.src = url;
     })();
   });
+}
+
+function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case rn:
+        h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+        break;
+      case gn:
+        h = ((bn - rn) / d + 2) / 6;
+        break;
+      default:
+        h = ((rn - gn) / d + 4) / 6;
+        break;
+    }
+  }
+  return { h: h * 360, s, l };
+}
+
+function hslToRgb(h: number, s: number, l: number): RgbColor {
+  const hh = ((h % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
+  const m = l - c / 2;
+  let rp = 0;
+  let gp = 0;
+  let bp = 0;
+  if (hh < 60) [rp, gp, bp] = [c, x, 0];
+  else if (hh < 120) [rp, gp, bp] = [x, c, 0];
+  else if (hh < 180) [rp, gp, bp] = [0, c, x];
+  else if (hh < 240) [rp, gp, bp] = [0, x, c];
+  else if (hh < 300) [rp, gp, bp] = [x, 0, c];
+  else [rp, gp, bp] = [c, 0, x];
+  return {
+    r: Math.round(Math.min(255, Math.max(0, (rp + m) * 255))),
+    g: Math.round(Math.min(255, Math.max(0, (gp + m) * 255))),
+    b: Math.round(Math.min(255, Math.max(0, (bp + m) * 255))),
+  };
+}
+
+/** Lift extracted iris color so tinting stays vivid (multiply/color on mid-grays looks muddy otherwise). */
+export function vividTintColor(c: RgbColor): RgbColor {
+  let { h, s, l } = rgbToHsl(c.r, c.g, c.b);
+  s = Math.min(0.9, Math.max(0.42, s * 1.4));
+  // Target a mid-bright lightness so gray→color stays readable
+  if (l < 0.38) l = Math.min(0.55, l + 0.22);
+  else if (l > 0.68) l = Math.max(0.48, l - 0.12);
+  else l = Math.min(0.58, l * 1.12);
+  return hslToRgb(h, s, l);
 }
 
 /**
@@ -66,7 +128,7 @@ export function extractAverageIrisColor(iris: HTMLImageElement, cacheKey?: strin
 
   const iw = iris.naturalWidth || iris.width;
   const ih = iris.naturalHeight || iris.height;
-  const fallback = { r: 110, g: 85, b: 65 };
+  const fallback = { r: 140, g: 105, b: 75 };
   if (!iw || !ih) return fallback;
 
   const maxSide = 256;
@@ -98,12 +160,12 @@ export function extractAverageIrisColor(iris: HTMLImageElement, cacheKey?: strin
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
 
-    if (max < 28) continue;
-    if (min > 245) continue;
+    if (max < 36) continue; // pupil / void
+    if (min > 245) continue; // specular
 
     const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     const sat = max === 0 ? 0 : (max - min) / max;
-    const weight = (a / 255) * (0.35 + sat * 1.65) * Math.min(1, lum / 80);
+    const weight = (a / 255) * (0.4 + sat * 1.8) * Math.min(1, lum / 70);
 
     rSum += r * weight;
     gSum += g * weight;
@@ -124,7 +186,11 @@ export function extractAverageIrisColor(iris: HTMLImageElement, cacheKey?: strin
   return color;
 }
 
-/** Colorize grayscale template with iris color; preserve PNG alpha (iris hole). */
+/**
+ * Colorize grayscale template with iris color; preserve PNG alpha (iris hole).
+ * Uses `color` blend (keeps template shading) + soft-light lift — not raw multiply,
+ * which made mid-gray overlays look muddy/dark.
+ */
 export function tintGrayscaleTemplate(
   grayscale: HTMLImageElement,
   color: RgbColor,
@@ -137,13 +203,23 @@ export function tintGrayscaleTemplate(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 2D not available.');
 
+  const vivid = vividTintColor(color);
+  const fill = `rgb(${vivid.r}, ${vivid.g}, ${vivid.b})`;
+
   ctx.clearRect(0, 0, width, height);
   ctx.drawImage(grayscale, 0, 0, width, height);
 
-  ctx.globalCompositeOperation = 'multiply';
-  ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
+  // Hue/sat from iris, luminosity from grayscale artwork
+  ctx.globalCompositeOperation = 'color';
+  ctx.fillStyle = fill;
   ctx.fillRect(0, 0, width, height);
 
+  // Gentle brightness / punch so the result isn't dull
+  ctx.globalCompositeOperation = 'soft-light';
+  ctx.fillStyle = fill;
+  ctx.fillRect(0, 0, width, height);
+
+  // Keep original PNG alpha (transparent iris hole)
   ctx.globalCompositeOperation = 'destination-in';
   ctx.drawImage(grayscale, 0, 0, width, height);
 

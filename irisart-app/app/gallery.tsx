@@ -43,7 +43,7 @@ export default function ArtGalleryScreen() {
 
   const [analysis, setAnalysis] = useState<IrisAnalysis | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const screenW = Dimensions.get('window').width;

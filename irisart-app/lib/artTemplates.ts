@@ -86,6 +86,25 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   irisScale: 1.05, // optional: etwas reinzoomen
   overlayImage: require('@/assets/art-templates/galaxygreen.png'),
 },
+
+{
+  id: 'template.shards.grau',
+  title: 'Shattered',
+  subtitle: 'Graustufen — wird mit Iris-Farbe getintet',
+  aspectRatio: 2294 / 1824, // Breite ÷ Höhe deines PNG (z. B. 1080×1350 → 1080/1350)
+  // 'any' = immer sichtbar (wichtig bei Graustufen + dynamischem Tinting)
+  colorFamilies: ['any'],
+  irisHole: {
+    x: 0.276,
+    y: 0.262,
+    w: 0.477,
+    h: 0.477,
+    circular: true,
+  },
+  irisScale: 1.05,
+  overlayImage: require('@/assets/art-templates/template.shards.grau.png'),
+},
+
 {
   id: 'mein-test-01',
   title: 'Test brown galaxy',
