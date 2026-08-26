@@ -14,13 +14,16 @@ Die App färbt das Template zur Laufzeit mit der gemittelten Iris-Farbe (Vorscha
 
 ## Eintrag in `artTemplates.ts`
 
+`aspectRatio` = **exakt** `Pixelbreite ÷ Pixelhöhe` der PNG (Datei-Infos in Photoshop/Explorer).
+Falsche Werte (z. B. von einem anderen Template kopiert) **verzerren** Loch und Partikel.
+
 ```ts
 {
   id: 'mein-template',
   title: 'Mein Template',
-  aspectRatio: 1080 / 1350, // exakt Pixelbreite ÷ Pixelhöhe der PNG
-  colorFamilies: ['any'],   // Graustufen-Tint: 'any' = immer anzeigen
-  irisHole: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 },
+  aspectRatio: 2129 / 2048, // exakt Breite ÷ Höhe dieser PNG
+  colorFamilies: ['any'],   // Graustufen-Tint: immer anzeigen
+  irisHole: { x: 0.24, y: 0.22, w: 0.53, h: 0.55 },
   irisScale: 1.05,
   overlayImage: require('@/assets/art-templates/mein-template.png'),
 },

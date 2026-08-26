@@ -91,14 +91,15 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   id: 'template.shards.grau',
   title: 'Shattered',
   subtitle: 'Graustufen — wird mit Iris-Farbe getintet',
-  aspectRatio: 2294 / 1824, // Breite ÷ Höhe deines PNG (z. B. 1080×1350 → 1080/1350)
-  // 'any' = immer sichtbar (wichtig bei Graustufen + dynamischem Tinting)
+  // PNG ist 2129×2048 — NICHT die Maße von galaxygreen kopieren (sonst Verzerrung)
+  aspectRatio: 2129 / 2048,
   colorFamilies: ['any'],
   irisHole: {
-    x: 0.276,
-    y: 0.262,
-    w: 0.477,
-    h: 0.477,
+    // Bounding-Box des transparenten Lochs (aus PNG gemessen)
+    x: 0.241,
+    y: 0.224,
+    w: 0.534,
+    h: 0.554,
     circular: true,
   },
   irisScale: 1.05,
@@ -109,7 +110,7 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   id: 'mein-test-01',
   title: 'Test brown galaxy',
   subtitle: 'Optional',
-  aspectRatio: 533 / 496, // Breite ÷ Höhe deines PNG (z. B. 1080×1350 → 1080/1350)
+  aspectRatio: 2132 / 1984, // tatsächliche PNG-Maße
   colorFamilies: ['brown'], // oder z. B. ['brown','hazel']
   irisHole: {
     x: 0.273,

@@ -105,14 +105,14 @@ function hslToRgb(h: number, s: number, l: number): RgbColor {
   };
 }
 
-/** Lift extracted iris color so tinting stays vivid (multiply/color on mid-grays looks muddy otherwise). */
+/**
+ * Mild polish of extracted iris color for tinting.
+ * Keep hue/lightness close to the real eye — avoid neon/overbright results.
+ */
 export function vividTintColor(c: RgbColor): RgbColor {
   let { h, s, l } = rgbToHsl(c.r, c.g, c.b);
-  s = Math.min(0.9, Math.max(0.42, s * 1.4));
-  // Target a mid-bright lightness so gray→color stays readable
-  if (l < 0.38) l = Math.min(0.55, l + 0.22);
-  else if (l > 0.68) l = Math.max(0.48, l - 0.12);
-  else l = Math.min(0.58, l * 1.12);
+  s = Math.min(0.7, Math.max(0.2, s * 1.1));
+  l = Math.min(0.48, Math.max(0.26, l));
   return hslToRgb(h, s, l);
 }
 
@@ -188,8 +188,7 @@ export function extractAverageIrisColor(iris: HTMLImageElement, cacheKey?: strin
 
 /**
  * Colorize grayscale template with iris color; preserve PNG alpha (iris hole).
- * Uses `color` blend (keeps template shading) + soft-light lift — not raw multiply,
- * which made mid-gray overlays look muddy/dark.
+ * `color` blend keeps template shading and applies iris hue/sat without blowing highlights.
  */
 export function tintGrayscaleTemplate(
   grayscale: HTMLImageElement,
@@ -203,19 +202,14 @@ export function tintGrayscaleTemplate(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 2D not available.');
 
-  const vivid = vividTintColor(color);
-  const fill = `rgb(${vivid.r}, ${vivid.g}, ${vivid.b})`;
+  const tint = vividTintColor(color);
+  const fill = `rgb(${tint.r}, ${tint.g}, ${tint.b})`;
 
   ctx.clearRect(0, 0, width, height);
   ctx.drawImage(grayscale, 0, 0, width, height);
 
-  // Hue/sat from iris, luminosity from grayscale artwork
+  // Hue/sat from iris, luminosity from grayscale artwork (no extra soft-light punch)
   ctx.globalCompositeOperation = 'color';
-  ctx.fillStyle = fill;
-  ctx.fillRect(0, 0, width, height);
-
-  // Gentle brightness / punch so the result isn't dull
-  ctx.globalCompositeOperation = 'soft-light';
   ctx.fillStyle = fill;
   ctx.fillRect(0, 0, width, height);
 
