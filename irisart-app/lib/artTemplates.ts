@@ -100,8 +100,8 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   colorFamilies: ['any'],
   tintWithIrisColor: true,
   irisHole: {
-    x: 0.1575,
-    y: 0.175,
+    x: 0.156,
+    y: 0.173,
     w: 0.71,
     h: 0.66,
     circular: true,
