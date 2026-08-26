@@ -102,8 +102,8 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   irisHole: {
     x: 0.1635,
     y: 0.183,
-    w: 0.684,
-    h: 0.634,
+    w: 0.69,
+    h: 0.64,
     circular: true,
   },
   irisScale: 1.05,
