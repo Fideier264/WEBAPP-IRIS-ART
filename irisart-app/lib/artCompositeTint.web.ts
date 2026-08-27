@@ -429,14 +429,20 @@ function hash01(n: number): number {
   return ((t ^ (t >>> 16)) >>> 0) / 4294967296;
 }
 
-function pickWeightedRing(weights: number[], u: number): number {
+/** Continuous ring index via area CDF — soft transitions between iris colors. */
+function continuousRingIndex(weights: number[], u: number): number {
+  const uu = Math.min(0.999999, Math.max(0, u));
   let acc = 0;
-  const last = weights.length - 1;
   for (let i = 0; i < weights.length; i++) {
-    acc += weights[i]!;
-    if (u <= acc) return i;
+    const w = Math.max(1e-9, weights[i]!);
+    const next = acc + w;
+    if (uu <= next) {
+      const local = (uu - acc) / w;
+      return i + local;
+    }
+    acc = next;
   }
-  return Math.max(0, last);
+  return Math.max(0, weights.length - 1);
 }
 
 /** Angular lerp within one radial ring. */
@@ -447,7 +453,7 @@ function samplePolarHsAtRing(map: PolarHsMap, angleRad: number, rBin: number): H
   const a0 = Math.floor(aFloat) % map.angles;
   const a1 = (a0 + 1) % map.angles;
   const at = aFloat - Math.floor(aFloat);
-  const ri = Math.min(map.radials - 1, Math.max(0, rBin));
+  const ri = Math.min(map.radials - 1, Math.max(0, Math.floor(rBin)));
   const c0 = map.cells[a0]![ri] ?? map.fallback;
   const c1 = map.cells[a1]![ri] ?? map.fallback;
   return {
@@ -456,27 +462,62 @@ function samplePolarHsAtRing(map: PolarHsMap, angleRad: number, rBin: number): H
   };
 }
 
+function samplePolarHsFrac(map: PolarHsMap, angleRad: number, rFloat: number): Hs {
+  const rClamped = Math.min(map.radials - 1.0001, Math.max(0, rFloat));
+  const r0 = Math.floor(rClamped);
+  const r1 = Math.min(map.radials - 1, r0 + 1);
+  const rt = smoothstep(rClamped - r0);
+  return lerpHs(
+    samplePolarHsAtRing(map, angleRad, r0),
+    samplePolarHsAtRing(map, angleRad, r1),
+    rt
+  );
+}
+
+function smoothstep(t: number): number {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * (3 - 2 * x);
+}
+
+/** Continuous 0..1 value noise (bilinear + smoothstep) — no hard chunk edges. */
+function valueNoise01(x: number, y: number, scale: number, seed: number): number {
+  const fx = x / scale;
+  const fy = y / scale;
+  const x0 = Math.floor(fx);
+  const y0 = Math.floor(fy);
+  const sx = smoothstep(fx - x0);
+  const sy = smoothstep(fy - y0);
+  const n00 = hash01(x0 * 73856093 ^ y0 * 19349663 ^ seed);
+  const n10 = hash01((x0 + 1) * 73856093 ^ y0 * 19349663 ^ seed);
+  const n01 = hash01(x0 * 73856093 ^ (y0 + 1) * 19349663 ^ seed);
+  const n11 = hash01((x0 + 1) * 73856093 ^ (y0 + 1) * 19349663 ^ seed);
+  const nx0 = n00 * (1 - sx) + n10 * sx;
+  const nx1 = n01 * (1 - sx) + n11 * sx;
+  return nx0 * (1 - sy) + nx1 * sy;
+}
+
+function lerpHs(a: Hs, b: Hs, t: number): Hs {
+  return {
+    h: lerpAngle(a.h, b.h, t),
+    s: a.s * (1 - t) + b.s * t,
+  };
+}
+
 /**
- * Mixed multi-color sample: pick iris rings by area weight + spatial hash (not distance).
- * Dominant eye color appears more often; amber/blue interleave across the overlay.
+ * Soft mixed multi-color sample: iris rings by area weight + smooth noise (no pixel blocks).
+ * Continuous ring index + two noise fields so color borders stay soft / unrecognizable.
  */
 function samplePolarHsMixed(map: PolarHsMap, angleRad: number, x: number, y: number): Hs {
-  // Chunk size ≈ shard scale so each fragment keeps one color, neighbors vary
-  const chunk = 16;
-  const cx = Math.floor(x / chunk);
-  const cy = Math.floor(y / chunk);
-  const u = hash01(cx * 73856093 ^ cy * 19349663);
-  const u2 = hash01(cx * 19349663 ^ cy * 83492791);
-  const rA = pickWeightedRing(map.ringWeights, u);
-  const rB = pickWeightedRing(map.ringWeights, u2);
-  const hsA = samplePolarHsAtRing(map, angleRad, rA);
-  if (rA === rB) return hsA;
-  const hsB = samplePolarHsAtRing(map, angleRad, rB);
-  const t = 0.2 + 0.6 * hash01(cx * 83492791 ^ cy * 73856093);
-  return {
-    h: lerpAngle(hsA.h, hsB.h, t),
-    s: hsA.s * (1 - t) + hsB.s * t,
-  };
+  const n1 =
+    valueNoise01(x, y, 88, 0x51) * 0.55 +
+    valueNoise01(x, y, 41, 0xa3) * 0.30 +
+    valueNoise01(x, y, 19, 0x2c) * 0.15;
+  const n2 =
+    valueNoise01(x + 17, y - 9, 64, 0x77) * 0.6 + valueNoise01(x, y, 27, 0xe1) * 0.4;
+
+  const hsA = samplePolarHsFrac(map, angleRad, continuousRingIndex(map.ringWeights, n1));
+  const hsB = samplePolarHsFrac(map, angleRad, continuousRingIndex(map.ringWeights, n2));
+  return lerpHs(hsA, hsB, smoothstep(valueNoise01(x, y, 54, 0x99)));
 }
 
 /**
