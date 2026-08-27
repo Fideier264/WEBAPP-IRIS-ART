@@ -118,7 +118,7 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   overlayImage: require('@/assets/art-templates/galaxygreenihniiuhinh.png'),
 },
 
-*\
+*/
 
 {
   id: 'galaxy.grau',
@@ -199,7 +199,7 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   irisResizeMode: 'contain',
   irisScale: 1,
   overlayImage: require('@/assets/art-templates/testbrownkmk.png'),
-},                                                                     *\
+},                                                                     */
 
 ];
 
