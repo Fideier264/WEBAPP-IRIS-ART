@@ -121,6 +121,11 @@ const en: Record<TranslationKey, string> = {
   'library.loginCta': 'Login / Create account',
   'library.analyze': 'Analyze',
   'library.shop': 'Shop',
+  'library.dualShop': 'Two eyes',
+  'library.dualHint': 'Tap two irises (1st = left/top, 2nd = right/bottom), then continue.',
+  'library.dualContinue': 'Continue with 2 eyes',
+  'library.dualCancel': 'Cancel',
+  'library.dualNeedTwo': 'Please select exactly two irises.',
   'library.delete': 'Delete',
   'library.empty':
     'No iris saved yet. Start a new scan — finished renders are saved to your account automatically.',
@@ -132,6 +137,7 @@ const en: Record<TranslationKey, string> = {
   'shop.orderCanvas': 'Order canvas',
   'shop.orderSub': 'Template: {{title}} · Size & address in the app',
   'shop.orderSubPick': 'Choose a template · Size & address in the app',
+  'shop.orderSubNeedSecond': 'Two-eye template — pick a second iris in the gallery',
   'shop.intro':
     'Templates with a transparent hole overlay your iris — scale & position from metadata.',
   'shop.filterMatch': 'Match my color',
@@ -141,10 +147,15 @@ const en: Record<TranslationKey, string> = {
   'shop.familiesError': 'Color filter unavailable — use “All templates”.',
   'shop.preview': 'Preview: {{title}}',
   'shop.templates': 'Templates',
+  'shop.dualBadge': '2 eyes',
+  'shop.dualNeedSecond':
+    'This template needs two irises. Use “Two eyes” in the gallery or bring a second iris.',
+  'shop.dualPickSecond': 'Pick second iris in gallery',
   'shop.noTemplates': 'No template for this color — choose “All templates” or add new ones.',
   'shop.colorAnalyzer': 'Color Analyzer',
   'shop.holeMeta':
     'Hole: x {{x}} y {{y}} w {{w}} h {{h}} · {{mode}} · scale {{scale}}',
+  'shop.holeMetaDual': '{{count}} holes · {{mode}} · scale {{scale}}',
   'shop.overlayPlaceholder': 'Custom overlay PNG (transparent hole)',
 
   'checkout.back': 'Back',
@@ -153,6 +164,7 @@ const en: Record<TranslationKey, string> = {
   'checkout.noImageBody': 'Please choose “Order canvas” from the shop.',
   'checkout.noTemplate': 'No template',
   'checkout.noTemplateBody': 'Pick a template in the shop and tap “Order canvas” again.',
+  'checkout.errNoSecondIris': 'Two-eye template: please select two irises in the gallery.',
   'checkout.canceledTitle': 'Payment canceled',
   'checkout.canceledBody': 'Choose a product, check the address, then pay again.',
   'checkout.catalogNoSku': 'Product catalog without SKU',

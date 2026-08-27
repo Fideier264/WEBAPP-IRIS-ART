@@ -10,6 +10,8 @@ export type { RgbColor };
 
 export type RenderArtCompositeInput = {
   textureUri: string;
+  /** Second iris for dual-eye templates */
+  textureUri2?: string;
   template: ArtTemplate;
   /** Longest edge in px (default 2048). Final size follows outputAspectRatio. */
   outputWidth?: number;
@@ -83,6 +85,7 @@ export async function renderArtCompositeToLocalUri(input: RenderArtCompositeInpu
 
   await paintArtComposite(designCtx, {
     textureUri: input.textureUri,
+    textureUri2: input.textureUri2,
     template: input.template,
     width: designW,
     height: designH,

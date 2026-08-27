@@ -17,7 +17,7 @@ import { AppBottomBar } from '@/components/AppBottomBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
-import { ART_TEMPLATES, filterTemplatesByEyeFamilies } from '@/lib/artTemplates';
+import { ART_TEMPLATES, filterTemplatesByEyeFamilies, getArtTemplateHoles, isDualEyeTemplate } from '@/lib/artTemplates';
 import {
   analyzeIris,
   peekIrisAnalysisByStableKey,
@@ -35,8 +35,14 @@ export default function ArtGalleryScreen() {
   const c = Colors[cs];
   const muted = cs === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
   const t = useT();
-  const params = useLocalSearchParams<{ textureUri?: string; sourceUri?: string; irisFingerprint?: string }>();
+  const params = useLocalSearchParams<{
+    textureUri?: string;
+    textureUri2?: string;
+    sourceUri?: string;
+    irisFingerprint?: string;
+  }>();
   const textureUri = typeof params.textureUri === 'string' ? params.textureUri : undefined;
+  const textureUri2 = typeof params.textureUri2 === 'string' ? params.textureUri2 : undefined;
   const sourceUri = typeof params.sourceUri === 'string' ? params.sourceUri : undefined;
   const irisFingerprint = typeof params.irisFingerprint === 'string' ? params.irisFingerprint : undefined;
   const analysisUri = sourceUri ?? textureUri;
@@ -126,11 +132,15 @@ export default function ArtGalleryScreen() {
     [visibleTemplates, selectedId]
   );
 
+  const selectedIsDual = selected ? isDualEyeTemplate(selected) : false;
+  const canOrder = Boolean(selected && textureUri && (!selectedIsDual || textureUri2));
+
   useEffect(() => {
-    if (visibleTemplates.length && !visibleTemplates.find((tmpl) => tmpl.id === selectedId)) {
-      setSelectedId(visibleTemplates[0]!.id);
-    }
-  }, [visibleTemplates, selectedId]);
+    if (!visibleTemplates.length) return;
+    if (visibleTemplates.find((tmpl) => tmpl.id === selectedId)) return;
+    const dual = textureUri2 ? visibleTemplates.find((tmpl) => isDualEyeTemplate(tmpl)) : undefined;
+    setSelectedId(dual?.id ?? visibleTemplates[0]!.id);
+  }, [visibleTemplates, selectedId, textureUri2]);
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
@@ -175,12 +185,13 @@ export default function ArtGalleryScreen() {
             showsVerticalScrollIndicator={false}>
             <Pressable
               accessibilityRole="button"
-              disabled={!selected}
+              disabled={!canOrder}
               onPress={() =>
                 router.push({
                   pathname: '/checkout',
                   params: {
                     textureUri,
+                    ...(textureUri2 ? { textureUri2 } : {}),
                     templateId: selected?.id ?? visibleTemplates[0]?.id ?? '',
                   },
                 })
@@ -189,14 +200,16 @@ export default function ArtGalleryScreen() {
                 styles.primaryCta,
                 {
                   backgroundColor: c.tint,
-                  opacity: !selected ? 0.45 : pressed ? 0.9 : 1,
+                  opacity: !canOrder ? 0.45 : pressed ? 0.9 : 1,
                 },
               ]}>
               <Text style={styles.primaryCtaText}>{t('shop.orderCanvas')}</Text>
               <Text style={styles.primaryCtaSub}>
-                {selected
-                  ? t('shop.orderSub', { title: selected.title })
-                  : t('shop.orderSubPick')}
+                {!selected
+                  ? t('shop.orderSubPick')
+                  : selectedIsDual && !textureUri2
+                    ? t('shop.orderSubNeedSecond')
+                    : t('shop.orderSub', { title: selected.title })}
               </Text>
             </Pressable>
 
@@ -251,17 +264,47 @@ export default function ArtGalleryScreen() {
                   {t('shop.preview', { title: selected.title })}
                 </Text>
                 <View style={{ alignItems: 'center', marginTop: 8 }}>
-                  <ArtTemplateComposite textureUri={textureUri} template={selected} width={cardWidth} />
+                  <ArtTemplateComposite
+                    textureUri={textureUri}
+                    textureUri2={textureUri2}
+                    template={selected}
+                    width={cardWidth}
+                  />
                 </View>
+                {selectedIsDual && !textureUri2 ? (
+                  <View style={{ gap: 8, marginTop: 10 }}>
+                    <Text style={[styles.cardBody, { color: muted }]}>{t('shop.dualNeedSecond')}</Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() =>
+                        router.push({
+                          pathname: '/library',
+                          params: { pickDual: '1', textureUri },
+                        })
+                      }
+                      style={({ pressed }) => [
+                        styles.secondaryBtn,
+                        { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.9 : 1 },
+                      ]}>
+                      <Text style={[styles.secondaryText, { color: c.text }]}>{t('shop.dualPickSecond')}</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
                 <Text style={[styles.meta, { color: muted }]}>
-                  {t('shop.holeMeta', {
-                    x: selected.irisHole.x.toFixed(2),
-                    y: selected.irisHole.y.toFixed(2),
-                    w: selected.irisHole.w.toFixed(2),
-                    h: selected.irisHole.h.toFixed(2),
-                    mode: selected.irisResizeMode ?? 'contain',
-                    scale: selected.irisScale ?? 1,
-                  })}
+                  {isDualEyeTemplate(selected)
+                    ? t('shop.holeMetaDual', {
+                        count: getArtTemplateHoles(selected).length,
+                        mode: selected.irisResizeMode ?? 'contain',
+                        scale: selected.irisScale ?? 1,
+                      })
+                    : t('shop.holeMeta', {
+                        x: selected.irisHole.x.toFixed(2),
+                        y: selected.irisHole.y.toFixed(2),
+                        w: selected.irisHole.w.toFixed(2),
+                        h: selected.irisHole.h.toFixed(2),
+                        mode: selected.irisResizeMode ?? 'contain',
+                        scale: selected.irisScale ?? 1,
+                      })}
                 </Text>
               </View>
             ) : null}
@@ -270,6 +313,7 @@ export default function ArtGalleryScreen() {
             <View style={[styles.grid, { justifyContent: 'flex-start' }]}>
               {visibleTemplates.map((tmpl) => {
                 const active = tmpl.id === (selectedId ?? selected?.id);
+                const dual = isDualEyeTemplate(tmpl);
                 return (
                   <Pressable
                     key={tmpl.id}
@@ -285,10 +329,16 @@ export default function ArtGalleryScreen() {
                       },
                     ]}>
                     {textureUri ? (
-                      <ArtTemplateComposite textureUri={textureUri} template={tmpl} width={thumbWidth} />
+                      <ArtTemplateComposite
+                        textureUri={textureUri}
+                        textureUri2={textureUri2}
+                        template={tmpl}
+                        width={thumbWidth}
+                      />
                     ) : null}
                     <Text style={[styles.thumbTitle, { color: c.text }]} numberOfLines={1}>
                       {tmpl.title}
+                      {dual ? ` · ${t('shop.dualBadge')}` : ''}
                     </Text>
                   </Pressable>
                 );

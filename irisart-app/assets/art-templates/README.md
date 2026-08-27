@@ -52,11 +52,13 @@ Ohne Git-Push der PNG erscheint die Vorlage live nicht.
 - Immer **diese** Datei messen: `Breite / Höhe` (z. B. `2129 / 2048`).
 - **Nie** Werte von einem anderen Template kopieren.
 
-### `irisHole`
+### `irisHole` / `irisHoles`
 
 1. In Photoshop/Figma Rechteck um das **transparente Loch** ziehen.  
 2. Werte **durch Bildbreite bzw. -höhe teilen** → 0–1.  
 3. Loch in der PNG und `irisHole` sollen übereinstimmen, sonst sitzt die Iris falsch.
+
+**Zwei Augen:** `irisHoles: [lochLinks, lochRechts]` setzen (Reihenfolge = 1. / 2. Iris aus der Galerie). `irisHole` bleibt das erste Loch (Compat). Im Shop: Galerie → „Zwei Augen“, beide Iris antippen.
 
 Tipp: Bei kreisrundem Loch in px oft `w_px ≈ h_px`; in normierten Werten kann `w ≠ h` sein, wenn die PNG nicht quadratisch ist — das ist korrekt.
 
@@ -64,6 +66,7 @@ Tipp: Bei kreisrundem Loch in px oft `w_px ≈ h_px`; in normierten Werten kann 
 
 - `tintWithIrisColor: true` → Graustufen-Overlay einfärben (eine Durchschnittsfarbe).
 - zusätzlich `multiColorTint: true` → Farben der Iris **örtlich** übernehmen (Winkel ums Loch + Innen/Außen-Ring). Gut für mehrfarbige / Hazel-Augen.
+- Bei Dual-Templates wird jede Iris-Farbe dem **näheren** Loch-Bereich zugeordnet (weicher Übergang in der Mitte).
 - Flags weglassen → farbiges Overlay unverändert (Blue Galaxy bleibt blau).
 
 ### `colorFamilies`

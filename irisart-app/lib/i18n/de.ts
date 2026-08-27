@@ -129,6 +129,11 @@ const de = {
   'library.loginCta': 'Anmelden / Konto erstellen',
   'library.analyze': 'Analyse',
   'library.shop': 'Shop',
+  'library.dualShop': 'Zwei Augen',
+  'library.dualHint': 'Zwei Iris antippen (1. = links/oben, 2. = rechts/unten), dann weiter.',
+  'library.dualContinue': 'Weiter mit 2 Augen',
+  'library.dualCancel': 'Abbrechen',
+  'library.dualNeedTwo': 'Bitte genau zwei Iris auswählen.',
   'library.delete': 'Löschen',
   'library.empty':
     'Noch keine Iris gespeichert. Starte einen neuen Scan — fertige Renderings werden automatisch in deinem Account gespeichert.',
@@ -141,6 +146,7 @@ const de = {
   'shop.orderCanvas': 'Leinwand bestellen',
   'shop.orderSub': 'Template: {{title}} · Größe & Adresse in der App',
   'shop.orderSubPick': 'Vorlage wählen · Größe & Adresse in der App',
+  'shop.orderSubNeedSecond': 'Zwei-Augen-Template — zweite Iris in der Galerie wählen',
   'shop.intro':
     'Templates mit transparentem Loch legen sich über deine Iris — Skalierung & Position aus den Metadaten.',
   'shop.filterMatch': 'Passend zur Farbe',
@@ -150,11 +156,16 @@ const de = {
   'shop.familiesError': 'Farb-Filter nicht verfügbar — „Alle Templates“ nutzen.',
   'shop.preview': 'Vorschau: {{title}}',
   'shop.templates': 'Vorlagen',
+  'shop.dualBadge': '2 Augen',
+  'shop.dualNeedSecond':
+    'Dieses Template braucht zwei Iris. In der Galerie „Zwei Augen“ wählen oder eine zweite Iris mitbringen.',
+  'shop.dualPickSecond': 'Zweite Iris in Galerie wählen',
   'shop.noTemplates':
     'Kein Template für diese Farbe — „Alle Templates“ wählen oder neue Vorlagen anlegen.',
   'shop.colorAnalyzer': 'Farbanalyse',
   'shop.holeMeta':
     'Loch: x {{x}} y {{y}} w {{w}} h {{h}} · {{mode}} · scale {{scale}}',
+  'shop.holeMetaDual': '{{count}} Löcher · {{mode}} · scale {{scale}}',
   'shop.overlayPlaceholder': 'Eigenes Overlay-PNG (Loch transparent)',
 
   // Checkout
@@ -165,6 +176,8 @@ const de = {
   'checkout.noTemplate': 'Kein Template',
   'checkout.noTemplateBody':
     'Bitte im Shop eine Vorlage wählen und erneut „Leinwand bestellen“ tippen.',
+  'checkout.errNoSecondIris':
+    'Zwei-Augen-Template: bitte zwei Iris in der Galerie auswählen.',
   'checkout.canceledTitle': 'Zahlung abgebrochen',
   'checkout.canceledBody':
     'Produkt wählen und Adresse prüfen, danach erneut zur Zahlung.',

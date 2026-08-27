@@ -2,10 +2,13 @@ import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import type { ArtTemplate } from '@/lib/artTemplates';
+import { getArtTemplateHoles } from '@/lib/artTemplates';
 import { useT } from '@/lib/i18n';
 
 type Props = {
   textureUri: string;
+  /** Second iris for dual-eye templates */
+  textureUri2?: string;
   template: ArtTemplate;
   /** Layout-Breite; Höhe = width / aspectRatio */
   width: number;
@@ -15,58 +18,52 @@ type Props = {
  * Native fallback preview (no canvas tint). Web uses ArtTemplateComposite.web.tsx
  * with the same dynamic color-tinting as the print export.
  */
-export function ArtTemplateComposite({ textureUri, template, width }: Props) {
+export function ArtTemplateComposite({ textureUri, textureUri2, template, width }: Props) {
   const t = useT();
   const height = width / template.aspectRatio;
-  const hole = template.irisHole;
-  const left = hole.x * width;
-  const top = hole.y * height;
-  const w = Math.max(1, hole.w * width);
-  const h = Math.max(1, hole.h * height);
+  const holes = getArtTemplateHoles(template);
+  const uris = [textureUri, textureUri2].filter((u): u is string => Boolean(u));
   const irisScale = template.irisScale ?? 1;
   const resizeMode = template.irisResizeMode ?? 'contain';
   const slotBg = template.irisSlotBackground ?? '#000000';
-  const ringRadius = hole.circular ? Math.min(w, h) / 2 : 10;
 
   return (
     <View style={[styles.root, { width, height }]}>
-      <View
-        style={[
-          styles.irisSlot,
-          {
-            left,
-            top,
-            width: w,
-            height: h,
-            backgroundColor: slotBg,
-          },
-        ]}>
-        <Image
-          source={{ uri: textureUri }}
-          style={[
-            { width: w, height: h },
-            irisScale !== 1 ? { transform: [{ scale: irisScale }] } : null,
-          ]}
-          resizeMode={resizeMode}
-        />
-      </View>
+      {holes.map((hole, i) => {
+        const left = hole.x * width;
+        const top = hole.y * height;
+        const w = Math.max(1, hole.w * width);
+        const h = Math.max(1, hole.h * height);
+        const uri = uris[Math.min(i, uris.length - 1)] ?? textureUri;
+        return (
+          <View
+            key={`hole-${i}`}
+            style={[
+              styles.irisSlot,
+              {
+                left,
+                top,
+                width: w,
+                height: h,
+                backgroundColor: slotBg,
+              },
+            ]}>
+            <Image
+              source={{ uri }}
+              style={[
+                { width: w, height: h },
+                irisScale !== 1 ? { transform: [{ scale: irisScale }] } : null,
+              ]}
+              resizeMode={resizeMode}
+            />
+          </View>
+        );
+      })}
 
       {template.overlayImage ? (
         <Image source={template.overlayImage} style={[styles.overlay, { width, height }]} resizeMode="stretch" />
       ) : (
         <View pointerEvents="none" style={[styles.overlay, { width, height, backgroundColor: 'transparent' }]}>
-          <View
-            style={[
-              styles.placeholderRing,
-              {
-                left: left - 3,
-                top: top - 3,
-                width: w + 6,
-                height: h + 6,
-                borderRadius: ringRadius + 3,
-              },
-            ]}
-          />
           <Text style={styles.placeholderHint}>{t('shop.overlayPlaceholder')}</Text>
         </View>
       )}
@@ -91,12 +88,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     top: 0,
-  },
-  placeholderRing: {
-    position: 'absolute',
-    borderWidth: 2,
-    borderColor: 'rgba(124,92,255,0.55)',
-    backgroundColor: 'transparent',
   },
   placeholderHint: {
     position: 'absolute',

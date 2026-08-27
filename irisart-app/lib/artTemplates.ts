@@ -30,8 +30,17 @@ export type ArtTemplate = {
   aspectRatio: number;
   /** Für welche Augenfarben das Template gedacht ist; `any` = immer anzeigen */
   colorFamilies: EyeColorFamily[];
-  /** Wo die Iris-Textur liegt (unter dem Overlay). Rechteck = gleiche Bounding-Box wie das Loch in der PNG. */
+  /**
+   * Primäres Iris-Loch (Einzel-Templates; bei Dual = erstes Loch / linkes Auge).
+   * Rechteck = Bounding-Box des transparenten Bereichs in der PNG.
+   */
   irisHole: IrisHoleNorm;
+  /**
+   * Mehrere Cutouts (z. B. Zwei-Augen-Templates). Wenn gesetzt und length ≥ 2,
+   * werden `textureUri` / `textureUri2` … nacheinander in diese Löcher gesetzt.
+   * Fehlt das Feld, gilt nur `irisHole`.
+   */
+  irisHoles?: IrisHoleNorm[];
   /**
    * Wie die Textur in dieses Rechteck passt:
    * - `contain` (Standard): **ganzes** Iris-Bild sichtbar, ggf. schwarze Ränder (wie Nano-Banana-Hintergrund).
@@ -59,6 +68,16 @@ export type ArtTemplate = {
   /** Zoom um den Mittelpunkt des Slots (1 = kein Extra-Zoom). Erhöhen = näher ran, dabei mehr Rand abgeschnitten. */
   irisScale?: number;
 };
+
+/** Alle Iris-Löcher eines Templates (1 = Einzel, ≥2 = Dual/Multi). */
+export function getArtTemplateHoles(template: ArtTemplate): IrisHoleNorm[] {
+  if (template.irisHoles && template.irisHoles.length > 0) return template.irisHoles;
+  return [template.irisHole];
+}
+
+export function isDualEyeTemplate(template: ArtTemplate): boolean {
+  return getArtTemplateHoles(template).length >= 2;
+}
 
 /**
  * Beispiel-Templates ohne PNG — nur zum Testen von Filter + Platzierung.
@@ -115,6 +134,30 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   },
   irisScale: 1.05,
   overlayImage: require('@/assets/art-templates/template.shards.grau.png'),
+},
+
+{
+  id: 'doublegalaxy',
+  title: 'Double Galaxy',
+  subtitle: 'Zwei Iris — Farbe je Seite aus dem jeweiligen Auge',
+  aspectRatio: 2134 / 1984,
+  colorFamilies: ['any'],
+  tintWithIrisColor: true,
+  multiColorTint: true,
+  // Primär = linkes/oberes Auge (Compat für Einzel-Aufrufe)
+  irisHole: {
+    x: 0.2038,
+    y: 0.1683,
+    w: 0.3308,
+    h: 0.3644,
+    circular: true,
+  },
+  irisHoles: [
+    { x: 0.2038, y: 0.1683, w: 0.3308, h: 0.3644, circular: true }, // oben links
+    { x: 0.4705, y: 0.505, w: 0.3547, h: 0.3337, circular: true }, // unten rechts
+  ],
+  irisScale: 1.05,
+  overlayImage: require('@/assets/art-templates/doublegalaxy.png'),
 },
 
 {

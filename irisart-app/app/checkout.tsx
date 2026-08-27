@@ -23,11 +23,13 @@ import {
   openCheckoutUrl,
   rememberCheckoutTemplate,
   rememberCheckoutTexture,
+  rememberCheckoutTexture2,
   requestCreateCheckoutSession,
   restoreCheckoutTemplate,
   restoreCheckoutTexture,
+  restoreCheckoutTexture2,
 } from '@/lib/createStripeCheckout';
-import { getArtTemplateById } from '@/lib/artTemplates';
+import { getArtTemplateById, isDualEyeTemplate } from '@/lib/artTemplates';
 import { useT, type TranslationKey } from '@/lib/i18n';
 import {
   catalogHasPayableSkus,
@@ -70,14 +72,17 @@ export default function CheckoutScreen() {
 
   const params = useLocalSearchParams<{
     textureUri?: string | string[];
+    textureUri2?: string | string[];
     templateId?: string | string[];
     canceled?: string | string[];
   }>();
   const paramTexture = paramString(params.textureUri);
+  const paramTexture2 = paramString(params.textureUri2);
   const paramTemplateId = paramString(params.templateId);
   const canceled = paramString(params.canceled) === '1' || paramString(params.canceled) === 'true';
 
   const [textureUri, setTextureUri] = useState<string | undefined>(paramTexture);
+  const [textureUri2, setTextureUri2] = useState<string | undefined>(paramTexture2);
   const [templateId, setTemplateId] = useState<string | undefined>(paramTemplateId);
 
   useEffect(() => {
@@ -89,6 +94,18 @@ export default function CheckoutScreen() {
       if (restored) setTextureUri(restored);
     }
 
+    if (paramTexture2) {
+      setTextureUri2(paramTexture2);
+      rememberCheckoutTexture2(paramTexture2);
+    } else if (paramTexture) {
+      // New single-texture navigation clears second iris
+      rememberCheckoutTexture2(undefined);
+      setTextureUri2(undefined);
+    } else {
+      const restored2 = restoreCheckoutTexture2();
+      if (restored2) setTextureUri2(restored2);
+    }
+
     if (paramTemplateId) {
       setTemplateId(paramTemplateId);
       rememberCheckoutTemplate(paramTemplateId);
@@ -96,7 +113,7 @@ export default function CheckoutScreen() {
       const restoredTemplate = restoreCheckoutTemplate();
       if (restoredTemplate) setTemplateId(restoredTemplate);
     }
-  }, [paramTexture, paramTemplateId]);
+  }, [paramTexture, paramTexture2, paramTemplateId]);
 
   const template = useMemo(
     () => (templateId ? getArtTemplateById(templateId) : undefined),
@@ -159,6 +176,11 @@ export default function CheckoutScreen() {
       setStatus('error');
       return;
     }
+    if (isDualEyeTemplate(template) && !textureUri2) {
+      setErrorMsg(t('checkout.errNoSecondIris'));
+      setStatus('error');
+      return;
+    }
     if (!selected) {
       setErrorMsg(t('checkout.errNoProduct'));
       setStatus('error');
@@ -190,9 +212,11 @@ export default function CheckoutScreen() {
     try {
       setStatus('uploading');
       rememberCheckoutTexture(textureUri);
+      rememberCheckoutTexture2(textureUri2);
       rememberCheckoutTemplate(templateId);
       const { printFileUrl } = await uploadCheckoutArtwork({
         textureUri,
+        textureUri2,
         templateId,
         printAspectRatio: selected.printAspectRatio,
       });
@@ -293,7 +317,12 @@ export default function CheckoutScreen() {
             <View style={[styles.summaryCard, { borderColor: c.border, backgroundColor: c.surface }]}>
               <Text style={[styles.cardTitle, { color: c.text }]}>{template.title}</Text>
               <View style={{ alignItems: 'center', marginTop: 8 }}>
-                <ArtTemplateComposite textureUri={textureUri} template={template} width={Math.min(width - 36, 320)} />
+                <ArtTemplateComposite
+                  textureUri={textureUri}
+                  textureUri2={textureUri2}
+                  template={template}
+                  width={Math.min(width - 36, 320)}
+                />
               </View>
               <Text style={[styles.cardBody, { color: muted }]}>{t('checkout.printHint')}</Text>
             </View>

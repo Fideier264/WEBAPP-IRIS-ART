@@ -2,6 +2,7 @@ import { Asset } from 'expo-asset';
 import type { ImageSourcePropType } from 'react-native';
 
 import type { ArtTemplate } from './artTemplates';
+import { getArtTemplateHoles } from './artTemplates';
 
 export type RgbColor = { r: number; g: number; b: number };
 
@@ -583,11 +584,11 @@ export function tintGrayscaleTemplateMulti(
 export function drawIrisInSlot(
   ctx: CanvasRenderingContext2D,
   iris: HTMLImageElement,
+  hole: { x: number; y: number; w: number; h: number },
   template: ArtTemplate,
   canvasW: number,
   canvasH: number
 ) {
-  const hole = template.irisHole;
   const left = hole.x * canvasW;
   const top = hole.y * canvasH;
   const slotW = Math.max(1, hole.w * canvasW);
@@ -623,49 +624,180 @@ export function drawIrisInSlot(
   ctx.restore();
 }
 
+type DualTintSlot = {
+  iris: HTMLImageElement;
+  hole: { x: number; y: number; w: number; h: number };
+  cacheKey?: string;
+  color: RgbColor;
+};
+
+/**
+ * Dual/multi-eye tint: each overlay region near a hole gets that iris's color
+ * (soft Voronoi blend so the midline isn't harsh).
+ */
+export function tintGrayscaleTemplateDual(
+  grayscale: HTMLImageElement,
+  slots: DualTintSlot[],
+  width: number,
+  height: number,
+  multiColor: boolean
+): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D not available.');
+
+  if (slots.length === 0) {
+    ctx.drawImage(grayscale, 0, 0, width, height);
+    return canvas;
+  }
+  if (slots.length === 1) {
+    const s = slots[0]!;
+    if (multiColor) {
+      return tintGrayscaleTemplateMulti(grayscale, s.iris, s.hole, width, height, s.cacheKey);
+    }
+    return tintGrayscaleTemplate(grayscale, s.color, width, height);
+  }
+
+  const centers = slots.map((s) => {
+    const cx = (s.hole.x + s.hole.w / 2) * width;
+    const cy = (s.hole.y + s.hole.h / 2) * height;
+    const r = Math.max(1, (Math.min(s.hole.w * width, s.hole.h * height) / 2) * 0.95);
+    return { cx, cy, r, slot: s };
+  });
+
+  // Soft blend width ~ 12% of canvas diagonal
+  const blend = Math.hypot(width, height) * 0.12;
+
+  const colorLayer = document.createElement('canvas');
+  colorLayer.width = width;
+  colorLayer.height = height;
+  const cctx = colorLayer.getContext('2d', { willReadFrequently: true });
+  if (!cctx) throw new Error('Canvas 2D not available.');
+  const colorImg = cctx.createImageData(width, height);
+  const cd = colorImg.data;
+
+  const polarMaps = multiColor
+    ? slots.map((s) => extractIrisPolarHsMap(s.iris, s.cacheKey))
+    : null;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+
+      // Soft weights by inverse distance to hole centers
+      let wSum = 0;
+      const weights: number[] = [];
+      for (const c of centers) {
+        const d = Math.hypot(x - c.cx, y - c.cy);
+        const w = 1 / Math.max(1, d * d);
+        weights.push(w);
+        wSum += w;
+      }
+
+      // Soften dominance near equal distance (midline)
+      if (centers.length === 2) {
+        const d0 = Math.hypot(x - centers[0]!.cx, y - centers[0]!.cy);
+        const d1 = Math.hypot(x - centers[1]!.cx, y - centers[1]!.cy);
+        const edge = smoothstep(0.5 + (d1 - d0) / (2 * blend));
+        weights[0] = 1 - edge;
+        weights[1] = edge;
+        wSum = 1;
+      }
+
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      for (let si = 0; si < slots.length; si++) {
+        const wt = (weights[si] ?? 0) / wSum;
+        if (wt < 1e-6) continue;
+        let rgb: RgbColor;
+        if (polarMaps) {
+          const s = slots[si]!;
+          const c = centers[si]!;
+          const angle = Math.atan2(y - c.cy, x - c.cx);
+          const hs = samplePolarHsMixed(polarMaps[si]!, angle, x, y);
+          rgb = vividTintColor(hslToRgb(hs.h, hs.s, hs.l));
+        } else {
+          rgb = vividTintColor(slots[si]!.color);
+        }
+        r += rgb.r * wt;
+        g += rgb.g * wt;
+        b += rgb.b * wt;
+      }
+      cd[i] = Math.round(r);
+      cd[i + 1] = Math.round(g);
+      cd[i + 2] = Math.round(b);
+      cd[i + 3] = 255;
+    }
+  }
+  cctx.putImageData(colorImg, 0, 0);
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.drawImage(grayscale, 0, 0, width, height);
+  ctx.globalCompositeOperation = 'color';
+  ctx.drawImage(colorLayer, 0, 0);
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.drawImage(grayscale, 0, 0, width, height);
+  ctx.globalCompositeOperation = 'source-over';
+  return canvas;
+}
+
 /** Paint iris + dynamically tinted grayscale template into an existing canvas context. */
 export async function paintArtComposite(
   ctx: CanvasRenderingContext2D,
   opts: {
     textureUri: string;
+    /** Second iris for dual-eye templates */
+    textureUri2?: string;
     template: ArtTemplate;
     width: number;
     height: number;
     background?: string;
   }
 ): Promise<RgbColor | null> {
-  const { textureUri, template, width, height, background = '#07060c' } = opts;
+  const { textureUri, textureUri2, template, width, height, background = '#07060c' } = opts;
+  const holes = getArtTemplateHoles(template);
+  const textureUris = [textureUri, textureUri2].filter(
+    (u): u is string => typeof u === 'string' && u.length > 0
+  );
 
-  const [iris, overlaySrc] = await Promise.all([
-    loadImage(textureUri),
-    template.overlayImage ? resolveImageUrl(template.overlayImage) : Promise.resolve(null),
-  ]);
+  const irisImages = await Promise.all(
+    holes.map((_, i) => loadImage(textureUris[Math.min(i, textureUris.length - 1)] ?? textureUri))
+  );
+  const overlaySrc = template.overlayImage ? await resolveImageUrl(template.overlayImage) : null;
 
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = background;
   ctx.fillRect(0, 0, width, height);
 
-  drawIrisInSlot(ctx, iris, template, width, height);
+  for (let i = 0; i < holes.length; i++) {
+    drawIrisInSlot(ctx, irisImages[i]!, holes[i]!, template, width, height);
+  }
 
   if (overlaySrc) {
     const overlay = await loadImage(overlaySrc);
     if (template.tintWithIrisColor) {
-      if (template.multiColorTint) {
-        const tinted = tintGrayscaleTemplateMulti(
-          overlay,
+      const slots: DualTintSlot[] = holes.map((hole, i) => {
+        const iris = irisImages[i]!;
+        const key = textureUris[Math.min(i, textureUris.length - 1)] ?? textureUri;
+        return {
           iris,
-          template.irisHole,
-          width,
-          height,
-          textureUri
-        );
-        ctx.drawImage(tinted, 0, 0, width, height);
-        return extractAverageIrisColor(iris, textureUri);
-      }
-      const irisColor = extractAverageIrisColor(iris, textureUri);
-      const tinted = tintGrayscaleTemplate(overlay, irisColor, width, height);
+          hole,
+          cacheKey: key,
+          color: extractAverageIrisColor(iris, key),
+        };
+      });
+      const tinted = tintGrayscaleTemplateDual(
+        overlay,
+        slots,
+        width,
+        height,
+        Boolean(template.multiColorTint)
+      );
       ctx.drawImage(tinted, 0, 0, width, height);
-      return irisColor;
+      return slots[0]?.color ?? null;
     }
     ctx.drawImage(overlay, 0, 0, width, height);
   }

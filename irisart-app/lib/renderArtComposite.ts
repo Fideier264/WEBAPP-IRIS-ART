@@ -2,6 +2,7 @@ import type { ArtTemplate } from './artTemplates';
 
 export type RenderArtCompositeInput = {
   textureUri: string;
+  textureUri2?: string;
   template: ArtTemplate;
   outputWidth?: number;
   /** Product print aspect ratio (width/height), e.g. 1 for square canvas */

@@ -33,6 +33,8 @@ export async function uploadOrderPrintFile(
 
 export type UploadCheckoutArtworkInput = {
   textureUri: string;
+  /** Second iris for dual-eye templates */
+  textureUri2?: string;
   templateId: string;
   outputWidth?: number;
   /** MerchOne product print aspect (width/height). Square canvas = 1. */
@@ -65,6 +67,7 @@ export async function uploadCheckoutArtwork(
 
   const compositeUri = await renderArtCompositeToLocalUri({
     textureUri: input.textureUri,
+    textureUri2: input.textureUri2,
     template,
     outputWidth: input.outputWidth ?? 2048,
     outputAspectRatio: printAspectRatio,

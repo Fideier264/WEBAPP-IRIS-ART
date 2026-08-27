@@ -6,6 +6,7 @@ import { paintArtComposite } from '@/lib/artCompositeTint.web';
 
 type Props = {
   textureUri: string;
+  textureUri2?: string;
   template: ArtTemplate;
   /** Layout-Breite; Höhe = width / aspectRatio */
   width: number;
@@ -15,7 +16,7 @@ type Props = {
  * Web preview: same dynamic iris-color tinting as the checkout print export,
  * so customers see what they will order.
  */
-export function ArtTemplateComposite({ textureUri, template, width }: Props) {
+export function ArtTemplateComposite({ textureUri, textureUri2, template, width }: Props) {
   const height = width / template.aspectRatio;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [busy, setBusy] = useState(true);
@@ -41,6 +42,7 @@ export function ArtTemplateComposite({ textureUri, template, width }: Props) {
 
         await paintArtComposite(ctx, {
           textureUri,
+          textureUri2,
           template,
           width: pw,
           height: ph,
@@ -63,7 +65,7 @@ export function ArtTemplateComposite({ textureUri, template, width }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [textureUri, template, width, height]);
+  }, [textureUri, textureUri2, template, width, height]);
 
   return (
     <View style={[styles.root, { width, height }]}>
