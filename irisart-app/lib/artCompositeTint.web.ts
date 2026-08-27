@@ -9,13 +9,19 @@ export type RgbColor = { r: number; g: number; b: number };
 const irisColorCache = new Map<string, RgbColor>();
 
 type Hs = { h: number; s: number; l: number };
-/** polar[angleBin][radialBin] — ringWeights = iris area share per radial ring (sum ≈ 1) */
+/** polar[angleBin][radialBin] — ringWeights + hue shares for tint mixing */
 type PolarHsMap = {
   angles: number;
   radials: number;
   cells: Hs[][];
   fallback: Hs;
   ringWeights: number[];
+  /** Iris pixel share of secondary (non-dominant) hue — drives tint area */
+  secondaryShare: number;
+  primaryHs: Hs;
+  secondaryHs: Hs;
+  /** Per radial ring: belongs to secondary hue family */
+  ringIsSecondary: boolean[];
 };
 
 const irisPolarCache = new Map<string, PolarHsMap>();
@@ -242,6 +248,22 @@ export function tintGrayscaleTemplate(
   return canvas;
 }
 
+function hueDist(a: number, b: number): number {
+  let d = Math.abs(b - a) % 360;
+  if (d > 180) d = 360 - d;
+  return d;
+}
+
+function isWarmHue(h: number): boolean {
+  const hh = ((h % 360) + 360) % 360;
+  return hh <= 75 || hh >= 330;
+}
+
+function isCoolHue(h: number): boolean {
+  const hh = ((h % 360) + 360) % 360;
+  return hh >= 155 && hh <= 275;
+}
+
 /**
  * Build a polar hue/sat map from the iris (angular wedges × radial rings).
  * Equal-ish pixel weights (no sat bias) so blue outer rings aren't drowned by amber flecks.
@@ -257,6 +279,7 @@ export function extractIrisPolarHsMap(
     return { h: hsl.h, s: Math.min(0.55, hsl.s), l: hsl.l };
   })();
   const evenWeights = Array.from({ length: radialBins }, () => 1 / radialBins);
+  const emptyRingFlags = Array.from({ length: radialBins }, () => false);
   const emptyMap = (): PolarHsMap => ({
     angles: angleBins,
     radials: radialBins,
@@ -265,9 +288,13 @@ export function extractIrisPolarHsMap(
     ),
     fallback: fallbackHs,
     ringWeights: evenWeights,
+    secondaryShare: 0,
+    primaryHs: fallbackHs,
+    secondaryHs: fallbackHs,
+    ringIsSecondary: emptyRingFlags,
   });
 
-  const cacheId = cacheKey ? `polar5:${angleBins}x${radialBins}:${cacheKey}` : undefined;
+  const cacheId = cacheKey ? `polar6:${angleBins}x${radialBins}:${cacheKey}` : undefined;
   if (cacheId) {
     const hit = irisPolarCache.get(cacheId);
     if (hit) return hit;
@@ -298,6 +325,15 @@ export function extractIrisPolarHsMap(
     Array.from({ length: radialBins }, () => ({ r: 0, g: 0, b: 0, w: 0 }))
   );
 
+  let warmMass = 0;
+  let coolMass = 0;
+  let warmR = 0;
+  let warmG = 0;
+  let warmB = 0;
+  let coolR = 0;
+  let coolG = 0;
+  let coolB = 0;
+
   const rInner = 0.14; // skip pupil
   const rOuter = 0.92; // skip black frame
 
@@ -324,6 +360,19 @@ export function extractIrisPolarHsMap(
       if (lum < 18) continue;
       const weight = a / 255;
       if (weight <= 0) continue;
+
+      const hslPx = rgbToHsl(r, g, b);
+      if (isWarmHue(hslPx.h)) {
+        warmMass += weight;
+        warmR += r * weight;
+        warmG += g * weight;
+        warmB += b * weight;
+      } else if (isCoolHue(hslPx.h)) {
+        coolMass += weight;
+        coolR += r * weight;
+        coolG += g * weight;
+        coolB += b * weight;
+      }
 
       let ang = Math.atan2(dy, dx);
       if (ang < 0) ang += Math.PI * 2;
@@ -406,12 +455,52 @@ export function extractIrisPolarHsMap(
       ? ringMass.map((w) => w / massSum)
       : Array.from({ length: radialBins }, () => 1 / radialBins);
 
+  const hueTotal = warmMass + coolMass;
+  let secondaryShare = 0;
+  let primaryHs = ringFb[Math.floor(radialBins / 2)] ?? fallbackHs;
+  let secondaryHs = primaryHs;
+  let secondaryIsWarm = false;
+
+  if (hueTotal > 1e-6 && warmMass > 1e-6 && coolMass > 1e-6) {
+    if (warmMass <= coolMass) {
+      secondaryShare = warmMass / hueTotal;
+      secondaryIsWarm = true;
+      secondaryHs = (() => {
+        const hsl = rgbToHsl(Math.round(warmR / warmMass), Math.round(warmG / warmMass), Math.round(warmB / warmMass));
+        return { h: hsl.h, s: Math.min(0.65, Math.max(0.1, hsl.s * 1.08)), l: hsl.l };
+      })();
+      primaryHs = (() => {
+        const hsl = rgbToHsl(Math.round(coolR / coolMass), Math.round(coolG / coolMass), Math.round(coolB / coolMass));
+        return { h: hsl.h, s: Math.min(0.6, hsl.s), l: hsl.l };
+      })();
+    } else {
+      secondaryShare = coolMass / hueTotal;
+      secondaryIsWarm = false;
+      secondaryHs = (() => {
+        const hsl = rgbToHsl(Math.round(coolR / coolMass), Math.round(coolG / coolMass), Math.round(coolB / coolMass));
+        return { h: hsl.h, s: Math.min(0.6, hsl.s), l: hsl.l };
+      })();
+      primaryHs = (() => {
+        const hsl = rgbToHsl(Math.round(warmR / warmMass), Math.round(warmG / warmMass), Math.round(warmB / warmMass));
+        return { h: hsl.h, s: Math.min(0.65, Math.max(0.1, hsl.s * 1.08)), l: hsl.l };
+      })();
+    }
+  }
+
+  const ringIsSecondary = ringFb.map((hs) =>
+    secondaryIsWarm ? isWarmHue(hs.h) : isCoolHue(hs.h)
+  );
+
   const map: PolarHsMap = {
     angles: angleBins,
     radials: radialBins,
     cells,
-    fallback: ringFb[Math.floor(radialBins / 2)] ?? fallbackHs,
+    fallback: primaryHs,
     ringWeights,
+    secondaryShare,
+    primaryHs,
+    secondaryHs,
+    ringIsSecondary,
   };
   if (cacheId) irisPolarCache.set(cacheId, map);
   return map;
@@ -422,6 +511,41 @@ function lerpAngle(a: number, b: number, t: number): number {
   while (d > 180) d -= 360;
   while (d < -180) d += 360;
   return a + d * t;
+}
+
+/**
+ * Blend two iris tint hues without RGB/HSL lerp through mud (blue + amber → green).
+ * Cool/warm pairs pick one hue per pixel; only s/l soften at boundaries.
+ */
+function blendHsForTint(a: Hs, b: Hs, t: number): Hs {
+  const dist = hueDist(a.h, b.h);
+  const warmCool =
+    dist > 48 && ((isWarmHue(a.h) && isCoolHue(b.h)) || (isCoolHue(a.h) && isWarmHue(b.h)));
+
+  if (warmCool) {
+    const dom = t < 0.5 ? a : b;
+    const sub = t < 0.5 ? b : a;
+    const edge = Math.min(1, Math.abs(t - 0.5) * 5);
+    return {
+      h: dom.h,
+      s: dom.s * edge + sub.s * (1 - edge) * 0.2,
+      l: dom.l * edge + sub.l * (1 - edge) * 0.2,
+    };
+  }
+
+  if (dist > 110) {
+    return t < 0.5 ? a : b;
+  }
+
+  return lerpHs(a, b, t);
+}
+
+/** Map extracted H/S (+ optional L) to RGB for canvas `color` tint layer. */
+function hsToTintRgb(hs: Hs): RgbColor {
+  const warm = isWarmHue(hs.h);
+  let s = hs.s;
+  if (warm) s = Math.min(0.7, Math.max(0.1, s * 1.1));
+  return vividTintColor(hslToRgb(hs.h, s, hs.l));
 }
 
 /** Deterministic 0..1 hash for spatial mixing (stable across renders). */
@@ -470,7 +594,7 @@ function samplePolarHsFrac(map: PolarHsMap, angleRad: number, rFloat: number): H
   const r0 = Math.floor(rClamped);
   const r1 = Math.min(map.radials - 1, r0 + 1);
   const rt = smoothstep(rClamped - r0);
-  return lerpHs(
+  return blendHsForTint(
     samplePolarHsAtRing(map, angleRad, r0),
     samplePolarHsAtRing(map, angleRad, r1),
     rt
@@ -507,11 +631,52 @@ function lerpHs(a: Hs, b: Hs, t: number): Hs {
   };
 }
 
+function samplePolarHsFromRings(
+  map: PolarHsMap,
+  angleRad: number,
+  x: number,
+  y: number,
+  secondary: boolean
+): Hs {
+  const n1 =
+    valueNoise01(x, y, 88, secondary ? 0x71 : 0x51) * 0.55 +
+    valueNoise01(x, y, 41, secondary ? 0xb3 : 0xa3) * 0.30 +
+    valueNoise01(x, y, 19, secondary ? 0x3c : 0x2c) * 0.15;
+  const ringIdx = continuousRingIndex(map.ringWeights, n1);
+  const ri = Math.min(map.radials - 1, Math.max(0, Math.floor(ringIdx)));
+  if (map.ringIsSecondary[ri] === secondary) {
+    return samplePolarHsFrac(map, angleRad, ringIdx);
+  }
+  // Snap to nearest ring of requested hue family
+  let best = ri;
+  let bestD = map.radials;
+  for (let r = 0; r < map.radials; r++) {
+    if (map.ringIsSecondary[r] !== secondary) continue;
+    const d = Math.abs(r - ringIdx);
+    if (d < bestD) {
+      bestD = d;
+      best = r;
+    }
+  }
+  return samplePolarHsAtRing(map, angleRad, best);
+}
+
 /**
- * Soft mixed multi-color sample: iris rings by area weight + smooth noise (no pixel blocks).
- * Continuous ring index + two noise fields so color borders stay soft / unrecognizable.
+ * Soft mixed multi-color sample: secondary area share matches iris pixel proportions.
  */
 function samplePolarHsMixed(map: PolarHsMap, angleRad: number, x: number, y: number): Hs {
+  const pick = valueNoise01(x, y, 54, 0x99);
+
+  if (map.secondaryShare >= 0.035 && pick < map.secondaryShare) {
+    const local = samplePolarHsFromRings(map, angleRad, x, y, true);
+    return blendHsForTint(map.secondaryHs, local, 0.35);
+  }
+
+  if (map.secondaryShare >= 0.035 && pick >= map.secondaryShare) {
+    const local = samplePolarHsFromRings(map, angleRad, x, y, false);
+    return blendHsForTint(map.primaryHs, local, 0.35);
+  }
+
   const n1 =
     valueNoise01(x, y, 88, 0x51) * 0.55 +
     valueNoise01(x, y, 41, 0xa3) * 0.30 +
@@ -521,7 +686,7 @@ function samplePolarHsMixed(map: PolarHsMap, angleRad: number, x: number, y: num
 
   const hsA = samplePolarHsFrac(map, angleRad, continuousRingIndex(map.ringWeights, n1));
   const hsB = samplePolarHsFrac(map, angleRad, continuousRingIndex(map.ringWeights, n2));
-  return lerpHs(hsA, hsB, smoothstep(valueNoise01(x, y, 54, 0x99)));
+  return blendHsForTint(hsA, hsB, smoothstep(valueNoise01(x, y, 54, 0x99)));
 }
 
 /**
@@ -561,8 +726,7 @@ export function tintGrayscaleTemplateMulti(
       const i = (y * width + x) * 4;
       const angle = Math.atan2(y - cy, x - cx);
       const hs = samplePolarHsMixed(polar, angle, x, y);
-      // Same polish as single-tint so shards match iris depth (not neon amber)
-      const rgb = vividTintColor(hslToRgb(hs.h, hs.s, hs.l));
+      const rgb = hsToTintRgb(hs);
       cd[i] = rgb.r;
       cd[i + 1] = rgb.g;
       cd[i + 2] = rgb.b;
@@ -752,31 +916,61 @@ export function tintGrayscaleTemplateDual(
         for (let si = 0; si < centers.length; si++) weights[si] = si === nearest ? 1 : 0;
       }
 
+      let hs: Hs | null = null;
+      if (polarMaps) {
+        const hsList: Hs[] = [];
+        const wList: number[] = [];
+        for (let si = 0; si < slots.length; si++) {
+          const wt = weights[si] ?? 0;
+          if (wt < 1e-6) continue;
+          const c = centers[si]!;
+          const angle = Math.atan2(y - c.cy, x - c.cx);
+          hsList.push(samplePolarHsMixed(polarMaps[si]!, angle, x, y));
+          wList.push(wt);
+        }
+        if (hsList.length === 1) hs = hsList[0]!;
+        else if (hsList.length === 2) {
+          const wSum = wList[0]! + wList[1]!;
+          hs = blendHsForTint(hsList[0]!, hsList[1]!, wList[1]! / Math.max(1e-6, wSum));
+        } else if (hsList.length > 2) {
+          let merged = hsList[0]!;
+          let acc = wList[0]!;
+          for (let k = 1; k < hsList.length; k++) {
+            const t = acc / (acc + wList[k]!);
+            merged = blendHsForTint(merged, hsList[k]!, t);
+            acc += wList[k]!;
+          }
+          hs = merged;
+        }
+      }
+
       let r = 0;
       let g = 0;
       let b = 0;
-      let wSum = 0;
-      for (let si = 0; si < slots.length; si++) {
-        const wt = weights[si] ?? 0;
-        if (wt < 1e-6) continue;
-        wSum += wt;
-        let rgb: RgbColor;
-        if (polarMaps) {
-          const c = centers[si]!;
-          const angle = Math.atan2(y - c.cy, x - c.cx);
-          const hs = samplePolarHsMixed(polarMaps[si]!, angle, x, y);
-          rgb = vividTintColor(hslToRgb(hs.h, hs.s, hs.l));
-        } else {
-          rgb = vividTintColor(slots[si]!.color);
+      if (hs) {
+        const rgb = hsToTintRgb(hs);
+        r = rgb.r;
+        g = rgb.g;
+        b = rgb.b;
+      } else {
+        let wSum = 0;
+        for (let si = 0; si < slots.length; si++) {
+          const wt = weights[si] ?? 0;
+          if (wt < 1e-6) continue;
+          wSum += wt;
+          const rgb = vividTintColor(slots[si]!.color);
+          r += rgb.r * wt;
+          g += rgb.g * wt;
+          b += rgb.b * wt;
         }
-        r += rgb.r * wt;
-        g += rgb.g * wt;
-        b += rgb.b * wt;
+        const inv = wSum > 0 ? 1 / wSum : 1;
+        r = Math.round(r * inv);
+        g = Math.round(g * inv);
+        b = Math.round(b * inv);
       }
-      const inv = wSum > 0 ? 1 / wSum : 1;
-      cd[i] = Math.round(r * inv);
-      cd[i + 1] = Math.round(g * inv);
-      cd[i + 2] = Math.round(b * inv);
+      cd[i] = Math.round(r);
+      cd[i + 1] = Math.round(g);
+      cd[i + 2] = Math.round(b);
       cd[i + 3] = 255;
     }
   }

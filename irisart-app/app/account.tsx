@@ -12,15 +12,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { BACKGROUND_THEMES, useAppColors, useAppTheme } from '@/lib/appTheme';
 import { useAuth } from '@/lib/auth';
 import { LOCALES, useLocale, type Locale } from '@/lib/i18n';
 
 export default function AccountScreen() {
-  const scheme = useColorScheme();
-  const c = Colors[scheme ?? 'light'];
-  const muted = scheme === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
+  const c = useAppColors();
+  const { backgroundTheme, setBackgroundTheme } = useAppTheme();
   const { user, loading, signInEmail, signUpEmail, signInGoogle, signOut } = useAuth();
   const { t, locale, setLocale } = useLocale();
 
@@ -30,13 +28,7 @@ export default function AccountScreen() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  const gradient = useMemo(
-    () =>
-      scheme === 'dark'
-        ? (['rgba(124,92,255,0.22)', 'rgba(0,212,255,0.06)', 'rgba(5,6,10,0)'] as const)
-        : (['rgba(91,92,255,0.12)', 'rgba(0,212,255,0.04)', 'rgba(247,248,255,0)'] as const),
-    [scheme]
-  );
+  const gradient = useMemo(() => c.pageGradient, [c.pageGradient]);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -66,14 +58,14 @@ export default function AccountScreen() {
             ]}>
             <Text style={[styles.chipText, { color: c.text }]}>{t('common.back')}</Text>
           </Pressable>
-          <Text style={[styles.hTitle, { color: c.text }]}>{t('account.title')}</Text>
+          <Text style={[styles.hTitle, { color: c.pageText }]}>{t('account.title')}</Text>
           <View style={{ width: 72 }} />
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
             <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.language')}</Text>
-            <Text style={[styles.body, { color: muted }]}>{t('account.languageHint')}</Text>
+            <Text style={[styles.body, { color: c.pageMuted }]}>{t('account.languageHint')}</Text>
             <View style={styles.langRow}>
               {LOCALES.map((opt) => {
                 const active = locale === opt.id;
@@ -100,12 +92,39 @@ export default function AccountScreen() {
             </View>
           </View>
 
+          <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.background')}</Text>
+            <Text style={[styles.body, { color: c.pageMuted }]}>{t('account.backgroundHint')}</Text>
+            <View style={styles.langRow}>
+              {BACKGROUND_THEMES.map((opt) => {
+                const active = backgroundTheme === opt.id;
+                return (
+                  <Pressable
+                    key={opt.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    onPress={() => setBackgroundTheme(opt.id)}
+                    style={({ pressed }) => [
+                      styles.langChip,
+                      {
+                        borderColor: active ? c.tint : c.border,
+                        backgroundColor: active ? 'rgba(124,92,255,0.16)' : c.surfaceAlt,
+                        opacity: pressed ? 0.9 : 1,
+                      },
+                    ]}>
+                    <Text style={[styles.langChipText, { color: c.text }]}>{t(opt.labelKey)}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
           {loading ? (
             <ActivityIndicator color={c.tint} />
           ) : user ? (
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
               <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.signedIn')}</Text>
-              <Text style={[styles.body, { color: muted }]}>{user.email ?? user.id}</Text>
+              <Text style={[styles.body, { color: c.pageMuted }]}>{user.email ?? user.id}</Text>
               <Pressable
                 accessibilityRole="button"
                 disabled={busy}
@@ -120,14 +139,14 @@ export default function AccountScreen() {
           ) : (
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
               <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.saveGalleryTitle')}</Text>
-              <Text style={[styles.body, { color: muted }]}>{t('account.saveGalleryBody')}</Text>
+              <Text style={[styles.body, { color: c.pageMuted }]}>{t('account.saveGalleryBody')}</Text>
 
               <TextInput
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
                 placeholder={t('account.email')}
-                placeholderTextColor={muted}
+                placeholderTextColor={c.pageMuted}
                 value={email}
                 onChangeText={setEmail}
                 style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.surfaceAlt }]}
@@ -135,7 +154,7 @@ export default function AccountScreen() {
               <TextInput
                 secureTextEntry
                 placeholder={t('account.password')}
-                placeholderTextColor={muted}
+                placeholderTextColor={c.pageMuted}
                 value={password}
                 onChangeText={setPassword}
                 style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.surfaceAlt }]}
@@ -188,7 +207,7 @@ export default function AccountScreen() {
 
           {busy ? <ActivityIndicator color={c.tint} style={{ marginTop: 12 }} /> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          {info ? <Text style={[styles.info, { color: muted }]}>{info}</Text> : null}
+          {info ? <Text style={[styles.info, { color: c.pageMuted }]}>{info}</Text> : null}
         </ScrollView>
       </SafeAreaView>
     </View>

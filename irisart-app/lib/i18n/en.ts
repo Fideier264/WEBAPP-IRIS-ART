@@ -34,6 +34,10 @@ const en: Record<TranslationKey, string> = {
   'account.languageHint': 'App language for all screens.',
   'account.lang.de': 'Deutsch',
   'account.lang.en': 'English',
+  'account.background': 'Background',
+  'account.backgroundHint': 'Page background only — cards and content stay light and readable.',
+  'account.bg.light': 'Light',
+  'account.bg.dark': 'Dark',
 
   'home.tagline': 'Science of Your Eye',
   'home.sub':

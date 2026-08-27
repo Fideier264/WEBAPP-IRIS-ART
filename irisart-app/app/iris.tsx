@@ -4,9 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { useAppColors } from '@/lib/appTheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
-import Colors from '@/constants/Colors';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import { enhanceIrisTextureWithInpaint } from '@/lib/aiIrisInpaint';
 import { useT } from '@/lib/i18n';
@@ -17,8 +16,9 @@ type Status =
   | { kind: 'error'; message: string };
 
 export default function IrisPrepScreen() {
-  const scheme = useColorScheme();
-  const c = Colors[scheme ?? 'light'];
+  const c = useAppColors();
+  const muted = c.pageMuted;
+  const scheme = c.isDarkPage ? 'dark' : 'light';
   const t = useT();
   const params = useLocalSearchParams<{ uri?: string; cropX?: string; cropY?: string; cropW?: string; cropH?: string }>();
   const uri = typeof params.uri === 'string' ? params.uri : undefined;

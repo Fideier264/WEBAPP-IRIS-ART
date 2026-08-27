@@ -4,8 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { useAppColors } from '@/lib/appTheme';
 import { ACCOUNT_HEADER_CLEARANCE } from '@/constants/Layout';
 import { analyzeIris, type IrisAnalysis } from '@/lib/analyzeIris';
 import { useT } from '@/lib/i18n';
@@ -43,8 +42,8 @@ const ART_STYLES: Array<{
 ];
 
 export default function ReviewScreen() {
-  const scheme = useColorScheme();
-  const c = Colors[scheme ?? 'light'];
+  const c = useAppColors();
+  const scheme = c.isDarkPage ? 'dark' : 'light';
   const t = useT();
   const params = useLocalSearchParams<{ textureUri?: string; sourceUri?: string; style?: string }>();
 

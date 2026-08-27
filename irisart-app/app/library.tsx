@@ -5,8 +5,7 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppBottomBar } from '@/components/AppBottomBar';
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { useAppColors } from '@/lib/appTheme';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import { useAuth } from '@/lib/auth';
 import { useT } from '@/lib/i18n';
@@ -29,9 +28,8 @@ function openAnalysis(item: UserIrisItem) {
 }
 
 export default function LibraryScreen() {
-  const scheme = useColorScheme();
-  const c = Colors[scheme ?? 'light'];
-  const muted = scheme === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
+  const c = useAppColors();
+  const muted = c.pageMuted;
   const { user, loading: authLoading } = useAuth();
   const [items, setItems] = useState<UserIrisItem[]>([]);
   const [loadingList, setLoadingList] = useState(false);
@@ -112,11 +110,7 @@ export default function LibraryScreen() {
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
       <LinearGradient
-        colors={
-          scheme === 'dark'
-            ? ['rgba(124,92,255,0.22)', 'rgba(0,212,255,0.06)', 'rgba(5,6,10,0)']
-            : ['rgba(91,92,255,0.12)', 'rgba(0,212,255,0.04)', 'rgba(247,248,255,0)']
-        }
+        colors={c.pageGradient}
         start={{ x: 0.15, y: 0.05 }}
         end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -125,7 +119,7 @@ export default function LibraryScreen() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1, gap: 4, paddingRight: ACCOUNT_HEADER_CLEARANCE }}>
-            <Text style={[styles.hTitle, { color: c.text }]}>{t('library.title')}</Text>
+            <Text style={[styles.hTitle, { color: c.pageText }]}>{t('library.title')}</Text>
             <Text style={[styles.sub, { color: muted }]}>
               {dualMode ? t('library.dualHint') : user ? t('library.subSignedIn') : t('library.subSignedOut')}
             </Text>

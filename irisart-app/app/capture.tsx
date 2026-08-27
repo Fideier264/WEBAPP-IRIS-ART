@@ -19,8 +19,7 @@ import Slider from '@react-native-community/slider';
 import * as ImagePicker from 'expo-image-picker';
 
 import { AppBottomBar } from '@/components/AppBottomBar';
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { useAppColors } from '@/lib/appTheme';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import { useT } from '@/lib/i18n';
 
@@ -38,8 +37,9 @@ type DragState = {
 };
 
 export default function CaptureScreen() {
-  const scheme = useColorScheme();
-  const c = Colors[scheme ?? 'light'];
+  const c = useAppColors();
+  const muted = c.pageMuted;
+  const scheme = c.isDarkPage ? 'dark' : 'light';
   const t = useT();
 
   const cameraRef = useRef<CameraView>(null);

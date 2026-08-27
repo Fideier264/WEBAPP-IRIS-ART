@@ -16,8 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ArtTemplateComposite } from '@/components/ArtTemplateComposite';
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { useAppColors } from '@/lib/appTheme';
 import { ACCOUNT_HEADER_CLEARANCE } from '@/constants/Layout';
 import {
   openCheckoutUrl,
@@ -62,10 +61,8 @@ function translateDescription(description: string | undefined, t: TFn): string |
 }
 
 export default function CheckoutScreen() {
-  const scheme = useColorScheme();
-  const cs = scheme ?? 'light';
-  const c = Colors[cs];
-  const muted = cs === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
+  const c = useAppColors();
+  const muted = c.pageMuted;
   const { width } = useWindowDimensions();
   const cardW = Math.floor((width - 36 - 10) / 2);
   const t = useT();
@@ -275,7 +272,7 @@ export default function CheckoutScreen() {
             ]}>
             <Text style={[styles.chipText, { color: c.text }]}>{t('checkout.back')}</Text>
           </Pressable>
-          <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
+          <Text style={[styles.hTitle, { color: c.pageText }]} numberOfLines={1}>
             {t('checkout.title')}
           </Text>
           <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />

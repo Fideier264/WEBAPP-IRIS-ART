@@ -1,5 +1,5 @@
 import 'react-native-url-polyfill/auto';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -7,8 +7,7 @@ import { useEffect } from 'react';
 import { Buffer } from 'buffer';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { AppThemeProvider, useAppColors } from '@/lib/appTheme';
 import { AuthProvider } from '@/lib/auth';
 import { LocaleProvider } from '@/lib/i18n';
 import { AppAccountButton } from '@/components/AppAccountButton';
@@ -52,44 +51,51 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+function RootLayoutNavInner() {
+  const c = useAppColors();
 
   return (
+    <ThemeProvider
+      value={{
+        ...DefaultTheme,
+        colors: {
+          ...DefaultTheme.colors,
+          background: c.background,
+          card: c.surface,
+          text: c.pageText,
+          primary: c.tint,
+          border: c.border,
+        },
+      }}>
+      <View style={{ flex: 1 }}>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="library" options={{ headerShown: false }} />
+          <Stack.Screen name="account" options={{ headerShown: false }} />
+          <Stack.Screen name="capture" options={{ headerShown: false }} />
+          <Stack.Screen name="iris" options={{ headerShown: false }} />
+          <Stack.Screen name="review" options={{ headerShown: false }} />
+          <Stack.Screen name="gallery" options={{ headerShown: false }} />
+          <Stack.Screen name="shop" options={{ headerShown: false }} />
+          <Stack.Screen name="checkout" options={{ headerShown: false }} />
+          <Stack.Screen name="order-success" options={{ headerShown: false }} />
+          <Stack.Screen name="results" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <AppAccountButton />
+      </View>
+    </ThemeProvider>
+  );
+}
+
+function RootLayoutNav() {
+  return (
     <LocaleProvider>
-      <AuthProvider>
-        <ThemeProvider
-          value={{
-            ...(isDark ? DarkTheme : DefaultTheme),
-            colors: {
-              ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
-              background: Colors[colorScheme].background,
-              card: Colors[colorScheme].surface,
-              text: Colors[colorScheme].text,
-              primary: Colors[colorScheme].tint,
-              border: Colors[colorScheme].border,
-            },
-          }}>
-          <View style={{ flex: 1 }}>
-            <Stack>
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="library" options={{ headerShown: false }} />
-              <Stack.Screen name="account" options={{ headerShown: false }} />
-              <Stack.Screen name="capture" options={{ headerShown: false }} />
-              <Stack.Screen name="iris" options={{ headerShown: false }} />
-              <Stack.Screen name="review" options={{ headerShown: false }} />
-              <Stack.Screen name="gallery" options={{ headerShown: false }} />
-              <Stack.Screen name="shop" options={{ headerShown: false }} />
-              <Stack.Screen name="checkout" options={{ headerShown: false }} />
-              <Stack.Screen name="order-success" options={{ headerShown: false }} />
-              <Stack.Screen name="results" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <AppAccountButton />
-          </View>
-        </ThemeProvider>
-      </AuthProvider>
+      <AppThemeProvider>
+        <AuthProvider>
+          <RootLayoutNavInner />
+        </AuthProvider>
+      </AppThemeProvider>
     </LocaleProvider>
   );
 }

@@ -1,6 +1,8 @@
-import { useColorScheme as useColorSchemeCore } from 'react-native';
+import { useAppColors } from '@/lib/appTheme';
 
-export const useColorScheme = () => {
-  const coreScheme = useColorSchemeCore();
-  return coreScheme === 'unspecified' ? 'light' : coreScheme;
-};
+/** @deprecated Prefer useAppColors() — kept for gradual migration. */
+export function useColorScheme(): 'light' | 'dark' {
+  return useAppColors().isDarkPage ? 'dark' : 'light';
+}
+
+export { useAppColors } from '@/lib/appTheme';

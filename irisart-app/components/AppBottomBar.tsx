@@ -3,9 +3,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import Colors from '@/constants/Colors';
-import { useT } from '@/lib/i18n';
-import { useColorScheme } from './useColorScheme';
+import { useAppColors } from '@/lib/appTheme';
 
 export function AppBottomBar({
   active,
@@ -14,8 +12,7 @@ export function AppBottomBar({
   active: 'library' | 'scan' | 'shop';
   shopTextureUri?: string;
 }) {
-  const scheme = useColorScheme();
-  const c = Colors[scheme ?? 'light'];
+  const c = useAppColors();
   const insets = useSafeAreaInsets();
   const t = useT();
 

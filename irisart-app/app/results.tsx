@@ -4,9 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { useAppColors } from '@/lib/appTheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
-import Colors from '@/constants/Colors';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import {
   analyzeIris,
@@ -24,9 +23,8 @@ type Status =
   | { kind: 'error'; message: string };
 
 export default function ResultsScreen() {
-  const scheme = useColorScheme();
-  const cs = scheme ?? 'light';
-  const c = Colors[cs];
+  const c = useAppColors();
+  const cs = c.isDarkPage ? 'dark' : 'light';
   const t = useT();
   const params = useLocalSearchParams<{
     uri?: string;

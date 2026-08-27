@@ -4,15 +4,13 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { useAppColors } from '@/lib/appTheme';
 import { ACCOUNT_HEADER_CLEARANCE } from '@/constants/Layout';
 import { useT } from '@/lib/i18n';
 
 export default function OrderSuccessScreen() {
-  const scheme = useColorScheme();
-  const c = Colors[scheme ?? 'light'];
-  const muted = scheme === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
+  const c = useAppColors();
+  const muted = c.pageMuted;
   const params = useLocalSearchParams<{ session_id?: string }>();
   const sessionId = typeof params.session_id === 'string' ? params.session_id : undefined;
   const t = useT();
@@ -20,11 +18,7 @@ export default function OrderSuccessScreen() {
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
       <LinearGradient
-        colors={
-          scheme === 'dark'
-            ? ['rgba(124,92,255,0.22)', 'rgba(0,212,255,0.06)', 'rgba(5,6,10,0)']
-            : ['rgba(91,92,255,0.12)', 'rgba(0,212,255,0.04)', 'rgba(247,248,255,0)']
-        }
+        colors={[...c.pageGradient]}
         start={{ x: 0.15, y: 0.05 }}
         end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -32,7 +26,7 @@ export default function OrderSuccessScreen() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <View style={{ width: 72 }} />
-          <Text style={[styles.hTitle, { color: c.text }]}>{t('orderSuccess.title')}</Text>
+          <Text style={[styles.hTitle, { color: c.pageText }]}>{t('orderSuccess.title')}</Text>
           <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
         </View>
 

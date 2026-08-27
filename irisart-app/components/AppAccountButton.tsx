@@ -3,15 +3,11 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import Colors from '@/constants/Colors';
-import { useAuth } from '@/lib/auth';
-import { useT } from '@/lib/i18n';
-import { useColorScheme } from './useColorScheme';
+import { useAppColors } from '@/lib/appTheme';
 
 /** Floating top-right Account / Login control on every screen. */
 export function AppAccountButton() {
-  const scheme = useColorScheme();
-  const c = Colors[scheme ?? 'light'];
+  const c = useAppColors();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { user, loading } = useAuth();

@@ -14,8 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ArtTemplateComposite } from '@/components/ArtTemplateComposite';
 import { AppBottomBar } from '@/components/AppBottomBar';
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { useAppColors } from '@/lib/appTheme';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import { ART_TEMPLATES, filterTemplatesByEyeFamilies, getArtTemplateHoles, isDualEyeTemplate } from '@/lib/artTemplates';
 import {
@@ -30,10 +29,8 @@ import { inferEyeColorFamilies } from '@/lib/irisColorFamily';
 import { saveUserIrisAnalysis } from '@/lib/userIrisLibrary';
 
 export default function ArtGalleryScreen() {
-  const scheme = useColorScheme();
-  const cs = scheme ?? 'light';
-  const c = Colors[cs];
-  const muted = cs === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)';
+  const c = useAppColors();
+  const muted = c.pageMuted;
   const t = useT();
   const params = useLocalSearchParams<{
     textureUri?: string;
@@ -145,11 +142,7 @@ export default function ArtGalleryScreen() {
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
       <LinearGradient
-        colors={
-          cs === 'dark'
-            ? ['rgba(124,92,255,0.22)', 'rgba(0,212,255,0.06)', 'rgba(5,6,10,0)']
-            : ['rgba(91,92,255,0.12)', 'rgba(0,212,255,0.04)', 'rgba(247,248,255,0)']
-        }
+        colors={c.pageGradient}
         start={{ x: 0.15, y: 0.05 }}
         end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -167,7 +160,7 @@ export default function ArtGalleryScreen() {
             ]}>
             <Text style={[styles.chipText, { color: c.text }]}>{t('shop.back')}</Text>
           </Pressable>
-          <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
+          <Text style={[styles.hTitle, { color: c.pageText }]} numberOfLines={1}>
             {t('shop.title')}
           </Text>
           <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />

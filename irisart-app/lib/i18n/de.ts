@@ -35,6 +35,10 @@ const de = {
   'account.languageHint': 'App-Sprache für alle Texte.',
   'account.lang.de': 'Deutsch',
   'account.lang.en': 'English',
+  'account.background': 'Hintergrund',
+  'account.backgroundHint': 'Nur der Seitenhintergrund — Karten und Inhalte bleiben hell und gut lesbar.',
+  'account.bg.light': 'Hell',
+  'account.bg.dark': 'Dunkel',
 
   // Home / scan
   'home.tagline': 'Die Wissenschaft deines Auges',
