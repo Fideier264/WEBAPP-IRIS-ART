@@ -131,7 +131,7 @@ export const ART_TEMPLATES: ArtTemplate[] = [
     h: 0.4688,
     circular: true,
   },
-  irisScale: 1.31,
+  irisScale: 1.34,
   overlayImage: require('@/assets/art-templates/galaxygrau.png'),
 },
 {
