@@ -7,6 +7,15 @@ export type RgbColor = { r: number; g: number; b: number };
 
 const irisColorCache = new Map<string, RgbColor>();
 
+type Hs = { h: number; s: number };
+/** polar[angleBin][radialBin] */
+type PolarHsMap = { angles: number; radials: number; cells: Hs[][]; fallback: Hs };
+
+const irisPolarCache = new Map<string, PolarHsMap>();
+
+const MULTI_ANGLE_BINS = 48;
+const MULTI_RADIAL_BINS = 3;
+
 export async function resolveImageUrl(source: string | ImageSourcePropType): Promise<string> {
   if (typeof source === 'string') return source;
   if (typeof source === 'number') {
@@ -225,6 +234,268 @@ export function tintGrayscaleTemplate(
   return canvas;
 }
 
+/**
+ * Build a polar hue/sat map from the iris (angular wedges × radial rings).
+ * Skips pupil + near-black so multi-colored eyes keep local hues (amber vs brown etc.).
+ */
+export function extractIrisPolarHsMap(
+  iris: HTMLImageElement,
+  cacheKey?: string,
+  angleBins = MULTI_ANGLE_BINS,
+  radialBins = MULTI_RADIAL_BINS
+): PolarHsMap {
+  const cacheId = cacheKey ? `polar:${angleBins}x${radialBins}:${cacheKey}` : undefined;
+  if (cacheId) {
+    const hit = irisPolarCache.get(cacheId);
+    if (hit) return hit;
+  }
+
+  const fallbackHs: Hs = (() => {
+    const t = vividTintColor({ r: 140, g: 105, b: 75 });
+    const hsl = rgbToHsl(t.r, t.g, t.b);
+    return { h: hsl.h, s: hsl.s };
+  })();
+
+  const iw = iris.naturalWidth || iris.width;
+  const ih = iris.naturalHeight || iris.height;
+  if (!iw || !ih) {
+    const empty: PolarHsMap = {
+      angles: angleBins,
+      radials: radialBins,
+      cells: Array.from({ length: angleBins }, () =>
+        Array.from({ length: radialBins }, () => ({ ...fallbackHs }))
+      ),
+      fallback: fallbackHs,
+    };
+    return empty;
+  }
+
+  const maxSide = 360;
+  const scale = Math.min(1, maxSide / Math.max(iw, ih));
+  const sw = Math.max(1, Math.round(iw * scale));
+  const sh = Math.max(1, Math.round(ih * scale));
+  const sample = document.createElement('canvas');
+  sample.width = sw;
+  sample.height = sh;
+  const ctx = sample.getContext('2d', { willReadFrequently: true });
+  if (!ctx) {
+    return {
+      angles: angleBins,
+      radials: radialBins,
+      cells: Array.from({ length: angleBins }, () =>
+        Array.from({ length: radialBins }, () => ({ ...fallbackHs }))
+      ),
+      fallback: fallbackHs,
+    };
+  }
+
+  ctx.drawImage(iris, 0, 0, sw, sh);
+  const { data } = ctx.getImageData(0, 0, sw, sh);
+  const cx = (sw - 1) / 2;
+  const cy = (sh - 1) / 2;
+  const maxR = Math.hypot(cx, cy);
+
+  const sums = Array.from({ length: angleBins }, () =>
+    Array.from({ length: radialBins }, () => ({ r: 0, g: 0, b: 0, w: 0 }))
+  );
+
+  for (let y = 0; y < sh; y++) {
+    for (let x = 0; x < sw; x++) {
+      const i = (y * sw + x) * 4;
+      const a = data[i + 3]!;
+      if (a < 16) continue;
+
+      const dx = x - cx;
+      const dy = y - cy;
+      const dist = Math.hypot(dx, dy) / maxR;
+      // Iris tissue: skip pupil + outer frame
+      if (dist < 0.16 || dist > 0.82) continue;
+
+      const r = data[i]!;
+      const g = data[i + 1]!;
+      const b = data[i + 2]!;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      if (max < 36 || min > 245) continue;
+
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const sat = max === 0 ? 0 : (max - min) / max;
+      const weight = (a / 255) * (0.4 + sat * 1.8) * Math.min(1, lum / 70);
+      if (weight <= 0) continue;
+
+      let ang = Math.atan2(dy, dx); // -PI..PI
+      if (ang < 0) ang += Math.PI * 2;
+      const aBin = Math.min(angleBins - 1, Math.floor((ang / (Math.PI * 2)) * angleBins));
+      // Map iris ring 0.16..0.82 → radial bins
+      const rNorm = Math.min(1, Math.max(0, (dist - 0.16) / (0.82 - 0.16)));
+      const rBin = Math.min(radialBins - 1, Math.floor(rNorm * radialBins));
+
+      const cell = sums[aBin]![rBin]!;
+      cell.r += r * weight;
+      cell.g += g * weight;
+      cell.b += b * weight;
+      cell.w += weight;
+    }
+  }
+
+  // Global fallback from all samples
+  let gr = 0;
+  let gg = 0;
+  let gb = 0;
+  let gw = 0;
+  for (const row of sums) {
+    for (const cell of row) {
+      gr += cell.r;
+      gg += cell.g;
+      gb += cell.b;
+      gw += cell.w;
+    }
+  }
+  const globalFb =
+    gw > 0
+      ? vividTintColor({
+          r: Math.round(gr / gw),
+          g: Math.round(gg / gw),
+          b: Math.round(gb / gw),
+        })
+      : vividTintColor({ r: 140, g: 105, b: 75 });
+  const globalHs = rgbToHsl(globalFb.r, globalFb.g, globalFb.b);
+  const fallback: Hs = { h: globalHs.h, s: globalHs.s };
+
+  const cells: Hs[][] = Array.from({ length: angleBins }, (_, ai) =>
+    Array.from({ length: radialBins }, (_, ri) => {
+      const cell = sums[ai]![ri]!;
+      if (cell.w < 1e-6) return { ...fallback };
+      const tint = vividTintColor({
+        r: Math.round(cell.r / cell.w),
+        g: Math.round(cell.g / cell.w),
+        b: Math.round(cell.b / cell.w),
+      });
+      const hsl = rgbToHsl(tint.r, tint.g, tint.b);
+      return { h: hsl.h, s: hsl.s };
+    })
+  );
+
+  // Fill empty bins from angular neighbors
+  for (let ri = 0; ri < radialBins; ri++) {
+    for (let ai = 0; ai < angleBins; ai++) {
+      if (sums[ai]![ri]!.w >= 1e-6) continue;
+      for (let d = 1; d < angleBins; d++) {
+        const left = sums[(ai - d + angleBins) % angleBins]![ri]!;
+        const right = sums[(ai + d) % angleBins]![ri]!;
+        if (left.w >= 1e-6) {
+          cells[ai]![ri] = { ...cells[(ai - d + angleBins) % angleBins]![ri]! };
+          break;
+        }
+        if (right.w >= 1e-6) {
+          cells[ai]![ri] = { ...cells[(ai + d) % angleBins]![ri]! };
+          break;
+        }
+      }
+    }
+  }
+
+  const map: PolarHsMap = { angles: angleBins, radials: radialBins, cells, fallback };
+  if (cacheId) irisPolarCache.set(cacheId, map);
+  return map;
+}
+
+function lerpAngle(a: number, b: number, t: number): number {
+  let d = b - a;
+  while (d > 180) d -= 360;
+  while (d < -180) d += 360;
+  return a + d * t;
+}
+
+function samplePolarHs(map: PolarHsMap, angleRad: number, rNorm: number): Hs {
+  let ang = angleRad;
+  if (ang < 0) ang += Math.PI * 2;
+  const aFloat = (ang / (Math.PI * 2)) * map.angles;
+  const a0 = Math.floor(aFloat) % map.angles;
+  const a1 = (a0 + 1) % map.angles;
+  const at = aFloat - Math.floor(aFloat);
+
+  const rClamped = Math.min(0.999, Math.max(0, rNorm));
+  const rFloat = rClamped * map.radials;
+  const r0 = Math.min(map.radials - 1, Math.floor(rFloat));
+  const r1 = Math.min(map.radials - 1, r0 + 1);
+  const rt = rFloat - r0;
+
+  const c00 = map.cells[a0]![r0] ?? map.fallback;
+  const c10 = map.cells[a1]![r0] ?? map.fallback;
+  const c01 = map.cells[a0]![r1] ?? map.fallback;
+  const c11 = map.cells[a1]![r1] ?? map.fallback;
+
+  const h0 = lerpAngle(c00.h, c10.h, at);
+  const h1 = lerpAngle(c01.h, c11.h, at);
+  const s0 = c00.s * (1 - at) + c10.s * at;
+  const s1 = c01.s * (1 - at) + c11.s * at;
+
+  return {
+    h: lerpAngle(h0, h1, rt),
+    s: s0 * (1 - rt) + s1 * rt,
+  };
+}
+
+/**
+ * Multi-color tint: map iris hues around the hole (angle + radius) onto the grayscale overlay.
+ * Template shading (luminosity) stays; hue/sat vary like the real eye.
+ */
+export function tintGrayscaleTemplateMulti(
+  grayscale: HTMLImageElement,
+  iris: HTMLImageElement,
+  hole: { x: number; y: number; w: number; h: number },
+  width: number,
+  height: number,
+  cacheKey?: string
+): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('Canvas 2D not available.');
+
+  const polar = extractIrisPolarHsMap(iris, cacheKey);
+  const cx = (hole.x + hole.w / 2) * width;
+  const cy = (hole.y + hole.h / 2) * height;
+  const holeR = Math.max(1, (Math.min(hole.w * width, hole.h * height) / 2) * 0.92);
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.drawImage(grayscale, 0, 0, width, height);
+  const img = ctx.getImageData(0, 0, width, height);
+  const d = img.data;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const a = d[i + 3]!;
+      if (a < 2) continue;
+
+      const dx = x - cx;
+      const dy = y - cy;
+      const dist = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+      // Outside the iris hole: map distance into iris radial bins (near hole = inner stroma, far = outer)
+      const rNorm = Math.min(1, Math.max(0, (dist - holeR * 0.15) / (holeR * 2.8)));
+      const hs = samplePolarHs(polar, angle, rNorm);
+
+      const r = d[i]!;
+      const g = d[i + 1]!;
+      const b = d[i + 2]!;
+      const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+      // Match average-tint feel: pull L slightly toward the vividTint mid range via color-blend-like look
+      // Keep grayscale luminosity (structure), apply local iris H/S
+      const out = hslToRgb(hs.h, hs.s, lum);
+      d[i] = out.r;
+      d[i + 1] = out.g;
+      d[i + 2] = out.b;
+    }
+  }
+
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
 export function drawIrisInSlot(
   ctx: CanvasRenderingContext2D,
   iris: HTMLImageElement,
@@ -295,6 +566,18 @@ export async function paintArtComposite(
   if (overlaySrc) {
     const overlay = await loadImage(overlaySrc);
     if (template.tintWithIrisColor) {
+      if (template.multiColorTint) {
+        const tinted = tintGrayscaleTemplateMulti(
+          overlay,
+          iris,
+          template.irisHole,
+          width,
+          height,
+          textureUri
+        );
+        ctx.drawImage(tinted, 0, 0, width, height);
+        return extractAverageIrisColor(iris, textureUri);
+      }
       const irisColor = extractAverageIrisColor(iris, textureUri);
       const tinted = tintGrayscaleTemplate(overlay, irisColor, width, height);
       ctx.drawImage(tinted, 0, 0, width, height);

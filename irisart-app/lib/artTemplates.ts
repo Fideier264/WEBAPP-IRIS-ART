@@ -46,10 +46,16 @@ export type ArtTemplate = {
    */
   overlayImage?: ImageSourcePropType;
   /**
-   * Wenn true: Overlay wird mit der gemittelten Iris-Farbe getintet (nur Graustufen-PNGs).
+   * Wenn true: Overlay wird mit Iris-Farbe getintet (nur Graustufen-PNGs).
    * Wenn false/undefined: Overlay-Farben bleiben unverändert (fertige Farb-Templates).
    */
   tintWithIrisColor?: boolean;
+  /**
+   * Nur wirksam mit `tintWithIrisColor: true`.
+   * Wenn true: statt einer Durchschnittsfarbe werden Iris-Farben winkel-/radial
+   * aufs Overlay gemappt (mehrfarbige Augen → unterschiedliche Töne am Template).
+   */
+  multiColorTint?: boolean;
   /** Zoom um den Mittelpunkt des Slots (1 = kein Extra-Zoom). Erhöhen = näher ran, dabei mehr Rand abgeschnitten. */
   irisScale?: number;
 };
@@ -95,10 +101,11 @@ export const ART_TEMPLATES: ArtTemplate[] = [
 {
   id: 'template.shards.grau',
   title: 'Shattered',
-  subtitle: 'Graustufen — wird mit Iris-Farbe getintet',
+  subtitle: 'Graustufen — Mehrfarben-Tint aus der Iris',
   aspectRatio: 2129 / 2048,
   colorFamilies: ['any'],
   tintWithIrisColor: true,
+  multiColorTint: true,
   irisHole: {
     x: 0.156,
     y: 0.173,

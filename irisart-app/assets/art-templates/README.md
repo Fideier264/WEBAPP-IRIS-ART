@@ -2,10 +2,11 @@
 
 PNG mit **transparentem Loch** für die Iris. Zwei Arten:
 
-| Typ | PNG | Flag | Ergebnis |
-|-----|-----|------|----------|
-| **Fertig eingefärbt** | z. B. blaue Galaxie | `tintWithIrisColor` weglassen / `false` | Overlay bleibt wie in der Datei |
-| **Graustufen + Iris-Tint** | weiß/grau/schwarz + Alpha | `tintWithIrisColor: true` | App färbt mit der Iris-Farbe (Vorschau + Druck) |
+| Typ | PNG | Flags | Ergebnis |
+|-----|-----|-------|----------|
+| **Fertig eingefärbt** | z. B. blaue Galaxie | Flags weglassen | Overlay bleibt wie in der Datei |
+| **Einfarb-Tint** | Graustufen | `tintWithIrisColor: true` | Eine gemittelte Iris-Farbe |
+| **Mehrfarben-Tint** | Graustufen | `tintWithIrisColor: true` **und** `multiColorTint: true` | Iris-Farben winkel-/radial aufs Overlay (Hazel etc.) |
 
 ---
 
@@ -32,6 +33,7 @@ Ohne Git-Push der PNG erscheint die Vorlage live nicht.
   aspectRatio: 2129 / 2048,           // EXAKT Breite ÷ Höhe DIESER PNG
   colorFamilies: ['any'],             // Filter; bei Tint-Vorlagen meist 'any'
   tintWithIrisColor: true,            // nur bei Graustufen-PNG!
+  multiColorTint: true,               // optional: mehrere Iris-Farben räumlich mappen
   irisHole: {
     x: 0.241,                         // links = LochLinksPx / Breite
     y: 0.224,                         // oben  = LochObenPx / Höhe
@@ -58,10 +60,11 @@ Ohne Git-Push der PNG erscheint die Vorlage live nicht.
 
 Tipp: Bei kreisrundem Loch in px oft `w_px ≈ h_px`; in normierten Werten kann `w ≠ h` sein, wenn die PNG nicht quadratisch ist — das ist korrekt.
 
-### `tintWithIrisColor`
+### `tintWithIrisColor` / `multiColorTint`
 
-- `true` → Graustufen-Overlay (Sterne/Shards hellgrau, Schatten dunkel, Loch transparent).  
-- `false` / weglassen → farbiges Overlay unverändert (Blue Galaxy bleibt blau).
+- `tintWithIrisColor: true` → Graustufen-Overlay einfärben (eine Durchschnittsfarbe).
+- zusätzlich `multiColorTint: true` → Farben der Iris **örtlich** übernehmen (Winkel ums Loch + Innen/Außen-Ring). Gut für mehrfarbige / Hazel-Augen.
+- Flags weglassen → farbiges Overlay unverändert (Blue Galaxy bleibt blau).
 
 ### `colorFamilies`
 
