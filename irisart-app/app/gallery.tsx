@@ -214,12 +214,14 @@ export default function ArtGalleryScreen() {
                 style={({ pressed }) => [
                   styles.filterPill,
                   {
-                    borderColor: !showAll ? c.tint : c.border,
-                    backgroundColor: !showAll ? 'rgba(124,92,255,0.16)' : c.surfaceAlt,
+                    borderColor: !showAll ? c.chipBorderActive : c.chipBorder,
+                    backgroundColor: !showAll ? c.chipBgActive : c.chipBg,
                     opacity: pressed ? 0.9 : 1,
                   },
                 ]}>
-                <Text style={[styles.filterText, { color: c.text }]}>{t('shop.filterMatch')}</Text>
+                <Text style={[styles.filterText, { color: !showAll ? c.chipTextActive : c.chipText }]}>
+                  {t('shop.filterMatch')}
+                </Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -227,12 +229,14 @@ export default function ArtGalleryScreen() {
                 style={({ pressed }) => [
                   styles.filterPill,
                   {
-                    borderColor: showAll ? c.tint : c.border,
-                    backgroundColor: showAll ? 'rgba(124,92,255,0.16)' : c.surfaceAlt,
+                    borderColor: showAll ? c.chipBorderActive : c.chipBorder,
+                    backgroundColor: showAll ? c.chipBgActive : c.chipBg,
                     opacity: pressed ? 0.9 : 1,
                   },
                 ]}>
-                <Text style={[styles.filterText, { color: c.text }]}>{t('shop.filterAll')}</Text>
+                <Text style={[styles.filterText, { color: showAll ? c.chipTextActive : c.chipText }]}>
+                  {t('shop.filterAll')}
+                </Text>
               </Pressable>
             </View>
 

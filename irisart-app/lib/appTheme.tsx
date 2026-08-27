@@ -21,18 +21,37 @@ export type AppColorSet = {
   /** Text on page background (outside cards) */
   pageText: string;
   pageMuted: string;
+  /** Pills/chips directly on the page background */
+  chipBg: string;
+  chipBgActive: string;
+  chipText: string;
+  chipTextActive: string;
+  chipBorder: string;
+  chipBorderActive: string;
+  /** Form field labels on the page background */
+  formLabel: string;
+  inputPlaceholder: string;
   isDarkPage: boolean;
   pageGradient: readonly [string, string, string];
 };
 
 function buildColors(backgroundTheme: BackgroundTheme): AppColorSet {
   const card = Colors.light;
+  const muted = 'rgba(10,11,16,0.72)';
   if (backgroundTheme === 'light') {
     return {
       ...card,
-      muted: 'rgba(10,11,16,0.62)',
+      muted,
       pageText: card.text,
       pageMuted: 'rgba(10,11,16,0.62)',
+      chipBg: card.surfaceAlt,
+      chipBgActive: 'rgba(124,92,255,0.16)',
+      chipText: card.text,
+      chipTextActive: card.text,
+      chipBorder: card.border,
+      chipBorderActive: card.tint,
+      formLabel: card.text,
+      inputPlaceholder: 'rgba(10,11,16,0.45)',
       isDarkPage: false,
       pageGradient: ['rgba(91,92,255,0.12)', 'rgba(0,212,255,0.04)', 'rgba(247,248,255,0)'],
     };
@@ -42,9 +61,17 @@ function buildColors(backgroundTheme: BackgroundTheme): AppColorSet {
     background: Colors.dark.background,
     tint: Colors.dark.tint,
     tabIconSelected: Colors.dark.tint,
-    muted: 'rgba(10,11,16,0.62)',
+    muted,
     pageText: Colors.dark.text,
     pageMuted: 'rgba(243,245,255,0.62)',
+    chipBg: 'rgba(255,255,255,0.10)',
+    chipBgActive: card.surface,
+    chipText: Colors.dark.text,
+    chipTextActive: card.text,
+    chipBorder: 'rgba(243,245,255,0.18)',
+    chipBorderActive: Colors.dark.tint,
+    formLabel: Colors.dark.text,
+    inputPlaceholder: 'rgba(10,11,16,0.45)',
     isDarkPage: true,
     pageGradient: ['rgba(124,92,255,0.22)', 'rgba(0,212,255,0.06)', 'rgba(5,6,10,0)'],
   };

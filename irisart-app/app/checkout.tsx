@@ -152,7 +152,7 @@ export default function CheckoutScreen() {
   const [status, setStatus] = useState<'idle' | 'uploading' | 'redirecting' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const inputSurface = { backgroundColor: c.surfaceAlt, borderColor: c.border, color: c.text };
+  const inputSurface = { backgroundColor: c.surface, borderColor: c.border, color: c.text };
   const busy = status === 'uploading' || status === 'redirecting';
   const selectedCatLabel = selected
     ? translateCategoryLabel(selected.category, selected.categoryLabel, t)
@@ -338,12 +338,12 @@ export default function CheckoutScreen() {
                       style={({ pressed }) => [
                         styles.catChip,
                         {
-                          borderColor: active ? c.tint : c.border,
-                          backgroundColor: active ? 'rgba(124,92,255,0.14)' : c.surfaceAlt,
+                          borderColor: active ? c.chipBorderActive : c.chipBorder,
+                          backgroundColor: active ? c.chipBgActive : c.chipBg,
                           opacity: pressed ? 0.9 : 1,
                         },
                       ]}>
-                      <Text style={[styles.catChipText, { color: c.text }]}>
+                      <Text style={[styles.catChipText, { color: active ? c.chipTextActive : c.chipText }]}>
                         {translateCategoryLabel(cat.id, cat.label, t)}
                       </Text>
                     </Pressable>
@@ -406,15 +406,16 @@ export default function CheckoutScreen() {
             ) : null}
 
             <Text style={[styles.sectionTitle, { color: c.pageText }]}>{t('checkout.shipping')}</Text>
+            <View style={[styles.formCard, { backgroundColor: c.surface, borderColor: c.border }]}>
             <View style={styles.form}>
-              <LabeledInput label={t('checkout.email')} value={email} onChangeText={setEmail} keyboardType="email-address" style={inputSurface} />
-              <LabeledInput label={t('checkout.firstName')} value={firstName} onChangeText={setFirstName} style={inputSurface} />
-              <LabeledInput label={t('checkout.lastName')} value={lastName} onChangeText={setLastName} style={inputSurface} />
-              <LabeledInput label={t('checkout.company')} value={company} onChangeText={setCompany} style={inputSurface} />
-              <LabeledInput label={t('checkout.street')} value={street} onChangeText={setStreet} style={inputSurface} />
-              <LabeledInput label={t('checkout.street2')} value={street2} onChangeText={setStreet2} style={inputSurface} />
-              <LabeledInput label={t('checkout.postcode')} value={postcode} onChangeText={setPostcode} style={inputSurface} />
-              <LabeledInput label={t('checkout.city')} value={city} onChangeText={setCity} style={inputSurface} />
+              <LabeledInput label={t('checkout.email')} value={email} onChangeText={setEmail} keyboardType="email-address" style={inputSurface} labelColor={c.text} placeholderColor={c.inputPlaceholder} />
+              <LabeledInput label={t('checkout.firstName')} value={firstName} onChangeText={setFirstName} style={inputSurface} labelColor={c.text} placeholderColor={c.inputPlaceholder} />
+              <LabeledInput label={t('checkout.lastName')} value={lastName} onChangeText={setLastName} style={inputSurface} labelColor={c.text} placeholderColor={c.inputPlaceholder} />
+              <LabeledInput label={t('checkout.company')} value={company} onChangeText={setCompany} style={inputSurface} labelColor={c.text} placeholderColor={c.inputPlaceholder} />
+              <LabeledInput label={t('checkout.street')} value={street} onChangeText={setStreet} style={inputSurface} labelColor={c.text} placeholderColor={c.inputPlaceholder} />
+              <LabeledInput label={t('checkout.street2')} value={street2} onChangeText={setStreet2} style={inputSurface} labelColor={c.text} placeholderColor={c.inputPlaceholder} />
+              <LabeledInput label={t('checkout.postcode')} value={postcode} onChangeText={setPostcode} style={inputSurface} labelColor={c.text} placeholderColor={c.inputPlaceholder} />
+              <LabeledInput label={t('checkout.city')} value={city} onChangeText={setCity} style={inputSurface} labelColor={c.text} placeholderColor={c.inputPlaceholder} />
               <LabeledInput
                 label={t('checkout.country')}
                 value={country}
@@ -422,14 +423,19 @@ export default function CheckoutScreen() {
                 autoCapitalize="characters"
                 maxLength={2}
                 style={inputSurface}
+                labelColor={c.text}
+                placeholderColor={c.inputPlaceholder}
               />
               <LabeledInput
                 label={t('checkout.region')}
                 value={region}
                 onChangeText={setRegion}
                 style={inputSurface}
+                labelColor={c.text}
+                placeholderColor={c.inputPlaceholder}
               />
-              <LabeledInput label={t('checkout.telephone')} value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" style={inputSurface} />
+              <LabeledInput label={t('checkout.telephone')} value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" style={inputSurface} labelColor={c.text} placeholderColor={c.inputPlaceholder} />
+            </View>
             </View>
 
             {errorMsg ? (
@@ -481,6 +487,8 @@ function LabeledInput({
   autoCapitalize,
   maxLength,
   style,
+  labelColor,
+  placeholderColor,
 }: {
   label: string;
   value: string;
@@ -489,17 +497,19 @@ function LabeledInput({
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   maxLength?: number;
   style: { backgroundColor: string; borderColor: string; color: string };
+  labelColor: string;
+  placeholderColor: string;
 }) {
   return (
     <View style={styles.field}>
-      <Text style={[styles.label, { color: style.color }]}>{label}</Text>
+      <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType ?? 'default'}
         autoCapitalize={autoCapitalize ?? 'sentences'}
         maxLength={maxLength}
-        placeholderTextColor="rgba(128,128,140,0.85)"
+        placeholderTextColor={placeholderColor}
         style={[
           styles.input,
           {
@@ -583,8 +593,14 @@ const styles = StyleSheet.create({
   cardBody: { fontSize: 14, lineHeight: 20 },
   summaryPrice: { fontSize: 18, fontWeight: '850', marginTop: 4 },
   form: { gap: 12 },
+  formCard: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 14,
+    gap: 12,
+  },
   field: { gap: 6 },
-  label: { fontSize: 13, fontWeight: '600', opacity: 0.9 },
+  label: { fontSize: 13, fontWeight: '600' },
   input: {
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
