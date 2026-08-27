@@ -98,7 +98,7 @@ export const ART_TEMPLATES: ArtTemplate[] = [
     circular: true,
   },
   irisScale: 1.05, // optional: etwas reinzoomen
-  overlayImage: require('@/assets/art-templates/galaxyblue.png'),
+  overlayImage: require('@/assets/art-templates/galaxybluekmklm.png'),
 },
 {
   id: 'galaxygreeen',
@@ -114,7 +114,7 @@ export const ART_TEMPLATES: ArtTemplate[] = [
     circular: true,
   },
   irisScale: 1.05, // optional: etwas reinzoomen
-  overlayImage: require('@/assets/art-templates/galaxygreen.png'),
+  overlayImage: require('@/assets/art-templates/galaxygreenihniiuhinh.png'),
 },
 {
   id: 'galaxy.grau',
@@ -191,7 +191,7 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   },
   irisResizeMode: 'contain',
   irisScale: 1,
-  overlayImage: require('@/assets/art-templates/testbrown.png'),
+  overlayImage: require('@/assets/art-templates/testbrownkmk.png'),
 },
 
 ];
