@@ -587,7 +587,13 @@ export function drawIrisInSlot(
   hole: { x: number; y: number; w: number; h: number },
   template: ArtTemplate,
   canvasW: number,
-  canvasH: number
+  canvasH: number,
+  opts?: {
+    /** Skip black slot fill (dual: fill once via canvas background). */
+    skipSlotFill?: boolean;
+    /** Soft exclusive region vs other hole centers (avoids double-paint). */
+    otherCenters?: { cx: number; cy: number }[];
+  }
 ) {
   const left = hole.x * canvasW;
   const top = hole.y * canvasH;
@@ -596,21 +602,17 @@ export function drawIrisInSlot(
   const resizeMode = template.irisResizeMode ?? 'contain';
   const irisScale = template.irisScale ?? 1;
   const slotBg = template.irisSlotBackground ?? '#000000';
+  const cx = left + slotW / 2;
+  const cy = top + slotH / 2;
 
-  ctx.fillStyle = slotBg;
-  ctx.fillRect(left, top, slotW, slotH);
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(left, top, slotW, slotH);
-  ctx.clip();
+  if (!opts?.skipSlotFill) {
+    ctx.fillStyle = slotBg;
+    ctx.fillRect(left, top, slotW, slotH);
+  }
 
   const iw = iris.naturalWidth || iris.width;
   const ih = iris.naturalHeight || iris.height;
-  if (!iw || !ih) {
-    ctx.restore();
-    return;
-  }
+  if (!iw || !ih) return;
 
   let scale = resizeMode === 'cover' ? Math.max(slotW / iw, slotH / ih) : Math.min(slotW / iw, slotH / ih);
   scale *= irisScale;
@@ -620,8 +622,47 @@ export function drawIrisInSlot(
   const dx = left + (slotW - dw) / 2;
   const dy = top + (slotH - dh) / 2;
 
-  ctx.drawImage(iris, dx, dy, dw, dh);
-  ctx.restore();
+  // Draw to offscreen so we can apply circular + Voronoi exclusivity
+  const layer = document.createElement('canvas');
+  layer.width = canvasW;
+  layer.height = canvasH;
+  const lctx = layer.getContext('2d');
+  if (!lctx) return;
+
+  lctx.save();
+  lctx.beginPath();
+  if (hole.circular) {
+    lctx.ellipse(cx, cy, slotW / 2, slotH / 2, 0, 0, Math.PI * 2);
+  } else {
+    lctx.rect(left, top, slotW, slotH);
+  }
+  lctx.clip();
+  lctx.drawImage(iris, dx, dy, dw, dh);
+  lctx.restore();
+
+  const others = opts?.otherCenters;
+  if (others && others.length > 0) {
+    const img = lctx.getImageData(0, 0, canvasW, canvasH);
+    const d = img.data;
+    for (let y = 0; y < canvasH; y++) {
+      for (let x = 0; x < canvasW; x++) {
+        const i = (y * canvasW + x) * 4;
+        if (d[i + 3]! < 1) continue;
+        const myD = Math.hypot(x - cx, y - cy);
+        let closerToOther = false;
+        for (const o of others) {
+          if (Math.hypot(x - o.cx, y - o.cy) + 0.5 < myD) {
+            closerToOther = true;
+            break;
+          }
+        }
+        if (closerToOther) d[i + 3] = 0;
+      }
+    }
+    lctx.putImageData(img, 0, 0);
+  }
+
+  ctx.drawImage(layer, 0, 0);
 }
 
 type DualTintSlot = {
@@ -667,8 +708,8 @@ export function tintGrayscaleTemplateDual(
     return { cx, cy, r, slot: s };
   });
 
-  // Soft blend width ~ 12% of canvas diagonal
-  const blend = Math.hypot(width, height) * 0.12;
+  // Narrow soft seam so each side clearly keeps its own iris color
+  const blend = Math.hypot(width, height) * 0.04;
 
   const colorLayer = document.createElement('canvas');
   colorLayer.width = width;
@@ -686,35 +727,41 @@ export function tintGrayscaleTemplateDual(
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
 
-      // Soft weights by inverse distance to hole centers
-      let wSum = 0;
-      const weights: number[] = [];
-      for (const c of centers) {
-        const d = Math.hypot(x - c.cx, y - c.cy);
-        const w = 1 / Math.max(1, d * d);
-        weights.push(w);
-        wSum += w;
-      }
-
-      // Soften dominance near equal distance (midline)
+      let w0 = 1;
+      let w1 = 0;
       if (centers.length === 2) {
         const d0 = Math.hypot(x - centers[0]!.cx, y - centers[0]!.cy);
         const d1 = Math.hypot(x - centers[1]!.cx, y - centers[1]!.cy);
-        const edge = smoothstep(0.5 + (d1 - d0) / (2 * blend));
-        weights[0] = 1 - edge;
-        weights[1] = edge;
-        wSum = 1;
+        // Closer to hole 0 → high w0 (was inverted before)
+        const edge = smoothstep(0.5 + (d0 - d1) / (2 * Math.max(1, blend)));
+        w0 = 1 - edge;
+        w1 = edge;
+      } else {
+        // Fallback: nearest center wins with soft falloff
+        const dists = centers.map((c) => Math.hypot(x - c.cx, y - c.cy));
+        const nearest = dists.indexOf(Math.min(...dists));
+        w0 = nearest === 0 ? 1 : 0;
+        w1 = nearest === 1 ? 1 : 0;
+      }
+
+      const weights = centers.length === 2 ? [w0, w1] : centers.map((_, si) => (si === 0 ? w0 : w1));
+      // For >2, pick nearest
+      if (centers.length > 2) {
+        const dists = centers.map((c) => Math.hypot(x - c.cx, y - c.cy));
+        const nearest = dists.indexOf(Math.min(...dists));
+        for (let si = 0; si < centers.length; si++) weights[si] = si === nearest ? 1 : 0;
       }
 
       let r = 0;
       let g = 0;
       let b = 0;
+      let wSum = 0;
       for (let si = 0; si < slots.length; si++) {
-        const wt = (weights[si] ?? 0) / wSum;
+        const wt = weights[si] ?? 0;
         if (wt < 1e-6) continue;
+        wSum += wt;
         let rgb: RgbColor;
         if (polarMaps) {
-          const s = slots[si]!;
           const c = centers[si]!;
           const angle = Math.atan2(y - c.cy, x - c.cx);
           const hs = samplePolarHsMixed(polarMaps[si]!, angle, x, y);
@@ -726,9 +773,10 @@ export function tintGrayscaleTemplateDual(
         g += rgb.g * wt;
         b += rgb.b * wt;
       }
-      cd[i] = Math.round(r);
-      cd[i + 1] = Math.round(g);
-      cd[i + 2] = Math.round(b);
+      const inv = wSum > 0 ? 1 / wSum : 1;
+      cd[i] = Math.round(r * inv);
+      cd[i + 1] = Math.round(g * inv);
+      cd[i + 2] = Math.round(b * inv);
       cd[i + 3] = 255;
     }
   }
@@ -772,8 +820,17 @@ export async function paintArtComposite(
   ctx.fillStyle = background;
   ctx.fillRect(0, 0, width, height);
 
+  const holeCenters = holes.map((h) => ({
+    cx: (h.x + h.w / 2) * width,
+    cy: (h.y + h.h / 2) * height,
+  }));
+
   for (let i = 0; i < holes.length; i++) {
-    drawIrisInSlot(ctx, irisImages[i]!, holes[i]!, template, width, height);
+    const others = holeCenters.filter((_, j) => j !== i);
+    drawIrisInSlot(ctx, irisImages[i]!, holes[i]!, template, width, height, {
+      skipSlotFill: holes.length > 1,
+      otherCenters: holes.length > 1 ? others : undefined,
+    });
   }
 
   if (overlaySrc) {
