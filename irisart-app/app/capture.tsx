@@ -38,7 +38,6 @@ type DragState = {
 
 export default function CaptureScreen() {
   const c = useAppColors();
-  const muted = c.pageMuted;
   const scheme = c.isDarkPage ? 'dark' : 'light';
   const t = useT();
 
@@ -250,7 +249,7 @@ export default function CaptureScreen() {
               <Text
                 style={[
                   styles.permissionBody,
-                  { color: scheme === 'dark' ? 'rgba(243,245,255,0.70)' : 'rgba(10,11,16,0.68)' },
+                  { color: c.muted },
                 ]}>
                 {t('capture.permissionBody')}
               </Text>
@@ -305,7 +304,7 @@ export default function CaptureScreen() {
 
         {state.kind === 'camera' ? (
           <View style={styles.zoomRow}>
-            <Text style={[styles.zoomLabel, { color: scheme === 'dark' ? 'rgba(243,245,255,0.75)' : 'rgba(10,11,16,0.75)' }]}>
+            <Text style={[styles.zoomLabel, { color: c.pageMuted }]}>
               {t('capture.zoom')} {(1 + zoom * 3).toFixed(1)}×
             </Text>
             <Slider
@@ -325,8 +324,8 @@ export default function CaptureScreen() {
           {state.kind === 'preview' ? (
             <>
               <View style={styles.cropPanel}>
-                <Text style={[styles.cropTitle, { color: c.text }]}>{t('capture.cropTitle')}</Text>
-                <Text style={[styles.cropHint, { color: scheme === 'dark' ? 'rgba(243,245,255,0.72)' : 'rgba(10,11,16,0.72)' }]}>
+                <Text style={[styles.cropTitle, { color: '#F3F5FF' }]}>{t('capture.cropTitle')}</Text>
+                <Text style={[styles.cropHint, { color: 'rgba(243,245,255,0.72)' }]}>
                   {t('capture.cropHint')}
                 </Text>
                 <Slider

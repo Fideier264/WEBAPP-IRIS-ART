@@ -29,7 +29,6 @@ function openAnalysis(item: UserIrisItem) {
 
 export default function LibraryScreen() {
   const c = useAppColors();
-  const muted = c.pageMuted;
   const { user, loading: authLoading } = useAuth();
   const [items, setItems] = useState<UserIrisItem[]>([]);
   const [loadingList, setLoadingList] = useState(false);
@@ -120,7 +119,7 @@ export default function LibraryScreen() {
         <View style={styles.headerRow}>
           <View style={{ flex: 1, gap: 4, paddingRight: ACCOUNT_HEADER_CLEARANCE }}>
             <Text style={[styles.hTitle, { color: c.pageText }]}>{t('library.title')}</Text>
-            <Text style={[styles.sub, { color: muted }]}>
+            <Text style={[styles.sub, { color: c.pageMuted }]}>
               {dualMode ? t('library.dualHint') : user ? t('library.subSignedIn') : t('library.subSignedOut')}
             </Text>
           </View>
@@ -181,7 +180,7 @@ export default function LibraryScreen() {
 
         {!user && !authLoading ? (
           <View style={[styles.emptyCard, { borderColor: c.border, backgroundColor: c.surface }]}>
-            <Text style={[styles.empty, { color: muted }]}>{t('library.loginRequired')}</Text>
+            <Text style={[styles.empty, { color: c.muted }]}>{t('library.loginRequired')}</Text>
             <Pressable
               accessibilityRole="button"
               onPress={() => router.push('/account')}
@@ -256,7 +255,7 @@ export default function LibraryScreen() {
                           styles.smallBtn,
                           { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.9 : 1 },
                         ]}>
-                        <Text style={[styles.smallBtnTxt, { color: muted }]}>{t('library.delete')}</Text>
+                        <Text style={[styles.smallBtnTxt, { color: c.muted }]}>{t('library.delete')}</Text>
                       </Pressable>
                     </View>
                   ) : null}
@@ -266,7 +265,7 @@ export default function LibraryScreen() {
 
             {!loadingList && items.length === 0 ? (
               <View style={[styles.emptyCard, { borderColor: c.border, backgroundColor: c.surface }]}>
-                <Text style={[styles.empty, { color: muted }]}>{t('library.empty')}</Text>
+                <Text style={[styles.empty, { color: c.muted }]}>{t('library.empty')}</Text>
               </View>
             ) : null}
           </ScrollView>

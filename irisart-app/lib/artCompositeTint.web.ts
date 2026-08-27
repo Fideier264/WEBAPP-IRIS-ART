@@ -294,7 +294,7 @@ export function extractIrisPolarHsMap(
     ringIsSecondary: emptyRingFlags,
   });
 
-  const cacheId = cacheKey ? `polar6:${angleBins}x${radialBins}:${cacheKey}` : undefined;
+  const cacheId = cacheKey ? `polar7:${angleBins}x${radialBins}:${cacheKey}` : undefined;
   if (cacheId) {
     const hit = irisPolarCache.get(cacheId);
     if (hit) return hit;
@@ -631,52 +631,10 @@ function lerpHs(a: Hs, b: Hs, t: number): Hs {
   };
 }
 
-function samplePolarHsFromRings(
-  map: PolarHsMap,
-  angleRad: number,
-  x: number,
-  y: number,
-  secondary: boolean
-): Hs {
-  const n1 =
-    valueNoise01(x, y, 88, secondary ? 0x71 : 0x51) * 0.55 +
-    valueNoise01(x, y, 41, secondary ? 0xb3 : 0xa3) * 0.30 +
-    valueNoise01(x, y, 19, secondary ? 0x3c : 0x2c) * 0.15;
-  const ringIdx = continuousRingIndex(map.ringWeights, n1);
-  const ri = Math.min(map.radials - 1, Math.max(0, Math.floor(ringIdx)));
-  if (map.ringIsSecondary[ri] === secondary) {
-    return samplePolarHsFrac(map, angleRad, ringIdx);
-  }
-  // Snap to nearest ring of requested hue family
-  let best = ri;
-  let bestD = map.radials;
-  for (let r = 0; r < map.radials; r++) {
-    if (map.ringIsSecondary[r] !== secondary) continue;
-    const d = Math.abs(r - ringIdx);
-    if (d < bestD) {
-      bestD = d;
-      best = r;
-    }
-  }
-  return samplePolarHsAtRing(map, angleRad, best);
-}
-
 /**
- * Soft mixed multi-color sample: secondary area share matches iris pixel proportions.
+ * Soft mixed multi-color sample — continuous blend, no hard secondary spots.
  */
 function samplePolarHsMixed(map: PolarHsMap, angleRad: number, x: number, y: number): Hs {
-  const pick = valueNoise01(x, y, 54, 0x99);
-
-  if (map.secondaryShare >= 0.035 && pick < map.secondaryShare) {
-    const local = samplePolarHsFromRings(map, angleRad, x, y, true);
-    return blendHsForTint(map.secondaryHs, local, 0.35);
-  }
-
-  if (map.secondaryShare >= 0.035 && pick >= map.secondaryShare) {
-    const local = samplePolarHsFromRings(map, angleRad, x, y, false);
-    return blendHsForTint(map.primaryHs, local, 0.35);
-  }
-
   const n1 =
     valueNoise01(x, y, 88, 0x51) * 0.55 +
     valueNoise01(x, y, 41, 0xa3) * 0.30 +
@@ -686,7 +644,16 @@ function samplePolarHsMixed(map: PolarHsMap, angleRad: number, x: number, y: num
 
   const hsA = samplePolarHsFrac(map, angleRad, continuousRingIndex(map.ringWeights, n1));
   const hsB = samplePolarHsFrac(map, angleRad, continuousRingIndex(map.ringWeights, n2));
-  return blendHsForTint(hsA, hsB, smoothstep(valueNoise01(x, y, 54, 0x99)));
+  let mixed = blendHsForTint(hsA, hsB, smoothstep(valueNoise01(x, y, 54, 0x99)));
+
+  if (map.secondaryShare >= 0.04) {
+    const lean =
+      valueNoise01(x, y, 96, 0xaa) * 0.55 + valueNoise01(x, y, 37, 0xbb) * 0.45;
+    const secondaryLean = smoothstep(lean) * Math.min(0.5, map.secondaryShare * 1.25);
+    mixed = blendHsForTint(mixed, map.secondaryHs, secondaryLean);
+  }
+
+  return mixed;
 }
 
 /**

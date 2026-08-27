@@ -17,7 +17,6 @@ type Status =
 
 export default function IrisPrepScreen() {
   const c = useAppColors();
-  const muted = c.pageMuted;
   const scheme = c.isDarkPage ? 'dark' : 'light';
   const t = useT();
   const params = useLocalSearchParams<{ uri?: string; cropX?: string; cropY?: string; cropW?: string; cropH?: string }>();
@@ -103,7 +102,7 @@ export default function IrisPrepScreen() {
               ]}>
               <Text style={[styles.chipText, { color: c.text }]}>{t('iris.back')}</Text>
             </Pressable>
-            <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
+            <Text style={[styles.hTitle, { color: c.pageText }]} numberOfLines={1}>
               {title}
             </Text>
             <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
@@ -120,7 +119,7 @@ export default function IrisPrepScreen() {
                 <Text
                   style={[
                     styles.body,
-                    { color: scheme === 'dark' ? 'rgba(243,245,255,0.70)' : 'rgba(10,11,16,0.68)' },
+                  { color: c.muted },
                   ]}>
                   {t('iris.enhancing')}
                 </Text>
@@ -131,7 +130,7 @@ export default function IrisPrepScreen() {
                 <Text
                   style={[
                     styles.body,
-                    { color: scheme === 'dark' ? 'rgba(243,245,255,0.70)' : 'rgba(10,11,16,0.68)' },
+                  { color: c.muted },
                   ]}>
                   {status.message}
                 </Text>
@@ -149,7 +148,7 @@ export default function IrisPrepScreen() {
                 <Text
                   style={[
                     styles.body,
-                    { color: scheme === 'dark' ? 'rgba(243,245,255,0.65)' : 'rgba(10,11,16,0.65)' },
+                    { color: c.muted },
                   ]}>
                   {t('iris.sourceHint')}
                 </Text>

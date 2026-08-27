@@ -30,7 +30,6 @@ import { saveUserIrisAnalysis } from '@/lib/userIrisLibrary';
 
 export default function ArtGalleryScreen() {
   const c = useAppColors();
-  const muted = c.pageMuted;
   const t = useT();
   const params = useLocalSearchParams<{
     textureUri?: string;
@@ -169,7 +168,7 @@ export default function ArtGalleryScreen() {
         {!textureUri ? (
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
             <Text style={[styles.cardTitle, { color: c.text }]}>{t('shop.noTexture')}</Text>
-            <Text style={[styles.cardBody, { color: muted }]}>{t('shop.noTextureBody')}</Text>
+            <Text style={[styles.cardBody, { color: c.muted }]}>{t('shop.noTextureBody')}</Text>
           </View>
         ) : (
           <ScrollView
@@ -206,7 +205,7 @@ export default function ArtGalleryScreen() {
               </Text>
             </Pressable>
 
-            <Text style={[styles.sub, { color: muted }]}>{t('shop.intro')}</Text>
+            <Text style={[styles.sub, { color: c.pageMuted }]}>{t('shop.intro')}</Text>
 
             <View style={styles.filterRow}>
               <Pressable
@@ -242,12 +241,12 @@ export default function ArtGalleryScreen() {
               {analysisStatus === 'loading' ? (
                 <View style={styles.rowCenter}>
                   <ActivityIndicator color={c.tint} />
-                  <Text style={[styles.cardBody, { color: muted }]}> {t('shop.familiesLoading')}</Text>
+                  <Text style={[styles.cardBody, { color: c.muted }]}> {t('shop.familiesLoading')}</Text>
                 </View>
               ) : analysisStatus === 'error' ? (
-                <Text style={[styles.cardBody, { color: muted }]}>{t('shop.familiesError')}</Text>
+                <Text style={[styles.cardBody, { color: c.muted }]}>{t('shop.familiesError')}</Text>
               ) : (
-                <Text style={[styles.cardBody, { color: muted }]}>{familyLabel}</Text>
+                <Text style={[styles.cardBody, { color: c.muted }]}>{familyLabel}</Text>
               )}
             </View>
 
@@ -267,7 +266,7 @@ export default function ArtGalleryScreen() {
                 </View>
                 {selectedIsDual && !textureUri2 ? (
                   <View style={{ gap: 8, marginTop: 10 }}>
-                    <Text style={[styles.cardBody, { color: muted }]}>{t('shop.dualNeedSecond')}</Text>
+                    <Text style={[styles.cardBody, { color: c.muted }]}>{t('shop.dualNeedSecond')}</Text>
                     <Pressable
                       accessibilityRole="button"
                       onPress={() =>
@@ -284,7 +283,7 @@ export default function ArtGalleryScreen() {
                     </Pressable>
                   </View>
                 ) : null}
-                <Text style={[styles.meta, { color: muted }]}>
+                <Text style={[styles.meta, { color: c.muted }]}>
                   {isDualEyeTemplate(selected)
                     ? t('shop.holeMetaDual', {
                         count: getArtTemplateHoles(selected).length,
@@ -303,7 +302,7 @@ export default function ArtGalleryScreen() {
               </View>
             ) : null}
 
-            <Text style={[styles.sectionLabel, { color: c.text }]}>{t('shop.templates')}</Text>
+            <Text style={[styles.sectionLabel, { color: c.pageText }]}>{t('shop.templates')}</Text>
             <View style={[styles.grid, { justifyContent: 'flex-start' }]}>
               {visibleTemplates.map((tmpl) => {
                 const active = tmpl.id === (selectedId ?? selected?.id);
@@ -340,7 +339,7 @@ export default function ArtGalleryScreen() {
             </View>
 
             {visibleTemplates.length === 0 ? (
-              <Text style={[styles.cardBody, { color: muted, textAlign: 'center', paddingVertical: 20 }]}>
+              <Text style={[styles.cardBody, { color: c.pageMuted, textAlign: 'center', paddingVertical: 20 }]}>
                 {t('shop.noTemplates')}
               </Text>
             ) : null}

@@ -62,7 +62,6 @@ function translateDescription(description: string | undefined, t: TFn): string |
 
 export default function CheckoutScreen() {
   const c = useAppColors();
-  const muted = c.pageMuted;
   const { width } = useWindowDimensions();
   const cardW = Math.floor((width - 36 - 10) / 2);
   const t = useT();
@@ -281,12 +280,12 @@ export default function CheckoutScreen() {
         {!textureUri ? (
           <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
             <Text style={[styles.cardTitle, { color: c.text }]}>{t('checkout.noImage')}</Text>
-            <Text style={[styles.cardBody, { color: muted }]}>{t('checkout.noImageBody')}</Text>
+            <Text style={[styles.cardBody, { color: c.muted }]}>{t('checkout.noImageBody')}</Text>
           </View>
         ) : !template ? (
           <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
             <Text style={[styles.cardTitle, { color: c.text }]}>{t('checkout.noTemplate')}</Text>
-            <Text style={[styles.cardBody, { color: muted }]}>{t('checkout.noTemplateBody')}</Text>
+            <Text style={[styles.cardBody, { color: c.muted }]}>{t('checkout.noTemplateBody')}</Text>
           </View>
         ) : (
           <ScrollView
@@ -297,20 +296,20 @@ export default function CheckoutScreen() {
             {canceled ? (
               <View style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
                 <Text style={[styles.cardTitle, { color: c.text }]}>{t('checkout.canceledTitle')}</Text>
-                <Text style={[styles.cardBody, { color: muted }]}>{t('checkout.canceledBody')}</Text>
+                <Text style={[styles.cardBody, { color: c.muted }]}>{t('checkout.canceledBody')}</Text>
               </View>
             ) : null}
 
             {!payable ? (
               <View style={[styles.card, { borderColor: 'rgba(220,160,40,0.55)', backgroundColor: c.surface }]}>
                 <Text style={[styles.cardTitle, { color: c.text }]}>{t('checkout.catalogNoSku')}</Text>
-                <Text style={[styles.cardBody, { color: muted }]}>
+                <Text style={[styles.cardBody, { color: c.muted }]}>
                   {t('checkout.catalogNoSkuBody', { source: getCatalogSource() })}
                 </Text>
               </View>
             ) : null}
 
-            <Text style={[styles.sectionTitle, { color: c.text }]}>{t('checkout.printMotif')}</Text>
+            <Text style={[styles.sectionTitle, { color: c.pageText }]}>{t('checkout.printMotif')}</Text>
             <View style={[styles.summaryCard, { borderColor: c.border, backgroundColor: c.surface }]}>
               <Text style={[styles.cardTitle, { color: c.text }]}>{template.title}</Text>
               <View style={{ alignItems: 'center', marginTop: 8 }}>
@@ -322,10 +321,10 @@ export default function CheckoutScreen() {
                   width={Math.min(width - 36, 320)}
                 />
               </View>
-              <Text style={[styles.cardBody, { color: muted }]}>{t('checkout.printHint')}</Text>
+              <Text style={[styles.cardBody, { color: c.muted }]}>{t('checkout.printHint')}</Text>
             </View>
 
-            <Text style={[styles.sectionTitle, { color: c.text }]}>{t('checkout.pickProduct')}</Text>
+            <Text style={[styles.sectionTitle, { color: c.pageText }]}>{t('checkout.pickProduct')}</Text>
             {categories.length > 1 ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
                 {categories.map((cat) => {
@@ -385,7 +384,7 @@ export default function CheckoutScreen() {
                     <Text style={[styles.productTitle, { color: c.text }]} numberOfLines={2}>
                       {p.title}
                     </Text>
-                    <Text style={[styles.productMeta, { color: muted }]} numberOfLines={1}>
+                    <Text style={[styles.productMeta, { color: c.muted }]} numberOfLines={1}>
                       {catLabel}
                       {desc ? ` · ${desc}` : ''}
                     </Text>
@@ -398,7 +397,7 @@ export default function CheckoutScreen() {
             {selected ? (
               <View style={[styles.summaryCard, { borderColor: c.border, backgroundColor: c.surface }]}>
                 <Text style={[styles.cardTitle, { color: c.text }]}>{t('checkout.selection')}</Text>
-                <Text style={[styles.cardBody, { color: muted }]}>
+                <Text style={[styles.cardBody, { color: c.muted }]}>
                   {selectedCatLabel} — {selected.title}
                   {selectedDesc ? `\n${selectedDesc}` : ''}
                 </Text>
@@ -406,7 +405,7 @@ export default function CheckoutScreen() {
               </View>
             ) : null}
 
-            <Text style={[styles.sectionTitle, { color: c.text }]}>{t('checkout.shipping')}</Text>
+            <Text style={[styles.sectionTitle, { color: c.pageText }]}>{t('checkout.shipping')}</Text>
             <View style={styles.form}>
               <LabeledInput label={t('checkout.email')} value={email} onChangeText={setEmail} keyboardType="email-address" style={inputSurface} />
               <LabeledInput label={t('checkout.firstName')} value={firstName} onChangeText={setFirstName} style={inputSurface} />
@@ -466,7 +465,7 @@ export default function CheckoutScreen() {
                 </Text>
               )}
             </Pressable>
-            <Text style={[styles.legal, { color: muted }]}>{t('checkout.legal')}</Text>
+            <Text style={[styles.legal, { color: c.pageMuted }]}>{t('checkout.legal')}</Text>
           </ScrollView>
         )}
       </SafeAreaView>

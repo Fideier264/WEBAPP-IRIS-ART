@@ -16,6 +16,8 @@ export type AppColorSet = {
   tint: string;
   tabIconDefault: string;
   tabIconSelected: string;
+  /** Muted text on light cards/surfaces */
+  muted: string;
   /** Text on page background (outside cards) */
   pageText: string;
   pageMuted: string;
@@ -28,6 +30,7 @@ function buildColors(backgroundTheme: BackgroundTheme): AppColorSet {
   if (backgroundTheme === 'light') {
     return {
       ...card,
+      muted: 'rgba(10,11,16,0.62)',
       pageText: card.text,
       pageMuted: 'rgba(10,11,16,0.62)',
       isDarkPage: false,
@@ -39,6 +42,7 @@ function buildColors(backgroundTheme: BackgroundTheme): AppColorSet {
     background: Colors.dark.background,
     tint: Colors.dark.tint,
     tabIconSelected: Colors.dark.tint,
+    muted: 'rgba(10,11,16,0.62)',
     pageText: Colors.dark.text,
     pageMuted: 'rgba(243,245,255,0.62)',
     isDarkPage: true,

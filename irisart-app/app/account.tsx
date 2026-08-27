@@ -65,7 +65,7 @@ export default function AccountScreen() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
             <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.language')}</Text>
-            <Text style={[styles.body, { color: c.pageMuted }]}>{t('account.languageHint')}</Text>
+            <Text style={[styles.body, { color: c.muted }]}>{t('account.languageHint')}</Text>
             <View style={styles.langRow}>
               {LOCALES.map((opt) => {
                 const active = locale === opt.id;
@@ -94,7 +94,7 @@ export default function AccountScreen() {
 
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
             <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.background')}</Text>
-            <Text style={[styles.body, { color: c.pageMuted }]}>{t('account.backgroundHint')}</Text>
+            <Text style={[styles.body, { color: c.muted }]}>{t('account.backgroundHint')}</Text>
             <View style={styles.langRow}>
               {BACKGROUND_THEMES.map((opt) => {
                 const active = backgroundTheme === opt.id;
@@ -124,7 +124,7 @@ export default function AccountScreen() {
           ) : user ? (
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
               <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.signedIn')}</Text>
-              <Text style={[styles.body, { color: c.pageMuted }]}>{user.email ?? user.id}</Text>
+              <Text style={[styles.body, { color: c.muted }]}>{user.email ?? user.id}</Text>
               <Pressable
                 accessibilityRole="button"
                 disabled={busy}
@@ -139,14 +139,14 @@ export default function AccountScreen() {
           ) : (
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
               <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.saveGalleryTitle')}</Text>
-              <Text style={[styles.body, { color: c.pageMuted }]}>{t('account.saveGalleryBody')}</Text>
+              <Text style={[styles.body, { color: c.muted }]}>{t('account.saveGalleryBody')}</Text>
 
               <TextInput
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
                 placeholder={t('account.email')}
-                placeholderTextColor={c.pageMuted}
+                placeholderTextColor={c.muted}
                 value={email}
                 onChangeText={setEmail}
                 style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.surfaceAlt }]}
@@ -154,7 +154,7 @@ export default function AccountScreen() {
               <TextInput
                 secureTextEntry
                 placeholder={t('account.password')}
-                placeholderTextColor={c.pageMuted}
+                placeholderTextColor={c.muted}
                 value={password}
                 onChangeText={setPassword}
                 style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.surfaceAlt }]}

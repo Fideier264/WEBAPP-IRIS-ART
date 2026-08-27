@@ -24,7 +24,6 @@ type Status =
 
 export default function ResultsScreen() {
   const c = useAppColors();
-  const cs = c.isDarkPage ? 'dark' : 'light';
   const t = useT();
   const params = useLocalSearchParams<{
     uri?: string;
@@ -132,11 +131,7 @@ export default function ResultsScreen() {
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
       <LinearGradient
-        colors={
-          cs === 'dark'
-            ? ['rgba(124,92,255,0.26)', 'rgba(0,212,255,0.08)', 'rgba(5,6,10,0)']
-            : ['rgba(91,92,255,0.16)', 'rgba(0,212,255,0.05)', 'rgba(247,248,255,0)']
-        }
+        colors={[...c.pageGradient]}
         start={{ x: 0.15, y: 0.05 }}
         end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -155,7 +150,7 @@ export default function ResultsScreen() {
               ]}>
               <Text style={[styles.chipText, { color: c.text }]}>{t('results.back')}</Text>
             </Pressable>
-            <Text style={[styles.hTitle, { color: c.text }]} numberOfLines={1}>
+            <Text style={[styles.hTitle, { color: c.pageText }]} numberOfLines={1}>
               {title}
             </Text>
             <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
@@ -176,7 +171,7 @@ export default function ResultsScreen() {
                   <Text
                     style={[
                       styles.cardBody,
-                      { color: cs === 'dark' ? 'rgba(243,245,255,0.68)' : 'rgba(10,11,16,0.66)' },
+                      { color: c.muted },
                     ]}>
                     {t('results.analyzingBody')}
                   </Text>
@@ -189,7 +184,7 @@ export default function ResultsScreen() {
               <Text
                 style={[
                   styles.cardBody,
-                  { color: cs === 'dark' ? 'rgba(243,245,255,0.68)' : 'rgba(10,11,16,0.66)' },
+                  { color: c.muted },
                 ]}>
                 {status.message}
               </Text>
@@ -225,30 +220,25 @@ export default function ResultsScreen() {
                   title={t('results.baseRarity')}
                   body={status.result.gemini.baseColorRaritySentence}
                   percent={status.result.gemini.baseColorRarityPercent}
-                  scheme={cs}
                 />
                 <AnalysisBlock
                   title={t('results.features')}
                   body={status.result.gemini.specialFeaturesSentence}
-                  scheme={cs}
                 />
                 <AnalysisBlock
                   title={t('results.combinedRarity')}
                   body={`${status.result.gemini.combinedRaritySentences[0]} ${status.result.gemini.combinedRaritySentences[1]}`}
                   percent={status.result.gemini.combinedRarityPercent}
-                  scheme={cs}
                 />
                 <AnalysisBlock
                   title={t('results.uniqueStructure')}
                   body={status.result.gemini.uniqueStructureNote ?? t('results.uniqueStructureFallback')}
-                  scheme={cs}
                   standalone
                 />
                 <AnalysisBlock
                   title={t('results.inheritance')}
                   body={status.result.gemini.inheritanceSentence}
                   percent={status.result.gemini.inheritancePercent}
-                  scheme={cs}
                 />
 
                 <Pressable
@@ -270,7 +260,6 @@ export default function ResultsScreen() {
                       key={`${p.hex}-${idx}`}
                       label={idx === 0 ? '1' : idx === 1 ? '2' : `${idx + 1}`}
                       hex={p.hex}
-                      scheme={cs}
                       compact
                     />
                   ))}
@@ -308,38 +297,35 @@ function AnalysisBlock({
   title,
   body,
   percent,
-  scheme,
   standalone,
 }: {
   title: string;
   body: string;
   percent?: string;
-  scheme: 'light' | 'dark';
   standalone?: boolean;
 }) {
-  const muted = scheme === 'dark' ? 'rgba(243,245,255,0.55)' : 'rgba(10,11,16,0.52)';
-  const textCol = scheme === 'dark' ? 'rgba(243,245,255,0.82)' : 'rgba(10,11,16,0.78)';
-  const italicCol = scheme === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.60)';
+  const c = useAppColors();
+  const textCol = standalone ? 'rgba(10,11,16,0.60)' : 'rgba(10,11,16,0.78)';
   return (
     <View style={{ gap: 4 }}>
-      {title ? <Text style={[styles.analysisTitle, { color: muted }]}>{title}</Text> : null}
-      <Text style={[styles.rarity, { color: standalone ? italicCol : textCol, fontStyle: standalone ? 'italic' : 'normal' }]}>
+      {title ? <Text style={[styles.analysisTitle, { color: c.muted }]}>{title}</Text> : null}
+      <Text style={[styles.rarity, { color: textCol, fontStyle: standalone ? 'italic' : 'normal' }]}>
         {body}
-        {percent ? <Text style={{ color: muted }}>{` (${percent})`}</Text> : null}
+        {percent ? <Text style={{ color: c.muted }}>{` (${percent})`}</Text> : null}
       </Text>
     </View>
   );
 }
 
-function Swatch({ label, hex, scheme, compact }: { label: string; hex: string; scheme: 'light' | 'dark'; compact?: boolean }) {
-  const border = scheme === 'dark' ? 'rgba(243,245,255,0.14)' : 'rgba(10,11,16,0.14)';
+function Swatch({ label, hex, compact }: { label: string; hex: string; compact?: boolean }) {
+  const c = useAppColors();
   return (
     <View style={compact ? styles.swatchCompact : styles.swatch}>
-      <View style={[compact ? styles.colorCompact : styles.color, { backgroundColor: hex, borderColor: border }]} />
-      <Text style={[compact ? styles.swatchLabelCompact : styles.swatchLabel, { color: scheme === 'dark' ? 'rgba(243,245,255,0.72)' : 'rgba(10,11,16,0.70)' }]}>
+      <View style={[compact ? styles.colorCompact : styles.color, { backgroundColor: hex, borderColor: c.border }]} />
+      <Text style={[compact ? styles.swatchLabelCompact : styles.swatchLabel, { color: c.muted }]}>
         {label}
       </Text>
-      <Text style={[compact ? styles.hexCompact : styles.hex, { color: scheme === 'dark' ? 'rgba(243,245,255,0.92)' : 'rgba(10,11,16,0.92)' }]}>{hex}</Text>
+      <Text style={[compact ? styles.hexCompact : styles.hex, { color: c.text }]}>{hex}</Text>
     </View>
   );
 }

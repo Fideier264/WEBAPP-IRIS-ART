@@ -121,12 +121,8 @@ export default function ReviewScreen() {
         </View>
 
         <View style={styles.hero}>
-          <Text style={[styles.hTitle, { color: c.text }]}>{t('review.title')}</Text>
-          <Text
-            style={[
-              styles.sub,
-              { color: scheme === 'dark' ? 'rgba(243,245,255,0.68)' : 'rgba(10,11,16,0.68)' },
-            ]}>
+          <Text style={[styles.hTitle, { color: c.pageText }]}>{t('review.title')}</Text>
+          <Text style={[styles.sub, { color: c.pageMuted }]}>
             {subtitle}
           </Text>
         </View>
@@ -157,7 +153,7 @@ export default function ReviewScreen() {
                         },
                       ]}>
                       <Text style={[styles.stylePillTitle, { color: c.text }]}>{s.name}</Text>
-                      <Text style={[styles.stylePillSub, { color: scheme === 'dark' ? 'rgba(243,245,255,0.62)' : 'rgba(10,11,16,0.62)' }]} numberOfLines={1}>
+                      <Text style={[styles.stylePillSub, { color: c.muted }]} numberOfLines={1}>
                         {s.subtitle}
                       </Text>
                     </Pressable>
@@ -244,11 +240,7 @@ export default function ReviewScreen() {
                   </View>
                 </View>
               </View>
-              <Text
-                style={[
-                  styles.canvasMeta,
-                  { color: scheme === 'dark' ? 'rgba(243,245,255,0.60)' : 'rgba(10,11,16,0.60)' },
-                ]}>
+              <Text style={[styles.canvasMeta, { color: c.muted }]}>
                 Bloom comes from the iris palette; pick black or white background.
               </Text>
             </View>
@@ -267,7 +259,7 @@ export default function ReviewScreen() {
                 <Image source={{ uri: textureUri }} style={styles.canvasImage} resizeMode="cover" />
                 <View pointerEvents="none" style={styles.canvasHighlight} />
               </View>
-              <Text style={[styles.canvasMeta, { color: scheme === 'dark' ? 'rgba(243,245,255,0.60)' : 'rgba(10,11,16,0.60)' }]}>
+              <Text style={[styles.canvasMeta, { color: c.muted }]}>
                 Includes black-backed texture for accurate print contrast.
               </Text>
             </View>

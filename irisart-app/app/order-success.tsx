@@ -10,7 +10,6 @@ import { useT } from '@/lib/i18n';
 
 export default function OrderSuccessScreen() {
   const c = useAppColors();
-  const muted = c.pageMuted;
   const params = useLocalSearchParams<{ session_id?: string }>();
   const sessionId = typeof params.session_id === 'string' ? params.session_id : undefined;
   const t = useT();
@@ -32,9 +31,9 @@ export default function OrderSuccessScreen() {
 
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
           <Text style={[styles.cardTitle, { color: c.text }]}>{t('orderSuccess.heading')}</Text>
-          <Text style={[styles.body, { color: muted }]}>{t('orderSuccess.body')}</Text>
+          <Text style={[styles.body, { color: c.muted }]}>{t('orderSuccess.body')}</Text>
           {sessionId ? (
-            <Text style={[styles.meta, { color: muted }]}>{t('orderSuccess.session', { id: sessionId })}</Text>
+            <Text style={[styles.meta, { color: c.muted }]}>{t('orderSuccess.session', { id: sessionId })}</Text>
           ) : null}
         </View>
 
