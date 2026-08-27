@@ -143,20 +143,20 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   aspectRatio: 2134 / 1984,
   colorFamilies: ['any'],
   tintWithIrisColor: true,
-  multiColorTint: true,
-  // Primär = linkes/oberes Auge (Compat für Einzel-Aufrufe)
+  // Durchschnittsfarbe je Seite (klarer als Multi-Noise bei Dual)
+  multiColorTint: false,
+  irisResizeMode: 'cover',
   irisHole: {
     x: 0.2038,
     y: 0.1683,
     w: 0.3308,
     h: 0.3644,
-    circular: true,
   },
   irisHoles: [
-    { x: 0.2038, y: 0.1683, w: 0.3308, h: 0.3644, circular: true }, // oben links
-    { x: 0.4705, y: 0.505, w: 0.3547, h: 0.3337, circular: true }, // unten rechts
+    { x: 0.2038, y: 0.1683, w: 0.3308, h: 0.3644 }, // oben links = 1. Iris
+    { x: 0.4705, y: 0.505, w: 0.3547, h: 0.3337 }, // unten rechts = 2. Iris
   ],
-  irisScale: 1.05,
+  irisScale: 1.5,
   overlayImage: require('@/assets/art-templates/doublegalaxy.png'),
 },
 

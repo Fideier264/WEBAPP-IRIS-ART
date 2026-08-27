@@ -318,6 +318,7 @@ export default function CheckoutScreen() {
               <Text style={[styles.cardTitle, { color: c.text }]}>{template.title}</Text>
               <View style={{ alignItems: 'center', marginTop: 8 }}>
                 <ArtTemplateComposite
+                  key={`checkout:${template.id}:${textureUri}:${textureUri2 ?? ''}`}
                   textureUri={textureUri}
                   textureUri2={textureUri2}
                   template={template}

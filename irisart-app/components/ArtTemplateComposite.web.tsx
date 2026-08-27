@@ -27,17 +27,28 @@ export function ArtTemplateComposite({ textureUri, textureUri2, template, width 
     const canvas = canvasRef.current;
     if (!canvas || width <= 0) return;
 
+    // Clear immediately so a slower previous paint can't leave a stale frame visible
+    const dpr = typeof window !== 'undefined' ? Math.min(2, window.devicePixelRatio || 1) : 1;
+    const pw = Math.max(1, Math.round(width * dpr));
+    const ph = Math.max(1, Math.round(height * dpr));
+    canvas.width = pw;
+    canvas.height = ph;
+    const clearCtx = canvas.getContext('2d');
+    if (clearCtx) {
+      clearCtx.fillStyle = '#07060c';
+      clearCtx.fillRect(0, 0, pw, ph);
+    }
+
     const run = async () => {
       setBusy(true);
       setFailed(false);
       try {
-        const dpr = typeof window !== 'undefined' ? Math.min(2, window.devicePixelRatio || 1) : 1;
-        const pw = Math.max(1, Math.round(width * dpr));
-        const ph = Math.max(1, Math.round(height * dpr));
-        canvas.width = pw;
-        canvas.height = ph;
-
-        const ctx = canvas.getContext('2d');
+        // Paint offscreen — only blit if this effect is still current (avoids race
+        // when switching templates: old galaxyblue finishing after doublegalaxy).
+        const offscreen = document.createElement('canvas');
+        offscreen.width = pw;
+        offscreen.height = ph;
+        const ctx = offscreen.getContext('2d');
         if (!ctx) throw new Error('Canvas 2D not available.');
 
         await paintArtComposite(ctx, {
@@ -48,7 +59,16 @@ export function ArtTemplateComposite({ textureUri, textureUri2, template, width 
           height: ph,
         });
 
-        if (!cancelled) setBusy(false);
+        if (cancelled) return;
+
+        const dest = canvasRef.current;
+        if (!dest) return;
+        dest.width = pw;
+        dest.height = ph;
+        const dctx = dest.getContext('2d');
+        if (!dctx) throw new Error('Canvas 2D not available.');
+        dctx.drawImage(offscreen, 0, 0);
+        setBusy(false);
       } catch (e) {
         console.warn(
           'ArtTemplateComposite preview failed',
@@ -65,7 +85,7 @@ export function ArtTemplateComposite({ textureUri, textureUri2, template, width 
     return () => {
       cancelled = true;
     };
-  }, [textureUri, textureUri2, template, width, height]);
+  }, [textureUri, textureUri2, template, template.id, width, height]);
 
   return (
     <View style={[styles.root, { width, height }]}>

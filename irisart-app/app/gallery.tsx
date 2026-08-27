@@ -265,6 +265,7 @@ export default function ArtGalleryScreen() {
                 </Text>
                 <View style={{ alignItems: 'center', marginTop: 8 }}>
                   <ArtTemplateComposite
+                    key={`preview:${selected.id}:${textureUri}:${textureUri2 ?? ''}`}
                     textureUri={textureUri}
                     textureUri2={textureUri2}
                     template={selected}
