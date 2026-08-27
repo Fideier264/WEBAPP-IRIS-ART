@@ -149,8 +149,8 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   irisHole: {
     x: 0.2038,
     y: 0.1683,
-    w: 0.3908,
-    h: 0.4244,
+    w: 0.4208,
+    h: 0.4544,
   },
   irisHoles: [
     { x: 0.2038, y: 0.1683, w: 0.3308, h: 0.3644 }, // oben links = 1. Iris
