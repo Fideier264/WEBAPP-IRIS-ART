@@ -154,9 +154,9 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   },
   irisHoles: [
     { x: 0.2038, y: 0.1683, w: 0.3308, h: 0.3644 }, // oben links = 1. Iris
-    { x: 0.4705, y: 0.505, w: 0.3547, h: 0.3337 }, // unten rechts = 2. Iris
+    { x: 0.4705, y: 0.48, w: 0.38, h: 0.38 }, // unten rechts = 2. Iris
   ],
-  irisScale: 1.5,
+  irisScale: 1.32,
   overlayImage: require('@/assets/art-templates/doublegalaxy.png'),
 },
 
