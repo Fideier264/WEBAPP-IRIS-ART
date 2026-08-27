@@ -84,6 +84,7 @@ export function isDualEyeTemplate(template: ArtTemplate): boolean {
  * Ersetze/ergänze durch eigene Overlays (Loch = Transparenz in der PNG).
  */
 export const ART_TEMPLATES: ArtTemplate[] = [
+/*
 {
   id: 'galaxyblue',
   title: 'Blue Galaxy',
@@ -116,6 +117,9 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   irisScale: 1.05, // optional: etwas reinzoomen
   overlayImage: require('@/assets/art-templates/galaxygreenihniiuhinh.png'),
 },
+
+*\
+
 {
   id: 'galaxy.grau',
   title: 'Galaxy',
@@ -177,6 +181,9 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   overlayImage: require('@/assets/art-templates/doublegalaxy.png'),
 },
 
+
+
+/*
 {
   id: 'mein-test-01',
   title: 'Test brown galaxy',
@@ -192,7 +199,7 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   irisResizeMode: 'contain',
   irisScale: 1,
   overlayImage: require('@/assets/art-templates/testbrownkmk.png'),
-},
+},                                                                     *\
 
 ];
 
