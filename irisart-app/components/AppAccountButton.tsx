@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppColors } from '@/lib/appTheme';
+import { useAuth } from '@/lib/auth';
+import { useT } from '@/lib/i18n';
 
 /** Floating top-right Account / Login control on every screen. */
 export function AppAccountButton() {

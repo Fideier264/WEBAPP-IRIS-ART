@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppColors } from '@/lib/appTheme';
+import { useT } from '@/lib/i18n';
 
 export function AppBottomBar({
   active,
