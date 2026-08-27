@@ -7,7 +7,7 @@ export type RgbColor = { r: number; g: number; b: number };
 
 const irisColorCache = new Map<string, RgbColor>();
 
-type Hs = { h: number; s: number };
+type Hs = { h: number; s: number; l: number };
 /** polar[angleBin][radialBin] — ringWeights = iris area share per radial ring (sum ≈ 1) */
 type PolarHsMap = {
   angles: number;
@@ -126,8 +126,9 @@ function hslToRgb(h: number, s: number, l: number): RgbColor {
  */
 export function vividTintColor(c: RgbColor): RgbColor {
   let { h, s, l } = rgbToHsl(c.r, c.g, c.b);
-  s = Math.min(0.7, Math.max(0.2, s * 1.1));
-  l = Math.min(0.48, Math.max(0.26, l));
+  // Don't force high sat on dark/low-chroma eyes (looks copper/orange vs brown iris)
+  s = Math.min(0.62, Math.max(0.06, s * 1.05));
+  l = Math.min(0.46, Math.max(0.22, l));
   return hslToRgb(h, s, l);
 }
 
@@ -252,7 +253,7 @@ export function extractIrisPolarHsMap(
 ): PolarHsMap {
   const fallbackHs: Hs = (() => {
     const hsl = rgbToHsl(140, 105, 75);
-    return { h: hsl.h, s: Math.min(0.65, hsl.s * 1.05) };
+    return { h: hsl.h, s: Math.min(0.55, hsl.s), l: hsl.l };
   })();
   const evenWeights = Array.from({ length: radialBins }, () => 1 / radialBins);
   const emptyMap = (): PolarHsMap => ({
@@ -265,7 +266,7 @@ export function extractIrisPolarHsMap(
     ringWeights: evenWeights,
   });
 
-  const cacheId = cacheKey ? `polar4:${angleBins}x${radialBins}:${cacheKey}` : undefined;
+  const cacheId = cacheKey ? `polar5:${angleBins}x${radialBins}:${cacheKey}` : undefined;
   if (cacheId) {
     const hit = irisPolarCache.get(cacheId);
     if (hit) return hit;
@@ -352,7 +353,7 @@ export function extractIrisPolarHsMap(
     }
     if (ww < 1e-6) return { ...fallbackHs };
     const hsl = rgbToHsl(Math.round(rr / ww), Math.round(gg / ww), Math.round(bb / ww));
-    return { h: hsl.h, s: Math.min(0.78, hsl.s * 1.08) };
+    return { h: hsl.h, s: Math.min(0.6, hsl.s), l: hsl.l };
   });
 
   const cells: Hs[][] = Array.from({ length: angleBins }, (_, ai) =>
@@ -364,12 +365,12 @@ export function extractIrisPolarHsMap(
         Math.round(cell.g / cell.w),
         Math.round(cell.b / cell.w)
       );
-      // Keep true hue; lift cool stroma more (hazel outer rings are often weak blue-grey)
+      // Cool stroma: mild lift so blue-grey stays visible; warm tones stay close to iris
       const cool = hsl.h >= 170 && hsl.h <= 280;
       const sat = cool
-        ? Math.min(0.72, Math.max(0.12, hsl.s * 1.45 + 0.08))
-        : Math.min(0.8, Math.max(0.06, hsl.s * 1.1));
-      return { h: hsl.h, s: sat };
+        ? Math.min(0.58, Math.max(0.08, hsl.s * 1.22 + 0.03))
+        : Math.min(0.58, Math.max(0.06, hsl.s * 0.98));
+      return { h: hsl.h, s: sat, l: hsl.l };
     })
   );
 
@@ -459,6 +460,7 @@ function samplePolarHsAtRing(map: PolarHsMap, angleRad: number, rBin: number): H
   return {
     h: lerpAngle(c0.h, c1.h, at),
     s: c0.s * (1 - at) + c1.s * at,
+    l: c0.l * (1 - at) + c1.l * at,
   };
 }
 
@@ -500,6 +502,7 @@ function lerpHs(a: Hs, b: Hs, t: number): Hs {
   return {
     h: lerpAngle(a.h, b.h, t),
     s: a.s * (1 - t) + b.s * t,
+    l: a.l * (1 - t) + b.l * t,
   };
 }
 
@@ -557,7 +560,8 @@ export function tintGrayscaleTemplateMulti(
       const i = (y * width + x) * 4;
       const angle = Math.atan2(y - cy, x - cx);
       const hs = samplePolarHsMixed(polar, angle, x, y);
-      const rgb = hslToRgb(hs.h, hs.s, 0.45);
+      // Same polish as single-tint so shards match iris depth (not neon amber)
+      const rgb = vividTintColor(hslToRgb(hs.h, hs.s, hs.l));
       cd[i] = rgb.r;
       cd[i + 1] = rgb.g;
       cd[i + 2] = rgb.b;
