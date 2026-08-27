@@ -8,8 +8,14 @@ export type RgbColor = { r: number; g: number; b: number };
 const irisColorCache = new Map<string, RgbColor>();
 
 type Hs = { h: number; s: number };
-/** polar[angleBin][radialBin] */
-type PolarHsMap = { angles: number; radials: number; cells: Hs[][]; fallback: Hs };
+/** polar[angleBin][radialBin] — ringWeights = iris area share per radial ring (sum ≈ 1) */
+type PolarHsMap = {
+  angles: number;
+  radials: number;
+  cells: Hs[][];
+  fallback: Hs;
+  ringWeights: number[];
+};
 
 const irisPolarCache = new Map<string, PolarHsMap>();
 
@@ -244,29 +250,30 @@ export function extractIrisPolarHsMap(
   angleBins = MULTI_ANGLE_BINS,
   radialBins = MULTI_RADIAL_BINS
 ): PolarHsMap {
-  const cacheId = cacheKey ? `polar3:${angleBins}x${radialBins}:${cacheKey}` : undefined;
+  const fallbackHs: Hs = (() => {
+    const hsl = rgbToHsl(140, 105, 75);
+    return { h: hsl.h, s: Math.min(0.65, hsl.s * 1.05) };
+  })();
+  const evenWeights = Array.from({ length: radialBins }, () => 1 / radialBins);
+  const emptyMap = (): PolarHsMap => ({
+    angles: angleBins,
+    radials: radialBins,
+    cells: Array.from({ length: angleBins }, () =>
+      Array.from({ length: radialBins }, () => ({ ...fallbackHs }))
+    ),
+    fallback: fallbackHs,
+    ringWeights: evenWeights,
+  });
+
+  const cacheId = cacheKey ? `polar4:${angleBins}x${radialBins}:${cacheKey}` : undefined;
   if (cacheId) {
     const hit = irisPolarCache.get(cacheId);
     if (hit) return hit;
   }
 
-  const fallbackHs: Hs = (() => {
-    const hsl = rgbToHsl(140, 105, 75);
-    return { h: hsl.h, s: Math.min(0.65, hsl.s * 1.05) };
-  })();
-
   const iw = iris.naturalWidth || iris.width;
   const ih = iris.naturalHeight || iris.height;
-  if (!iw || !ih) {
-    return {
-      angles: angleBins,
-      radials: radialBins,
-      cells: Array.from({ length: angleBins }, () =>
-        Array.from({ length: radialBins }, () => ({ ...fallbackHs }))
-      ),
-      fallback: fallbackHs,
-    };
-  }
+  if (!iw || !ih) return emptyMap();
 
   const maxSide = 400;
   const scale = Math.min(1, maxSide / Math.max(iw, ih));
@@ -276,16 +283,7 @@ export function extractIrisPolarHsMap(
   sample.width = sw;
   sample.height = sh;
   const ctx = sample.getContext('2d', { willReadFrequently: true });
-  if (!ctx) {
-    return {
-      angles: angleBins,
-      radials: radialBins,
-      cells: Array.from({ length: angleBins }, () =>
-        Array.from({ length: radialBins }, () => ({ ...fallbackHs }))
-      ),
-      fallback: fallbackHs,
-    };
-  }
+  if (!ctx) return emptyMap();
 
   ctx.drawImage(iris, 0, 0, sw, sh);
   const { data } = ctx.getImageData(0, 0, sw, sh);
@@ -394,11 +392,24 @@ export function extractIrisPolarHsMap(
     }
   }
 
+  // Area share per ring → dominant iris color appears more often when mixed into overlay
+  const ringMass = Array.from({ length: radialBins }, (_, ri) => {
+    let ww = 0;
+    for (let ai = 0; ai < angleBins; ai++) ww += sums[ai]![ri]!.w;
+    return ww;
+  });
+  const massSum = ringMass.reduce((a, b) => a + b, 0);
+  const ringWeights =
+    massSum > 1e-6
+      ? ringMass.map((w) => w / massSum)
+      : Array.from({ length: radialBins }, () => 1 / radialBins);
+
   const map: PolarHsMap = {
     angles: angleBins,
     radials: radialBins,
     cells,
     fallback: ringFb[Math.floor(radialBins / 2)] ?? fallbackHs,
+    ringWeights,
   };
   if (cacheId) irisPolarCache.set(cacheId, map);
   return map;
@@ -411,39 +422,66 @@ function lerpAngle(a: number, b: number, t: number): number {
   return a + d * t;
 }
 
-function samplePolarHs(map: PolarHsMap, angleRad: number, rNorm: number): Hs {
+/** Deterministic 0..1 hash for spatial mixing (stable across renders). */
+function hash01(n: number): number {
+  let t = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b);
+  t = Math.imul(t ^ (t >>> 13), 0xc2b2ae35);
+  return ((t ^ (t >>> 16)) >>> 0) / 4294967296;
+}
+
+function pickWeightedRing(weights: number[], u: number): number {
+  let acc = 0;
+  const last = weights.length - 1;
+  for (let i = 0; i < weights.length; i++) {
+    acc += weights[i]!;
+    if (u <= acc) return i;
+  }
+  return Math.max(0, last);
+}
+
+/** Angular lerp within one radial ring. */
+function samplePolarHsAtRing(map: PolarHsMap, angleRad: number, rBin: number): Hs {
   let ang = angleRad;
   if (ang < 0) ang += Math.PI * 2;
   const aFloat = (ang / (Math.PI * 2)) * map.angles;
   const a0 = Math.floor(aFloat) % map.angles;
   const a1 = (a0 + 1) % map.angles;
   const at = aFloat - Math.floor(aFloat);
-
-  const rClamped = Math.min(0.999, Math.max(0, rNorm));
-  const rFloat = rClamped * map.radials;
-  const r0 = Math.min(map.radials - 1, Math.floor(rFloat));
-  const r1 = Math.min(map.radials - 1, r0 + 1);
-  const rt = rFloat - r0;
-
-  const c00 = map.cells[a0]![r0] ?? map.fallback;
-  const c10 = map.cells[a1]![r0] ?? map.fallback;
-  const c01 = map.cells[a0]![r1] ?? map.fallback;
-  const c11 = map.cells[a1]![r1] ?? map.fallback;
-
-  const h0 = lerpAngle(c00.h, c10.h, at);
-  const h1 = lerpAngle(c01.h, c11.h, at);
-  const s0 = c00.s * (1 - at) + c10.s * at;
-  const s1 = c01.s * (1 - at) + c11.s * at;
-
+  const ri = Math.min(map.radials - 1, Math.max(0, rBin));
+  const c0 = map.cells[a0]![ri] ?? map.fallback;
+  const c1 = map.cells[a1]![ri] ?? map.fallback;
   return {
-    h: lerpAngle(h0, h1, rt),
-    s: s0 * (1 - rt) + s1 * rt,
+    h: lerpAngle(c0.h, c1.h, at),
+    s: c0.s * (1 - at) + c1.s * at,
   };
 }
 
 /**
- * Multi-color tint: map iris hues around the hole (angle + radius) onto the grayscale overlay.
- * Near the hole → inner iris (often amber); farther out → outer iris (often blue/grey).
+ * Mixed multi-color sample: pick iris rings by area weight + spatial hash (not distance).
+ * Dominant eye color appears more often; amber/blue interleave across the overlay.
+ */
+function samplePolarHsMixed(map: PolarHsMap, angleRad: number, x: number, y: number): Hs {
+  // Chunk size ≈ shard scale so each fragment keeps one color, neighbors vary
+  const chunk = 16;
+  const cx = Math.floor(x / chunk);
+  const cy = Math.floor(y / chunk);
+  const u = hash01(cx * 73856093 ^ cy * 19349663);
+  const u2 = hash01(cx * 19349663 ^ cy * 83492791);
+  const rA = pickWeightedRing(map.ringWeights, u);
+  const rB = pickWeightedRing(map.ringWeights, u2);
+  const hsA = samplePolarHsAtRing(map, angleRad, rA);
+  if (rA === rB) return hsA;
+  const hsB = samplePolarHsAtRing(map, angleRad, rB);
+  const t = 0.2 + 0.6 * hash01(cx * 83492791 ^ cy * 73856093);
+  return {
+    h: lerpAngle(hsA.h, hsB.h, t),
+    s: hsA.s * (1 - t) + hsB.s * t,
+  };
+}
+
+/**
+ * Multi-color tint: scatter iris hues across the overlay (mixed, not inner→outer bands).
+ * Ring colors are picked by iris area share so the dominant eye color leads.
  * Uses canvas `color` blend so shading matches the preferred single-tint look.
  */
 export function tintGrayscaleTemplateMulti(
@@ -463,9 +501,7 @@ export function tintGrayscaleTemplateMulti(
   const polar = extractIrisPolarHsMap(iris, cacheKey);
   const cx = (hole.x + hole.w / 2) * width;
   const cy = (hole.y + hole.h / 2) * height;
-  const holeR = Math.max(1, (Math.min(hole.w * width, hole.h * height) / 2) * 0.95);
 
-  // Spatially varying color layer (mid lightness — `color` blend keeps grayscale luminosity)
   const colorLayer = document.createElement('canvas');
   colorLayer.width = width;
   colorLayer.height = height;
@@ -478,13 +514,8 @@ export function tintGrayscaleTemplateMulti(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
-      const dx = x - cx;
-      const dy = y - cy;
-      const dist = Math.hypot(dx, dy);
-      const angle = Math.atan2(dy, dx);
-      // 0 at hole rim → inner iris; 1 farther out → outer iris (steep so bands stay distinct)
-      const rNorm = Math.min(1, Math.max(0, (dist - holeR * 0.85) / (holeR * 1.35)));
-      const hs = samplePolarHs(polar, angle, rNorm);
+      const angle = Math.atan2(y - cy, x - cx);
+      const hs = samplePolarHsMixed(polar, angle, x, y);
       const rgb = hslToRgb(hs.h, hs.s, 0.45);
       cd[i] = rgb.r;
       cd[i + 1] = rgb.g;
