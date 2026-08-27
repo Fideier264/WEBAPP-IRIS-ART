@@ -119,7 +119,7 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   id: 'galaxy.grau',
   title: 'Galaxy',
   subtitle: 'Graustufen — Mehrfarben-Tint aus der Iris',
-  aspectRatio: (2129 / 2048),
+  aspectRatio: 2129 / 2048,
   colorFamilies: ['any'],
   tintWithIrisColor: true,
   multiColorTint: true,
