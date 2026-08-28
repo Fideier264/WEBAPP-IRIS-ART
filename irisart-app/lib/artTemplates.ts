@@ -150,10 +150,10 @@ export const ART_TEMPLATES: ArtTemplate[] = [
     x: 0.142,
     y: 0.167,
     w: 0.7,
-    h: 0.66,
+    h: 0.69,
     circular: true,
   },
-  irisScale: 1.29,
+  irisScale: 1.28,
   overlayImage: require('@/assets/art-templates/halo.png'),
 },
 
