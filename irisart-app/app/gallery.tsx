@@ -47,10 +47,13 @@ export default function ArtGalleryScreen() {
   const [analysisStatus, setAnalysisStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [showAll, setShowAll] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [secondaryColorTint, setSecondaryColorTint] = useState(true);
 
   const screenW = Dimensions.get('window').width;
   const cardWidth = Math.min(360, screenW - 36);
-  const thumbWidth = (screenW - 36 - 10) / 2;
+  const templateCols = 3;
+  const gridGap = 8;
+  const thumbWidth = Math.floor((screenW - 36 - gridGap * (templateCols - 1)) / templateCols);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,6 +133,7 @@ export default function ArtGalleryScreen() {
 
   const selectedIsDual = selected ? isDualEyeTemplate(selected) : false;
   const canOrder = Boolean(selected && textureUri && (!selectedIsDual || textureUri2));
+  const showSecondaryToggle = Boolean(selected?.multiColorTint);
 
   useEffect(() => {
     if (!visibleTemplates.length) return;
@@ -185,6 +189,7 @@ export default function ArtGalleryScreen() {
                     textureUri,
                     ...(textureUri2 ? { textureUri2 } : {}),
                     templateId: selected?.id ?? visibleTemplates[0]?.id ?? '',
+                    secondaryColorTint: secondaryColorTint ? '1' : '0',
                   },
                 })
               }
@@ -259,13 +264,52 @@ export default function ArtGalleryScreen() {
                 <Text style={[styles.cardTitle, { color: c.text }]}>
                   {t('shop.preview', { title: selected.title })}
                 </Text>
+                {showSecondaryToggle ? (
+                  <View style={styles.secondaryRow}>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={[styles.secondaryLabel, { color: c.text }]}>{t('shop.secondaryColor')}</Text>
+                      <Text style={[styles.secondaryHint, { color: c.muted }]}>{t('shop.secondaryColorHint')}</Text>
+                    </View>
+                    <View style={styles.secondaryToggle}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: secondaryColorTint }}
+                        onPress={() => setSecondaryColorTint(true)}
+                        style={({ pressed }) => [
+                          styles.secondaryChip,
+                          {
+                            borderColor: secondaryColorTint ? c.tint : c.border,
+                            backgroundColor: secondaryColorTint ? 'rgba(124,92,255,0.16)' : c.surfaceAlt,
+                            opacity: pressed ? 0.9 : 1,
+                          },
+                        ]}>
+                        <Text style={[styles.secondaryChipText, { color: c.text }]}>{t('shop.secondaryColorOn')}</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: !secondaryColorTint }}
+                        onPress={() => setSecondaryColorTint(false)}
+                        style={({ pressed }) => [
+                          styles.secondaryChip,
+                          {
+                            borderColor: !secondaryColorTint ? c.tint : c.border,
+                            backgroundColor: !secondaryColorTint ? 'rgba(124,92,255,0.16)' : c.surfaceAlt,
+                            opacity: pressed ? 0.9 : 1,
+                          },
+                        ]}>
+                        <Text style={[styles.secondaryChipText, { color: c.text }]}>{t('shop.secondaryColorOff')}</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : null}
                 <View style={{ alignItems: 'center', marginTop: 8 }}>
                   <ArtTemplateComposite
-                    key={`preview:${selected.id}:${textureUri}:${textureUri2 ?? ''}`}
+                    key={`preview:${selected.id}:${textureUri}:${textureUri2 ?? ''}:${secondaryColorTint ? '1' : '0'}`}
                     textureUri={textureUri}
                     textureUri2={textureUri2}
                     template={selected}
                     width={cardWidth}
+                    secondaryColorTint={secondaryColorTint}
                   />
                 </View>
                 {selectedIsDual && !textureUri2 ? (
@@ -307,7 +351,7 @@ export default function ArtGalleryScreen() {
             ) : null}
 
             <Text style={[styles.sectionLabel, { color: c.pageText }]}>{t('shop.templates')}</Text>
-            <View style={[styles.grid, { justifyContent: 'flex-start' }]}>
+            <View style={[styles.grid, { justifyContent: 'flex-start', gap: gridGap }]}>
               {visibleTemplates.map((tmpl) => {
                 const active = tmpl.id === (selectedId ?? selected?.id);
                 const dual = isDualEyeTemplate(tmpl);
@@ -327,10 +371,12 @@ export default function ArtGalleryScreen() {
                     ]}>
                     {textureUri ? (
                       <ArtTemplateComposite
+                        key={`${tmpl.id}:${secondaryColorTint ? '1' : '0'}`}
                         textureUri={textureUri}
                         textureUri2={textureUri2}
                         template={tmpl}
-                        width={thumbWidth}
+                        width={thumbWidth - 2}
+                        secondaryColorTint={secondaryColorTint}
                       />
                     ) : null}
                     <Text style={[styles.thumbTitle, { color: c.text }]} numberOfLines={1}>
@@ -417,15 +463,26 @@ const styles = StyleSheet.create({
   cardBody: { fontSize: 13.5, lineHeight: 19 },
   rowCenter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   sectionLabel: { fontSize: 15, fontWeight: '850', marginTop: 4 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
   thumbWrap: {
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-    paddingBottom: 8,
-    gap: 6,
+    paddingBottom: 4,
+    gap: 4,
   },
-  thumbTitle: { fontSize: 12.5, fontWeight: '750', paddingHorizontal: 8, textAlign: 'center' },
+  thumbTitle: { fontSize: 10.5, fontWeight: '750', paddingHorizontal: 4, textAlign: 'center' },
+  secondaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  secondaryLabel: { fontSize: 13.5, fontWeight: '800' },
+  secondaryHint: { fontSize: 11.5, lineHeight: 16 },
+  secondaryToggle: { flexDirection: 'row', gap: 6 },
+  secondaryChip: {
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  secondaryChipText: { fontSize: 12.5, fontWeight: '750' },
   meta: { fontSize: 11, marginTop: 8 },
   secondaryBtn: {
     marginTop: 8,

@@ -39,6 +39,7 @@ export type UploadCheckoutArtworkInput = {
   outputWidth?: number;
   /** MerchOne product print aspect (width/height). Square canvas = 1. */
   printAspectRatio?: number;
+  secondaryColorTint?: boolean;
 };
 
 export type UploadCheckoutArtworkResult = {
@@ -71,6 +72,7 @@ export async function uploadCheckoutArtwork(
     template,
     outputWidth: input.outputWidth ?? 2048,
     outputAspectRatio: printAspectRatio,
+    secondaryColorTint: input.secondaryColorTint,
   });
 
   const localUri = await ensureLocalFile(compositeUri);

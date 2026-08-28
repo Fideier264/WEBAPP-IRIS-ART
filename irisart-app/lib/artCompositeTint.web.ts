@@ -634,7 +634,13 @@ function lerpHs(a: Hs, b: Hs, t: number): Hs {
 /**
  * Soft mixed multi-color sample — continuous blend, no hard secondary spots.
  */
-function samplePolarHsMixed(map: PolarHsMap, angleRad: number, x: number, y: number): Hs {
+function samplePolarHsMixed(
+  map: PolarHsMap,
+  angleRad: number,
+  x: number,
+  y: number,
+  includeSecondary = true
+): Hs {
   const n1 =
     valueNoise01(x, y, 88, 0x51) * 0.55 +
     valueNoise01(x, y, 41, 0xa3) * 0.30 +
@@ -646,7 +652,7 @@ function samplePolarHsMixed(map: PolarHsMap, angleRad: number, x: number, y: num
   const hsB = samplePolarHsFrac(map, angleRad, continuousRingIndex(map.ringWeights, n2));
   let mixed = blendHsForTint(hsA, hsB, smoothstep(valueNoise01(x, y, 54, 0x99)));
 
-  if (map.secondaryShare >= 0.04) {
+  if (includeSecondary && map.secondaryShare >= 0.04) {
     const lean =
       valueNoise01(x, y, 96, 0xaa) * 0.55 + valueNoise01(x, y, 37, 0xbb) * 0.45;
     const secondaryLean = smoothstep(lean) * Math.min(0.5, map.secondaryShare * 1.25);
@@ -667,7 +673,8 @@ export function tintGrayscaleTemplateMulti(
   hole: { x: number; y: number; w: number; h: number },
   width: number,
   height: number,
-  cacheKey?: string
+  cacheKey?: string,
+  includeSecondary = true
 ): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -692,7 +699,7 @@ export function tintGrayscaleTemplateMulti(
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
       const angle = Math.atan2(y - cy, x - cx);
-      const hs = samplePolarHsMixed(polar, angle, x, y);
+      const hs = samplePolarHsMixed(polar, angle, x, y, includeSecondary);
       const rgb = hsToTintRgb(hs);
       cd[i] = rgb.r;
       cd[i + 1] = rgb.g;
@@ -812,7 +819,8 @@ export function tintGrayscaleTemplateDual(
   slots: DualTintSlot[],
   width: number,
   height: number,
-  multiColor: boolean
+  multiColor: boolean,
+  includeSecondary = true
 ): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -827,7 +835,7 @@ export function tintGrayscaleTemplateDual(
   if (slots.length === 1) {
     const s = slots[0]!;
     if (multiColor) {
-      return tintGrayscaleTemplateMulti(grayscale, s.iris, s.hole, width, height, s.cacheKey);
+      return tintGrayscaleTemplateMulti(grayscale, s.iris, s.hole, width, height, s.cacheKey, includeSecondary);
     }
     return tintGrayscaleTemplate(grayscale, s.color, width, height);
   }
@@ -892,7 +900,7 @@ export function tintGrayscaleTemplateDual(
           if (wt < 1e-6) continue;
           const c = centers[si]!;
           const angle = Math.atan2(y - c.cy, x - c.cx);
-          hsList.push(samplePolarHsMixed(polarMaps[si]!, angle, x, y));
+          hsList.push(samplePolarHsMixed(polarMaps[si]!, angle, x, y, includeSecondary));
           wList.push(wt);
         }
         if (hsList.length === 1) hs = hsList[0]!;
@@ -964,9 +972,19 @@ export async function paintArtComposite(
     width: number;
     height: number;
     background?: string;
+    /** When false, overlay tint omits the secondary iris hue (primary / polar mix only). */
+    secondaryColorTint?: boolean;
   }
 ): Promise<RgbColor | null> {
-  const { textureUri, textureUri2, template, width, height, background = '#07060c' } = opts;
+  const {
+    textureUri,
+    textureUri2,
+    template,
+    width,
+    height,
+    background = '#07060c',
+    secondaryColorTint = true,
+  } = opts;
   const holes = getArtTemplateHoles(template);
   const textureUris = [textureUri, textureUri2].filter(
     (u): u is string => typeof u === 'string' && u.length > 0
@@ -1012,7 +1030,8 @@ export async function paintArtComposite(
         slots,
         width,
         height,
-        Boolean(template.multiColorTint)
+        Boolean(template.multiColorTint),
+        secondaryColorTint
       );
       ctx.drawImage(tinted, 0, 0, width, height);
       return slots[0]?.color ?? null;

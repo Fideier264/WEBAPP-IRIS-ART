@@ -23,10 +23,12 @@ import {
   rememberCheckoutTemplate,
   rememberCheckoutTexture,
   rememberCheckoutTexture2,
+  rememberCheckoutSecondaryColor,
   requestCreateCheckoutSession,
   restoreCheckoutTemplate,
   restoreCheckoutTexture,
   restoreCheckoutTexture2,
+  restoreCheckoutSecondaryColor,
 } from '@/lib/createStripeCheckout';
 import { getArtTemplateById, isDualEyeTemplate } from '@/lib/artTemplates';
 import { useT, type TranslationKey } from '@/lib/i18n';
@@ -63,23 +65,32 @@ function translateDescription(description: string | undefined, t: TFn): string |
 export default function CheckoutScreen() {
   const c = useAppColors();
   const { width } = useWindowDimensions();
-  const cardW = Math.floor((width - 36 - 10) / 2);
+  const productCols = 3;
+  const productGap = 8;
+  const cardW = Math.floor((width - 36 - productGap * (productCols - 1)) / productCols);
   const t = useT();
 
   const params = useLocalSearchParams<{
     textureUri?: string | string[];
     textureUri2?: string | string[];
     templateId?: string | string[];
+    secondaryColorTint?: string | string[];
     canceled?: string | string[];
   }>();
   const paramTexture = paramString(params.textureUri);
   const paramTexture2 = paramString(params.textureUri2);
   const paramTemplateId = paramString(params.templateId);
+  const paramSecondaryColor = paramString(params.secondaryColorTint);
   const canceled = paramString(params.canceled) === '1' || paramString(params.canceled) === 'true';
 
   const [textureUri, setTextureUri] = useState<string | undefined>(paramTexture);
   const [textureUri2, setTextureUri2] = useState<string | undefined>(paramTexture2);
   const [templateId, setTemplateId] = useState<string | undefined>(paramTemplateId);
+  const [secondaryColorTint, setSecondaryColorTint] = useState(() => {
+    if (paramSecondaryColor === '0') return false;
+    if (paramSecondaryColor === '1') return true;
+    return restoreCheckoutSecondaryColor();
+  });
 
   useEffect(() => {
     if (paramTexture) {
@@ -109,7 +120,17 @@ export default function CheckoutScreen() {
       const restoredTemplate = restoreCheckoutTemplate();
       if (restoredTemplate) setTemplateId(restoredTemplate);
     }
-  }, [paramTexture, paramTexture2, paramTemplateId]);
+
+    if (paramSecondaryColor === '0') {
+      setSecondaryColorTint(false);
+      rememberCheckoutSecondaryColor(false);
+    } else if (paramSecondaryColor === '1') {
+      setSecondaryColorTint(true);
+      rememberCheckoutSecondaryColor(true);
+    } else if (!paramTexture && !paramTemplateId) {
+      setSecondaryColorTint(restoreCheckoutSecondaryColor());
+    }
+  }, [paramTexture, paramTexture2, paramTemplateId, paramSecondaryColor]);
 
   const template = useMemo(
     () => (templateId ? getArtTemplateById(templateId) : undefined),
@@ -210,11 +231,13 @@ export default function CheckoutScreen() {
       rememberCheckoutTexture(textureUri);
       rememberCheckoutTexture2(textureUri2);
       rememberCheckoutTemplate(templateId);
+      rememberCheckoutSecondaryColor(secondaryColorTint);
       const { printFileUrl } = await uploadCheckoutArtwork({
         textureUri,
         textureUri2,
         templateId,
         printAspectRatio: selected.printAspectRatio,
+        secondaryColorTint,
       });
 
       setStatus('redirecting');
@@ -314,11 +337,12 @@ export default function CheckoutScreen() {
               <Text style={[styles.cardTitle, { color: c.text }]}>{template.title}</Text>
               <View style={{ alignItems: 'center', marginTop: 8 }}>
                 <ArtTemplateComposite
-                  key={`checkout:${template.id}:${textureUri}:${textureUri2 ?? ''}`}
+                  key={`checkout:${template.id}:${textureUri}:${textureUri2 ?? ''}:${secondaryColorTint ? '1' : '0'}`}
                   textureUri={textureUri}
                   textureUri2={textureUri2}
                   template={template}
                   width={Math.min(width - 36, 320)}
+                  secondaryColorTint={secondaryColorTint}
                 />
               </View>
               <Text style={[styles.cardBody, { color: c.muted }]}>{t('checkout.printHint')}</Text>
@@ -352,7 +376,7 @@ export default function CheckoutScreen() {
               </ScrollView>
             ) : null}
 
-            <View style={styles.productGrid}>
+            <View style={[styles.productGrid, { gap: productGap }]}>
               {visibleProducts.map((p) => {
                 const active = p.id === selected?.id;
                 const photoUri = p.imageUrl || textureUri;
@@ -546,12 +570,12 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   catChipText: { fontSize: 13.5, fontWeight: '750' },
-  productGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  productGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   productCard: {
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-    paddingBottom: 10,
+    paddingBottom: 6,
   },
   productPhotoWrap: {
     width: '100%',
@@ -562,21 +586,21 @@ const styles = StyleSheet.create({
   productPhoto: { width: '100%', height: '100%' },
   selectedBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 4,
+    right: 4,
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
-  selectedBadgeText: { color: '#fff', fontSize: 11.5, fontWeight: '800' },
+  selectedBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
   productTitle: {
-    fontSize: 15.5,
+    fontSize: 11.5,
     fontWeight: '850',
-    marginTop: 10,
-    paddingHorizontal: 10,
+    marginTop: 6,
+    paddingHorizontal: 6,
   },
-  productMeta: { fontSize: 12.5, marginTop: 2, paddingHorizontal: 10 },
-  productPrice: { fontSize: 14.5, fontWeight: '800', marginTop: 6, paddingHorizontal: 10 },
+  productMeta: { fontSize: 10, marginTop: 1, paddingHorizontal: 6 },
+  productPrice: { fontSize: 11.5, fontWeight: '800', marginTop: 4, paddingHorizontal: 6 },
   card: {
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,

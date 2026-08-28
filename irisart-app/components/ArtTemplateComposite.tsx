@@ -12,13 +12,20 @@ type Props = {
   template: ArtTemplate;
   /** Layout-Breite; Höhe = width / aspectRatio */
   width: number;
+  secondaryColorTint?: boolean;
 };
 
 /**
  * Native fallback preview (no canvas tint). Web uses ArtTemplateComposite.web.tsx
  * with the same dynamic color-tinting as the print export.
  */
-export function ArtTemplateComposite({ textureUri, textureUri2, template, width }: Props) {
+export function ArtTemplateComposite({
+  textureUri,
+  textureUri2,
+  template,
+  width,
+  secondaryColorTint: _secondaryColorTint = true,
+}: Props) {
   const t = useT();
   const height = width / template.aspectRatio;
   const holes = getArtTemplateHoles(template);

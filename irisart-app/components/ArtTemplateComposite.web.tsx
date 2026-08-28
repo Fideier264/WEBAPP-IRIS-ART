@@ -10,13 +10,21 @@ type Props = {
   template: ArtTemplate;
   /** Layout-Breite; Höhe = width / aspectRatio */
   width: number;
+  /** When false, overlay tint omits secondary iris hue. */
+  secondaryColorTint?: boolean;
 };
 
 /**
  * Web preview: same dynamic iris-color tinting as the checkout print export,
  * so customers see what they will order.
  */
-export function ArtTemplateComposite({ textureUri, textureUri2, template, width }: Props) {
+export function ArtTemplateComposite({
+  textureUri,
+  textureUri2,
+  template,
+  width,
+  secondaryColorTint = true,
+}: Props) {
   const height = width / template.aspectRatio;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [busy, setBusy] = useState(true);
@@ -57,6 +65,7 @@ export function ArtTemplateComposite({ textureUri, textureUri2, template, width 
           template,
           width: pw,
           height: ph,
+          secondaryColorTint,
         });
 
         if (cancelled) return;
@@ -85,7 +94,7 @@ export function ArtTemplateComposite({ textureUri, textureUri2, template, width 
     return () => {
       cancelled = true;
     };
-  }, [textureUri, textureUri2, template, template.id, width, height]);
+  }, [textureUri, textureUri2, template, template.id, width, height, secondaryColorTint]);
 
   return (
     <View style={[styles.root, { width, height }]}>

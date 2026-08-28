@@ -179,6 +179,29 @@ export function restoreCheckoutTexture2(): string | undefined {
   return undefined;
 }
 
+const SECONDARY_COLOR_STORAGE_KEY = 'irisart_checkout_secondary_color';
+
+export function rememberCheckoutSecondaryColor(enabled: boolean) {
+  try {
+    if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(SECONDARY_COLOR_STORAGE_KEY, enabled ? '1' : '0');
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+export function restoreCheckoutSecondaryColor(): boolean {
+  try {
+    if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem(SECONDARY_COLOR_STORAGE_KEY) !== '0';
+    }
+  } catch {
+    /* ignore */
+  }
+  return true;
+}
+
 export function rememberCheckoutTemplate(templateId: string) {
   try {
     if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {

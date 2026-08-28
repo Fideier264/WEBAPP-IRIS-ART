@@ -20,6 +20,8 @@ export type RenderArtCompositeInput = {
    * Must match the MerchOne SKU variant. Template artwork is fitted (cover) into this frame.
    */
   outputAspectRatio?: number;
+  /** Blend secondary iris hue into multi-color templates (default true). */
+  secondaryColorTint?: boolean;
 };
 
 function canvasToBase64(canvas: HTMLCanvasElement): Promise<string> {
@@ -89,6 +91,7 @@ export async function renderArtCompositeToLocalUri(input: RenderArtCompositeInpu
     template: input.template,
     width: designW,
     height: designH,
+    secondaryColorTint: input.secondaryColorTint,
   });
 
   const product = document.createElement('canvas');
