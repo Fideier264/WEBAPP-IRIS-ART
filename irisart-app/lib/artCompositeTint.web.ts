@@ -631,6 +631,33 @@ function lerpHs(a: Hs, b: Hs, t: number): Hs {
   };
 }
 
+/** Snap radial sample to a primary-hue ring (keeps texture, drops secondary band). */
+function snapRingToPrimary(map: PolarHsMap, ringIdx: number): number {
+  const ri = Math.min(map.radials - 1, Math.max(0, Math.floor(ringIdx)));
+  if (!map.ringIsSecondary[ri]) return ringIdx;
+  let best = ri;
+  let bestD = map.radials;
+  for (let r = 0; r < map.radials; r++) {
+    if (map.ringIsSecondary[r]) continue;
+    const d = Math.abs(r - ringIdx);
+    if (d < bestD) {
+      bestD = d;
+      best = r;
+    }
+  }
+  return best + (ringIdx - Math.floor(ringIdx));
+}
+
+function hueInSecondaryFamily(map: PolarHsMap, hs: Hs): boolean {
+  if (map.secondaryShare < 0.04) return false;
+  return isWarmHue(map.secondaryHs.h) ? isWarmHue(hs.h) : isCoolHue(hs.h);
+}
+
+function keepPrimaryHue(map: PolarHsMap, hs: Hs): Hs {
+  if (!hueInSecondaryFamily(map, hs)) return hs;
+  return blendHsForTint(map.primaryHs, hs, 0.18);
+}
+
 /**
  * Soft mixed multi-color sample — continuous blend, no hard secondary spots.
  */
@@ -641,30 +668,6 @@ function samplePolarHsMixed(
   y: number,
   includeSecondary = true
 ): Hs {
-  if (!includeSecondary) {
-    const n1 =
-      valueNoise01(x, y, 88, 0x51) * 0.55 +
-      valueNoise01(x, y, 41, 0xa3) * 0.30 +
-      valueNoise01(x, y, 19, 0x2c) * 0.15;
-    let ringIdx = continuousRingIndex(map.ringWeights, n1);
-    const ri = Math.min(map.radials - 1, Math.max(0, Math.floor(ringIdx)));
-    if (map.ringIsSecondary[ri]) {
-      let best = ri;
-      let bestD = map.radials;
-      for (let r = 0; r < map.radials; r++) {
-        if (map.ringIsSecondary[r]) continue;
-        const d = Math.abs(r - ringIdx);
-        if (d < bestD) {
-          bestD = d;
-          best = r;
-        }
-      }
-      ringIdx = best + (ringIdx - Math.floor(ringIdx));
-    }
-    const local = samplePolarHsFrac(map, angleRad, ringIdx);
-    return blendHsForTint(map.primaryHs, local, 0.28);
-  }
-
   const n1 =
     valueNoise01(x, y, 88, 0x51) * 0.55 +
     valueNoise01(x, y, 41, 0xa3) * 0.30 +
@@ -672,8 +675,20 @@ function samplePolarHsMixed(
   const n2 =
     valueNoise01(x + 17, y - 9, 64, 0x77) * 0.6 + valueNoise01(x, y, 27, 0xe1) * 0.4;
 
-  const hsA = samplePolarHsFrac(map, angleRad, continuousRingIndex(map.ringWeights, n1));
-  const hsB = samplePolarHsFrac(map, angleRad, continuousRingIndex(map.ringWeights, n2));
+  let ringA = continuousRingIndex(map.ringWeights, n1);
+  let ringB = continuousRingIndex(map.ringWeights, n2);
+  if (!includeSecondary) {
+    ringA = snapRingToPrimary(map, ringA);
+    ringB = snapRingToPrimary(map, ringB);
+  }
+
+  let hsA = samplePolarHsFrac(map, angleRad, ringA);
+  let hsB = samplePolarHsFrac(map, angleRad, ringB);
+  if (!includeSecondary) {
+    hsA = keepPrimaryHue(map, hsA);
+    hsB = keepPrimaryHue(map, hsB);
+  }
+
   let mixed = blendHsForTint(hsA, hsB, smoothstep(valueNoise01(x, y, 54, 0x99)));
 
   if (includeSecondary && map.secondaryShare >= 0.04) {
@@ -1049,13 +1064,13 @@ export async function paintArtComposite(
           color: extractAverageIrisColor(iris, key),
         };
       });
-      const multiColor = Boolean(template.multiColorTint) && secondaryColorTint;
       const tinted = tintGrayscaleTemplateDual(
         overlay,
         slots,
         width,
         height,
-        multiColor
+        Boolean(template.multiColorTint),
+        secondaryColorTint
       );
       ctx.drawImage(tinted, 0, 0, width, height);
       return slots[0]?.color ?? null;

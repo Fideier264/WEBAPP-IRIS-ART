@@ -158,7 +158,7 @@ const de = {
   'shop.secondaryColor': 'Sekundärfarbe',
   'shop.secondaryColorOn': 'An',
   'shop.secondaryColorOff': 'Aus',
-  'shop.secondaryColorHint': 'Aus: nur die dominante Iris-Farbe. An: Primär- und Sekundärfarbe gemischt.',
+  'shop.secondaryColorHint': 'Aus: nur Primärfarbe. An: zusätzlich die zweite Iris-Farbe im Overlay.',
   'shop.families': 'Erkannte Farbfamilien',
   'shop.familiesLoading': 'Analyse…',
   'shop.familiesError': 'Farb-Filter nicht verfügbar — „Alle Templates“ nutzen.',

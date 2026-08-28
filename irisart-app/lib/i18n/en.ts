@@ -149,7 +149,7 @@ const en: Record<TranslationKey, string> = {
   'shop.secondaryColor': 'Secondary color',
   'shop.secondaryColorOn': 'On',
   'shop.secondaryColorOff': 'Off',
-  'shop.secondaryColorHint': 'Off: dominant iris color only. On: primary and secondary hues blended.',
+  'shop.secondaryColorHint': 'Off: primary hue only. On: also blends the second iris color into the overlay.',
   'shop.families': 'Detected color families',
   'shop.familiesLoading': 'Analyzing…',
   'shop.familiesError': 'Color filter unavailable — use “All templates”.',
