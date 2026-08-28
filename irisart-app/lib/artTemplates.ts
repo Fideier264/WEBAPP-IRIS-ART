@@ -139,6 +139,25 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   overlayImage: require('@/assets/art-templates/galaxygrau.png'),
 },
 {
+  id: 'template.halo',
+  title: 'halo',
+  subtitle: 'Graustufen — Mehrfarben-Tint aus der Iris',
+  aspectRatio: 2129 / 2048,
+  colorFamilies: ['any'],
+  tintWithIrisColor: true,
+  multiColorTint: true,
+  irisHole: {
+    x: 0.156,
+    y: 0.173,
+    w: 0.71,
+    h: 0.66,
+    circular: true,
+  },
+  irisScale: 1.05,
+  overlayImage: require('@/assets/art-templates/halo.png'),
+},
+
+{
   id: 'template.shards.grau',
   title: 'Shattered',
   subtitle: 'Graustufen — Mehrfarben-Tint aus der Iris',
