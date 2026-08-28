@@ -641,6 +641,30 @@ function samplePolarHsMixed(
   y: number,
   includeSecondary = true
 ): Hs {
+  if (!includeSecondary) {
+    const n1 =
+      valueNoise01(x, y, 88, 0x51) * 0.55 +
+      valueNoise01(x, y, 41, 0xa3) * 0.30 +
+      valueNoise01(x, y, 19, 0x2c) * 0.15;
+    let ringIdx = continuousRingIndex(map.ringWeights, n1);
+    const ri = Math.min(map.radials - 1, Math.max(0, Math.floor(ringIdx)));
+    if (map.ringIsSecondary[ri]) {
+      let best = ri;
+      let bestD = map.radials;
+      for (let r = 0; r < map.radials; r++) {
+        if (map.ringIsSecondary[r]) continue;
+        const d = Math.abs(r - ringIdx);
+        if (d < bestD) {
+          bestD = d;
+          best = r;
+        }
+      }
+      ringIdx = best + (ringIdx - Math.floor(ringIdx));
+    }
+    const local = samplePolarHsFrac(map, angleRad, ringIdx);
+    return blendHsForTint(map.primaryHs, local, 0.28);
+  }
+
   const n1 =
     valueNoise01(x, y, 88, 0x51) * 0.55 +
     valueNoise01(x, y, 41, 0xa3) * 0.30 +
@@ -1025,13 +1049,13 @@ export async function paintArtComposite(
           color: extractAverageIrisColor(iris, key),
         };
       });
+      const multiColor = Boolean(template.multiColorTint) && secondaryColorTint;
       const tinted = tintGrayscaleTemplateDual(
         overlay,
         slots,
         width,
         height,
-        Boolean(template.multiColorTint),
-        secondaryColorTint
+        multiColor
       );
       ctx.drawImage(tinted, 0, 0, width, height);
       return slots[0]?.color ?? null;
