@@ -147,13 +147,13 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   tintWithIrisColor: true,
   multiColorTint: true,
   irisHole: {
-    x: 0.135,
+    x: 0.138,
     y: 0.167,
     w: 0.7,
     h: 0.66,
     circular: true,
   },
-  irisScale: 1.2,
+  irisScale: 1.25,
   overlayImage: require('@/assets/art-templates/halo.png'),
 },
 
