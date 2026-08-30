@@ -110,3 +110,21 @@ Event: `checkout.session.completed`
 **App (.env):** SKUs + optionale Anzeige-Preise `EXPO_PUBLIC_PRICE_EUR_30CM` / `60CM`, optional `EXPO_PUBLIC_APP_ORIGIN`.
 
 **Deploy:** Function `create-merchone-order` deployen und Secrets setzen.
+
+### `delete-account` (Konto löschen)
+
+App-Store-Pflicht: angemeldete Nutzer können Konto + Galerie in der App löschen (`/account`).
+
+Die Function prüft den **User-JWT** (`/auth/v1/user`), löscht Storage `user-irises/{uid}/…`, Zeilen in `user_irises` und den Auth-User (Admin API).
+
+| Secret | Bedeutung |
+|--------|-----------|
+| **`SUPABASE_SERVICE_ROLE_KEY`** | Admin-Delete + Storage/DB |
+| `SUPABASE_URL` | Projekt-URL |
+| `SUPABASE_ANON_KEY` | Optional für `/auth/v1/user`; sonst Service Role |
+
+```bash
+supabase functions deploy delete-account
+```
+
+`verify_jwt = true` in `config.toml` — **kein** `--no-verify-jwt`. Anon-JWTs werden zusätzlich abgelehnt.

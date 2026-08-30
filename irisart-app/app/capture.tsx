@@ -19,6 +19,7 @@ import Slider from '@react-native-community/slider';
 import * as ImagePicker from 'expo-image-picker';
 
 import { AppBottomBar } from '@/components/AppBottomBar';
+import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import { useAppColors } from '@/lib/appTheme';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import { useT } from '@/lib/i18n';
@@ -319,6 +320,8 @@ export default function CaptureScreen() {
             />
           </View>
         ) : null}
+
+        {state.kind === 'camera' ? <LegalDisclaimer variant="capture" compact /> : null}
 
         <View style={styles.controls}>
           {state.kind === 'preview' ? (

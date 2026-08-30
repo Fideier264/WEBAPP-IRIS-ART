@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import { BACKGROUND_THEMES, useAppColors, useAppTheme } from '@/lib/appTheme';
 import { useAuth } from '@/lib/auth';
+import { requestDeleteOwnAccount } from '@/lib/deleteAccount';
 import { LOCALES, useLocale, type Locale } from '@/lib/i18n';
 
 export default function AccountScreen() {
@@ -27,6 +29,7 @@ export default function AccountScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const gradient = useMemo(() => c.pageGradient, [c.pageGradient]);
 
@@ -122,13 +125,19 @@ export default function AccountScreen() {
           {loading ? (
             <ActivityIndicator color={c.tint} />
           ) : user ? (
+            <>
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
               <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.signedIn')}</Text>
               <Text style={[styles.body, { color: c.muted }]}>{user.email ?? user.id}</Text>
               <Pressable
                 accessibilityRole="button"
                 disabled={busy}
-                onPress={() => run(async () => signOut())}
+                onPress={() =>
+                  run(async () => {
+                    setConfirmDelete(false);
+                    await signOut();
+                  })
+                }
                 style={({ pressed }) => [
                   styles.secondaryBtn,
                   { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
@@ -136,6 +145,74 @@ export default function AccountScreen() {
                 <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.signOut')}</Text>
               </Pressable>
             </View>
+
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: c.surface,
+                  borderColor: confirmDelete ? 'rgba(220,80,80,0.45)' : c.border,
+                },
+              ]}>
+              <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.deleteTitle')}</Text>
+              <Text style={[styles.body, { color: c.muted }]}>
+                {confirmDelete ? t('account.deleteConfirmBody') : t('account.deleteBody')}
+              </Text>
+              {confirmDelete ? (
+                <>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={busy}
+                    onPress={() =>
+                      run(async () => {
+                        const res = await requestDeleteOwnAccount();
+                        if (!res.ok) {
+                          throw new Error(
+                            res.error === 'AUTH_REQUIRED' ? t('account.deleteFailed') : res.error
+                          );
+                        }
+                        setConfirmDelete(false);
+                        setInfo(t('account.deletedInfo'));
+                        router.replace('/');
+                      })
+                    }
+                    style={({ pressed }) => [
+                      styles.dangerBtn,
+                      { opacity: pressed || busy ? 0.88 : 1 },
+                    ]}>
+                    <Text style={styles.dangerText}>
+                      {busy ? t('account.deleteBusy') : t('account.deleteConfirmCta')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={busy}
+                    onPress={() => setConfirmDelete(false)}
+                    style={({ pressed }) => [
+                      styles.secondaryBtn,
+                      { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
+                    ]}>
+                    <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.deleteCancel')}</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={busy}
+                  onPress={() => {
+                    setError(null);
+                    setInfo(null);
+                    setConfirmDelete(true);
+                  }}
+                  style={({ pressed }) => [
+                    styles.dangerOutlineBtn,
+                    { borderColor: 'rgba(220,80,80,0.55)', opacity: pressed || busy ? 0.85 : 1 },
+                  ]}>
+                  <Text style={styles.dangerOutlineText}>{t('account.deleteCta')}</Text>
+                </Pressable>
+              )}
+            </View>
+            </>
           ) : (
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
               <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.saveGalleryTitle')}</Text>
@@ -205,6 +282,8 @@ export default function AccountScreen() {
             </View>
           )}
 
+          <LegalDisclaimer variant="account" />
+
           {busy ? <ActivityIndicator color={c.tint} style={{ marginTop: 12 }} /> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {info ? <Text style={[styles.info, { color: c.pageMuted }]}>{info}</Text> : null}
@@ -262,6 +341,21 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   secondaryText: { fontSize: 15, fontWeight: '750' },
+  dangerOutlineBtn: {
+    borderRadius: 16,
+    paddingVertical: 13,
+    alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(220,80,80,0.08)',
+  },
+  dangerOutlineText: { fontSize: 15, fontWeight: '800', color: '#C43A4A' },
+  dangerBtn: {
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#C43A4A',
+  },
+  dangerText: { color: '#FFFFFF', fontSize: 15.5, fontWeight: '850' },
   error: { color: '#FF6B7A', fontSize: 13.5, lineHeight: 19 },
   info: { fontSize: 13.5, lineHeight: 19 },
 });

@@ -43,6 +43,25 @@ Run the SQL in:
 
 Bucket `user-irises` should exist (private). Policies restrict objects to folder `{auth.uid()}/…`.
 
+### 5) Account deletion (App Store 5.1.1(v))
+
+In-app delete lives on `/account` (two-step confirm). It calls Edge Function **`delete-account`**, which:
+
+1. Verifies the user’s session (`GET /auth/v1/user`)
+2. Removes Storage objects under `{uid}/` in bucket `user-irises`
+3. Deletes `user_irises` rows
+4. Deletes the Auth user (`DELETE /auth/v1/admin/users/{uid}`)
+
+Deploy (JWT required — do **not** use `--no-verify-jwt`):
+
+```bash
+supabase functions deploy delete-account
+```
+
+Secret: **`SUPABASE_SERVICE_ROLE_KEY`** (same as other admin functions). `eye_profiles` is an anonymous image-hash cache and is **not** wiped per user.
+
+Completed print orders at Stripe / merchOne are business records and may remain where legally required; the confirmation copy in the app states this.
+
 ## Behaviour summary
 
 | State | Generator | Galerie |
@@ -56,3 +75,4 @@ Bucket `user-irises` should exist (private). Policies restrict objects to folder
 - **Edge Function HTTP 401** (`iris-enhance` / `iris-analyze`): the app calls these with the **anon key**. Use the legacy **anon public** JWT (`eyJ…`) from Project Settings → API as `EXPO_PUBLIC_SUPABASE_ANON_KEY` (not only a `sb_publishable_…` key). Redeploy functions so `supabase/config.toml` (`verify_jwt = false`) applies: `supabase functions deploy iris-enhance`.
 - **Upload fails**: confirm user is authenticated and migration + storage policies are applied.
 - **Empty signed URLs**: signed URL creation may fail if the storage path is wrong or the object was deleted.
+- **Konto löschen schlägt fehl / 404**: Function `delete-account` deployen (`supabase functions deploy delete-account`). 401: User-JWT senden, nicht den Anon-Key.

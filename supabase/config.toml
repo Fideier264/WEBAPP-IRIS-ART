@@ -17,3 +17,7 @@ verify_jwt = false
 [functions.stripe-webhook]
 # Stripe sends no Supabase JWT — must stay open; authenticity via stripe-signature.
 verify_jwt = false
+
+[functions.delete-account]
+# User must be signed in. Function also re-checks /auth/v1/user (rejects anon JWT).
+verify_jwt = true

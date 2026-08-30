@@ -1,11 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppColors } from '@/lib/appTheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
+import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import { BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
 import { useT } from '@/lib/i18n';
 
@@ -23,6 +24,10 @@ export default function OnboardingScreen() {
       />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={[styles.brand, { color: c.pageText }]}>IrisArt</Text>
           <Text style={[styles.tagline, { color: c.pageText }]}>{t('home.tagline')}</Text>
@@ -35,6 +40,10 @@ export default function OnboardingScreen() {
           <Row title={t('home.tip1Title')} body={t('home.tip1Body')} darkPage={c.isDarkPage} />
           <Row title={t('home.tip2Title')} body={t('home.tip2Body')} darkPage={c.isDarkPage} />
           <Row title={t('home.tip3Title')} body={t('home.tip3Body')} darkPage={c.isDarkPage} />
+        </View>
+
+        <View style={styles.disclaimerWrap}>
+          <LegalDisclaimer variant="home" />
         </View>
 
         <Pressable
@@ -53,6 +62,7 @@ export default function OnboardingScreen() {
         <Text style={[styles.foot, { color: c.pageMuted }]}>
           {t('home.foot')}
         </Text>
+        </ScrollView>
         <AppBottomBar active="scan" />
       </SafeAreaView>
     </View>
@@ -93,7 +103,9 @@ function Row({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  safe: { flex: 1, paddingHorizontal: 22, paddingTop: 18, paddingBottom: BOTTOM_BAR_CLEARANCE },
+  safe: { flex: 1, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 0 },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: BOTTOM_BAR_CLEARANCE, gap: 0 },
   hero: { gap: 10, paddingTop: 14, paddingRight: 88 },
   brand: { fontSize: 44, fontWeight: '700', letterSpacing: 0.2 },
   tagline: { fontSize: 18, fontWeight: '600', letterSpacing: 0.25 },
@@ -105,13 +117,14 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 14,
   },
+  disclaimerWrap: { marginTop: 16 },
   row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   dot: { width: 12, height: 12, borderRadius: 6, marginTop: 4, borderWidth: StyleSheet.hairlineWidth },
   rowText: { flex: 1, gap: 3 },
   rowTitle: { fontSize: 14.5, fontWeight: '750' },
   rowBody: { fontSize: 13, lineHeight: 18 },
   cta: {
-    marginTop: 22,
+    marginTop: 18,
     borderRadius: 18,
     paddingVertical: 16,
     alignItems: 'center',

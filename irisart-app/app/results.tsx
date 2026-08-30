@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppColors } from '@/lib/appTheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
+import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import {
   analyzeIris,
   peekIrisAnalysisByStableKey,
@@ -161,6 +162,8 @@ export default function ResultsScreen() {
               <Image source={{ uri }} style={styles.preview} resizeMode="cover" />
             </View>
           ) : null}
+
+          <LegalDisclaimer variant="results" />
 
           {status.kind === 'loading' ? (
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>

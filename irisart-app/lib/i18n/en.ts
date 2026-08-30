@@ -19,9 +19,21 @@ const en: Record<TranslationKey, string> = {
   'account.title': 'Account',
   'account.signedIn': 'Signed in',
   'account.signOut': 'Sign out',
+  'account.deleteTitle': 'Delete account',
+  'account.deleteBody':
+    'Deletes your account, saved iris images, and related analysis in IrisArt. Completed print orders may be retained by payment and shipping partners where legally required.',
+  'account.deleteCta': 'Delete account',
+  'account.deleteConfirmTitle': 'Delete permanently?',
+  'account.deleteConfirmBody':
+    'This cannot be undone. Gallery, login, and saved analyses will be removed.',
+  'account.deleteConfirmCta': 'Yes, delete my account',
+  'account.deleteCancel': 'Cancel',
+  'account.deleteBusy': 'Deleting account…',
+  'account.deletedInfo': 'Account deleted.',
+  'account.deleteFailed': 'Could not delete account',
   'account.saveGalleryTitle': 'Save your iris gallery',
   'account.saveGalleryBody':
-    'Sign in with email or Google to save generated iris images to your account.',
+    'Sign in with email or Google to save generated iris images to your account. You can delete the account anytime on this screen.',
   'account.email': 'Email',
   'account.password': 'Password (min. 6 characters)',
   'account.signIn': 'Sign in',
@@ -41,7 +53,7 @@ const en: Record<TranslationKey, string> = {
 
   'home.tagline': 'Science of Your Eye',
   'home.sub':
-    'Capture a macro iris photo. We’ll extract dominant colors and generate a rarity profile—then transform your iris into premium digital art.',
+    'Capture a macro iris photo. We’ll extract dominant colors and an entertainment-only rarity profile—then transform your iris into premium digital art. This is not a medical or genetic assessment.',
   'home.tip1Title': 'Macro capture guide',
   'home.tip1Body': 'Align your iris inside the ring for best color accuracy.',
   'home.tip2Title': 'Color profile',
@@ -71,6 +83,18 @@ const en: Record<TranslationKey, string> = {
   'capture.permissionNeeded': 'Permission needed',
   'capture.permissionPhotos': 'Allow photo access to upload an eye image.',
 
+  'disclaimer.homeTitle': 'Not a medical service',
+  'disclaimer.homeBody':
+    'IrisArt is entertainment and art. Color profile, rarity, and inheritance notes are AI-generated estimates — not a diagnosis, genetic test, or a substitute for medical advice.',
+  'disclaimer.resultsTitle': 'Entertainment only',
+  'disclaimer.resultsBody':
+    'This readout is not a medical, genetic, or iridology diagnosis. Percentages and copy are creative estimates from an AI model, not scientific measurements.',
+  'disclaimer.captureBody':
+    'Photos are used to generate artwork. Analysis is entertainment, not a medical exam.',
+  'disclaimer.accountTitle': 'Data & analysis',
+  'disclaimer.accountBody':
+    'When signed in we store your iris renderings and optional color analysis on your account. You can delete individual gallery items or the entire account here at any time.',
+
   'iris.back': 'Back',
   'iris.titleLoading': 'AI Iris Enhancement',
   'iris.titleReady': 'Iris Refined',
@@ -99,19 +123,19 @@ const en: Record<TranslationKey, string> = {
 
   'results.back': 'Back',
   'results.titleLoading': 'Analysis',
-  'results.titleReady': 'Rarity & Color Profile',
+  'results.titleReady': 'Color profile (entertainment)',
   'results.analyzing': 'Analyzing iris',
-  'results.analyzingBody': 'Computing color profile and rarity…',
+  'results.analyzingBody': 'Computing color profile and estimated rarity…',
   'results.failed': 'Analysis failed',
   'results.retry': 'Retry analysis',
   'results.retake': 'Retake Photo',
-  'results.geminiSection': 'Results (Gemini)',
-  'results.baseRarity': 'Base color rarity',
+  'results.geminiSection': 'Results (not a diagnosis)',
+  'results.baseRarity': 'Base color rarity (estimate)',
   'results.features': 'Notable features',
-  'results.combinedRarity': 'Combined rarity',
+  'results.combinedRarity': 'Combined rarity (estimate)',
   'results.uniqueStructure': 'Unique structure',
   'results.uniqueStructureFallback': 'Every iris has unique structural patterns.',
-  'results.inheritance': 'Inheritance likelihood',
+  'results.inheritance': 'Entertainment note on inheritance (not genetics)',
   'results.analyzeAnother': 'Analyze Another Eye',
   'results.palette': 'Iris color palette',
   'results.toGallery': 'To Art Gallery',

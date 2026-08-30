@@ -20,9 +20,21 @@ const de = {
   'account.title': 'Konto',
   'account.signedIn': 'Angemeldet',
   'account.signOut': 'Abmelden',
+  'account.deleteTitle': 'Konto löschen',
+  'account.deleteBody':
+    'Löscht dein Konto, gespeicherte Iris-Bilder und die zugehörige Analyse in IrisArt. Abgeschlossene Druckbestellungen können aus gesetzlichen Gründen bei Zahlungs- und Versandpartnern bleiben.',
+  'account.deleteCta': 'Konto löschen',
+  'account.deleteConfirmTitle': 'Endgültig löschen?',
+  'account.deleteConfirmBody':
+    'Das kann nicht rückgängig gemacht werden. Galerie, Login und gespeicherte Analysen werden entfernt.',
+  'account.deleteConfirmCta': 'Ja, Konto endgültig löschen',
+  'account.deleteCancel': 'Abbrechen',
+  'account.deleteBusy': 'Konto wird gelöscht…',
+  'account.deletedInfo': 'Konto gelöscht.',
+  'account.deleteFailed': 'Löschen fehlgeschlagen',
   'account.saveGalleryTitle': 'Iris-Galerie speichern',
   'account.saveGalleryBody':
-    'Melde dich mit E-Mail oder Google an, um generierte Iris-Bilder in deinem Konto zu speichern.',
+    'Melde dich mit E-Mail oder Google an, um generierte Iris-Bilder in deinem Konto zu speichern. Du kannst das Konto jederzeit in diesem Bildschirm löschen.',
   'account.email': 'E-Mail',
   'account.password': 'Passwort (min. 6 Zeichen)',
   'account.signIn': 'Anmelden',
@@ -43,7 +55,7 @@ const de = {
   // Home / scan
   'home.tagline': 'Die Wissenschaft deines Auges',
   'home.sub':
-    'Nimm ein Makro-Foto deiner Iris auf. Wir extrahieren dominante Farben und ein Seltenheitsprofil — und verwandeln deine Iris in Premium-Kunst.',
+    'Nimm ein Makro-Foto deiner Iris auf. Wir extrahieren dominante Farben und ein unterhaltsames Seltenheitsprofil — und verwandeln deine Iris in Premium-Kunst. Keine medizinische oder genetische Bewertung.',
   'home.tip1Title': 'Makro-Aufnahmetipp',
   'home.tip1Body': 'Richte die Iris im Ring aus für beste Farbgenauigkeit.',
   'home.tip2Title': 'Farbprofil',
@@ -73,6 +85,19 @@ const de = {
   'capture.uploadError': 'Upload-Fehler',
   'capture.permissionNeeded': 'Berechtigung nötig',
   'capture.permissionPhotos': 'Erlaube Fotozugriff, um ein Augenbild hochzuladen.',
+
+  // Legal / App Store
+  'disclaimer.homeTitle': 'Kein medizinischer Service',
+  'disclaimer.homeBody':
+    'IrisArt ist Unterhaltung und Kunst. Farbprofil, Seltenheit und Vererbungshinweise sind KI-generierte Schätzungen — keine Diagnose, kein Gentest und kein Ersatz für ärztlichen Rat.',
+  'disclaimer.resultsTitle': 'Nur zur Unterhaltung',
+  'disclaimer.resultsBody':
+    'Diese Auswertung ist keine medizinische, genetische oder iridologische Diagnose. Prozentangaben und Texte sind kreative Schätzungen eines KI-Modells, keine wissenschaftlichen Messergebnisse.',
+  'disclaimer.captureBody':
+    'Fotos dienen der Kunstgenerierung. Die Analyse ist Unterhaltung, keine medizinische Untersuchung.',
+  'disclaimer.accountTitle': 'Daten & Analyse',
+  'disclaimer.accountBody':
+    'Bei Login speichern wir deine Iris-Renderings und optional die Farbanalyse in deinem Konto. Beides kannst du jederzeit löschen — einzelne Bilder in der Galerie oder das gesamte Konto hier.',
 
   // Iris enhance
   'iris.back': 'Zurück',
@@ -105,19 +130,19 @@ const de = {
   // Results / analysis
   'results.back': 'Zurück',
   'results.titleLoading': 'Analyse',
-  'results.titleReady': 'Seltenheit & Farbprofil',
+  'results.titleReady': 'Farbprofil (Unterhaltung)',
   'results.analyzing': 'Iris wird analysiert',
-  'results.analyzingBody': 'Farbprofil und Seltenheit werden berechnet…',
+  'results.analyzingBody': 'Farbprofil und Seltenheitsschätzung werden berechnet…',
   'results.failed': 'Analyse fehlgeschlagen',
   'results.retry': 'Analyse erneut versuchen',
   'results.retake': 'Foto erneut aufnehmen',
-  'results.geminiSection': 'Auswertung (Gemini)',
-  'results.baseRarity': 'Seltenheit der Grundfarbe',
+  'results.geminiSection': 'Auswertung (keine Diagnose)',
+  'results.baseRarity': 'Seltenheit der Grundfarbe (Schätzung)',
   'results.features': 'Besonderheiten',
-  'results.combinedRarity': 'Kombinierte Seltenheit',
+  'results.combinedRarity': 'Kombinierte Seltenheit (Schätzung)',
   'results.uniqueStructure': 'Einzigartige Struktur',
   'results.uniqueStructureFallback': 'Jede Iris weist einzigartige Strukturen auf.',
-  'results.inheritance': 'Wahrscheinlichkeit der Vererbung',
+  'results.inheritance': 'Unterhaltungshinweis zur Vererbung (keine Genetik)',
   'results.analyzeAnother': 'Weiteres Auge analysieren',
   'results.palette': 'Iris-Farbpalette',
   'results.toGallery': 'Zur Kunst-Galerie',
