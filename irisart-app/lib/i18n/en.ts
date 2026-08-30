@@ -93,9 +93,9 @@ const en: Record<TranslationKey, string> = {
   'disclaimer.homeTitle': 'Not a medical service',
   'disclaimer.homeBody':
     'IrisArt is entertainment and art. Color profile, rarity, and inheritance notes are AI-generated estimates — not a diagnosis, genetic test, or a substitute for medical advice.',
-  'disclaimer.resultsTitle': 'Entertainment only',
+  'disclaimer.resultsTitle': 'Disclaimer',
   'disclaimer.resultsBody':
-    'This readout is not a medical, genetic, or iridology diagnosis. Percentages and copy are creative estimates from an AI model, not scientific measurements.',
+    'This readout is not a medical, genetic, or iridology diagnosis. Percentages and copy are creative estimates from an algorithm, not scientific measurements.',
   'disclaimer.captureBody':
     'Photos are for artwork only. Analysis is entertainment, not a medical exam.',
   'disclaimer.accountTitle': 'Data & analysis',
@@ -142,7 +142,20 @@ const en: Record<TranslationKey, string> = {
   'results.combinedRarity': 'Combined rarity (estimate)',
   'results.uniqueStructure': 'Unique structure',
   'results.uniqueStructureFallback': 'Every iris has unique structural patterns.',
-  'results.inheritance': 'Entertainment note on inheritance (not genetics)',
+  'results.inheritance': 'Inheritance chance estimate (beta)',
+  'results.inheritanceYourColor': 'Your estimated eye color: {{color}}',
+  'results.inheritancePartnerLabel': "Partner's eye color",
+  'results.inheritancePickPartner':
+    "Select your partner's eye color to see statistical inheritance odds.",
+  'results.inheritancePairIntro':
+    'Statistical odds for the child’s eye color ({{self}} × {{partner}}):',
+  'results.inheritanceColorBrown': 'Brown',
+  'results.inheritanceColorGreen': 'Green',
+  'results.inheritanceColorBlueGray': 'Blue / gray',
+  'results.inheritanceHeterozygousNote':
+    '* Applies when brown-eyed parents carry hidden lighter alleles (heterozygous). With homozygous brown parents, green/blue odds are near 0%.',
+  'results.inheritanceCitation':
+    'Based on simplified genetic models (Davenport two-gene model). Source: Peter Voitl et al.',
   'results.analyzeAnother': 'Analyze Another Eye',
   'results.palette': 'Iris color palette',
   'results.toGallery': 'To Art Gallery',

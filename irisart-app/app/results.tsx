@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppColors } from '@/lib/appTheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
+import { InheritanceEstimate } from '@/components/InheritanceEstimate';
 import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import {
   analyzeIris,
@@ -238,10 +239,9 @@ export default function ResultsScreen() {
                   body={status.result.gemini.uniqueStructureNote ?? t('results.uniqueStructureFallback')}
                   standalone
                 />
-                <AnalysisBlock
-                  title={t('results.inheritance')}
-                  body={status.result.gemini.inheritanceSentence}
-                  percent={status.result.gemini.inheritancePercent}
+                <InheritanceEstimate
+                  primaryHex={status.result.primaryHex}
+                  paletteHexes={status.result.palette.map((p) => p.hex)}
                 />
 
                 <Pressable

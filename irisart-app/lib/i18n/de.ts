@@ -97,9 +97,9 @@ const de = {
   'disclaimer.homeTitle': 'Kein medizinischer Service',
   'disclaimer.homeBody':
     'IrisArt ist Unterhaltung und Kunst. Farbprofil, Seltenheit und Vererbungshinweise sind KI-generierte Schätzungen — keine Diagnose, kein Gentest und kein Ersatz für ärztlichen Rat.',
-  'disclaimer.resultsTitle': 'Nur zur Unterhaltung',
+  'disclaimer.resultsTitle': 'Disclaimer',
   'disclaimer.resultsBody':
-    'Diese Auswertung ist keine medizinische, genetische oder iridologische Diagnose. Prozentangaben und Texte sind kreative Schätzungen eines KI-Modells, keine wissenschaftlichen Messergebnisse.',
+    'Diese Auswertung ist keine medizinische, genetische oder iridologische Diagnose. Prozentangaben und Texte sind kreative Schätzungen eines Algorithmus, keine wissenschaftlichen Messergebnisse.',
   'disclaimer.captureBody':
     'Fotos nur für Kunst — die Analyse ist Unterhaltung, keine medizinische Untersuchung.',
   'disclaimer.accountTitle': 'Daten & Analyse',
@@ -149,7 +149,20 @@ const de = {
   'results.combinedRarity': 'Kombinierte Seltenheit (Schätzung)',
   'results.uniqueStructure': 'Einzigartige Struktur',
   'results.uniqueStructureFallback': 'Jede Iris weist einzigartige Strukturen auf.',
-  'results.inheritance': 'Unterhaltungshinweis zur Vererbung (keine Genetik)',
+  'results.inheritance': 'Schätzung der Vererbungschance (beta)',
+  'results.inheritanceYourColor': 'Deine geschätzte Augenfarbe: {{color}}',
+  'results.inheritancePartnerLabel': 'Augenfarbe des Partners',
+  'results.inheritancePickPartner':
+    'Wähle die Augenfarbe deines Partners, um statistische Vererbungschancen zu sehen.',
+  'results.inheritancePairIntro':
+    'Statistische Chancen für die Augenfarbe des Kindes ({{self}} × {{partner}}):',
+  'results.inheritanceColorBrown': 'Braun',
+  'results.inheritanceColorGreen': 'Grün',
+  'results.inheritanceColorBlueGray': 'Blau / Grau',
+  'results.inheritanceHeterozygousNote':
+    '* Gilt, wenn braunäugige Elternteile hellere Farbgene verdeckt tragen (heterozygot). Bei reinbraunen Eltern liegt die Chance auf Grün/Blau nahe 0 %.',
+  'results.inheritanceCitation':
+    'Basierend auf vereinfachten genetischen Modellen (2-Gen-Modell nach Davenport). Quellenangabe: Peter Voitl u. a.',
   'results.analyzeAnother': 'Weiteres Auge analysieren',
   'results.palette': 'Iris-Farbpalette',
   'results.toGallery': 'Zur Kunst-Galerie',
