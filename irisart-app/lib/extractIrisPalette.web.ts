@@ -38,8 +38,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /** Sample dominant iris colors from a generated/enhanced iris image URI (web canvas). */
-export async function extractIrisPaletteFromUri(uri: string, maxColors = 10): Promise<PaletteSwatch[]> {
-  const key = `${uri}|${maxColors}`;
+export async function extractIrisPaletteFromUri(uri: string, maxColors = 8): Promise<PaletteSwatch[]> {
+  const key = `v2:${uri}|${maxColors}`;
   const hit = paletteCache.get(key);
   if (hit) return hit;
 

@@ -23,8 +23,8 @@ async function uriToJpegRgba(uri: string): Promise<{ data: Uint8Array; width: nu
 }
 
 /** Sample dominant iris colors from a generated/enhanced iris image URI. */
-export async function extractIrisPaletteFromUri(uri: string, maxColors = 10): Promise<PaletteSwatch[]> {
-  const key = `${uri}|${maxColors}`;
+export async function extractIrisPaletteFromUri(uri: string, maxColors = 8): Promise<PaletteSwatch[]> {
+  const key = `v2:${uri}|${maxColors}`;
   const hit = paletteCache.get(key);
   if (hit) return hit;
 
