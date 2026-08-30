@@ -28,6 +28,13 @@ export type AppColorSet = {
   chipTextActive: string;
   chipBorder: string;
   chipBorderActive: string;
+  /** Pills/chips on light cards while the page background is dark */
+  cardChipBg: string;
+  cardChipBgActive: string;
+  cardChipText: string;
+  cardChipTextActive: string;
+  cardChipBorder: string;
+  cardChipBorderActive: string;
   /** Form field labels on the page background */
   formLabel: string;
   inputPlaceholder: string;
@@ -50,6 +57,12 @@ function buildColors(backgroundTheme: BackgroundTheme): AppColorSet {
       chipTextActive: card.text,
       chipBorder: card.border,
       chipBorderActive: card.tint,
+      cardChipBg: card.surfaceAlt,
+      cardChipBgActive: 'rgba(124,92,255,0.16)',
+      cardChipText: card.text,
+      cardChipTextActive: card.text,
+      cardChipBorder: card.border,
+      cardChipBorderActive: card.tint,
       formLabel: card.text,
       inputPlaceholder: 'rgba(10,11,16,0.45)',
       isDarkPage: false,
@@ -70,6 +83,12 @@ function buildColors(backgroundTheme: BackgroundTheme): AppColorSet {
     chipTextActive: card.text,
     chipBorder: 'rgba(243,245,255,0.18)',
     chipBorderActive: Colors.dark.tint,
+    cardChipBg: card.surfaceAlt,
+    cardChipBgActive: 'rgba(124,92,255,0.16)',
+    cardChipText: card.text,
+    cardChipTextActive: card.text,
+    cardChipBorder: card.border,
+    cardChipBorderActive: card.tint,
     formLabel: Colors.dark.text,
     inputPlaceholder: 'rgba(10,11,16,0.45)',
     isDarkPage: true,

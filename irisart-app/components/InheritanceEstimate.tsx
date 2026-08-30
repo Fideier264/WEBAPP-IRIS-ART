@@ -53,12 +53,12 @@ export function InheritanceEstimate({ primaryHex, paletteHexes }: Props) {
               style={({ pressed }) => [
                 styles.chip,
                 {
-                  borderColor: active ? c.chipBorderActive : c.chipBorder,
-                  backgroundColor: active ? c.chipBgActive : c.chipBg,
+                  borderColor: active ? c.cardChipBorderActive : c.cardChipBorder,
+                  backgroundColor: active ? c.cardChipBgActive : c.cardChipBg,
                   opacity: pressed ? 0.88 : 1,
                 },
               ]}>
-              <Text style={[styles.chipText, { color: active ? c.chipTextActive : c.chipText }]}>
+              <Text style={[styles.chipText, { color: active ? c.cardChipTextActive : c.cardChipText }]}>
                 {t(COLOR_LABEL[id])}
               </Text>
             </Pressable>

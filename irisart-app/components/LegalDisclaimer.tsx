@@ -25,6 +25,25 @@ export function LegalDisclaimer({
   const copy = COPY[variant];
   const title = copy.title ? t(copy.title) : null;
   const emphasize = variant === 'results';
+  const onPage = variant === 'home' || variant === 'results' || variant === 'capture';
+  const onDarkPage = onPage && c.isDarkPage;
+
+  const titleColor = onDarkPage ? c.pageText : c.text;
+  const bodyColor = onDarkPage ? c.pageMuted : c.muted;
+  const boxBackground = onDarkPage
+    ? emphasize
+      ? 'rgba(220,160,40,0.24)'
+      : 'rgba(255,255,255,0.08)'
+    : emphasize
+      ? 'rgba(220,160,40,0.12)'
+      : c.surface;
+  const boxBorder = onDarkPage
+    ? emphasize
+      ? 'rgba(220,160,40,0.58)'
+      : 'rgba(243,245,255,0.18)'
+    : emphasize
+      ? 'rgba(220,160,40,0.45)'
+      : c.border;
 
   return (
     <View
@@ -33,15 +52,15 @@ export function LegalDisclaimer({
         styles.box,
         compact && styles.boxCompact,
         {
-          backgroundColor: emphasize ? 'rgba(220,160,40,0.12)' : c.surface,
-          borderColor: emphasize ? 'rgba(220,160,40,0.45)' : c.border,
+          backgroundColor: boxBackground,
+          borderColor: boxBorder,
         },
       ]}>
       {title ? (
-        <Text style={[styles.title, { color: c.text }]}>{title}</Text>
+        <Text style={[styles.title, { color: titleColor }]}>{title}</Text>
       ) : null}
       <Text
-        style={[styles.body, compact && styles.bodyCompact, { color: c.muted }]}
+        style={[styles.body, compact && styles.bodyCompact, { color: bodyColor }]}
       >
         {t(copy.body)}
       </Text>
