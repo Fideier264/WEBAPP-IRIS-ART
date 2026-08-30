@@ -14,6 +14,7 @@ import {
   peekIrisAnalysisByStableKey,
   peekIrisAnalysisCache,
   seedIrisAnalysisCache,
+  withIrisPaletteFromImage,
   type IrisAnalysis,
 } from '@/lib/analyzeIris';
 import { useT } from '@/lib/i18n';
@@ -39,6 +40,7 @@ export default function ResultsScreen() {
   const irisId = typeof params.irisId === 'string' ? params.irisId : undefined;
   const irisFingerprint = typeof params.irisFingerprint === 'string' ? params.irisFingerprint : undefined;
   const analysisUri = sourceUri ?? uri;
+  const paletteUri = uri ?? sourceUri;
   const stableKey = irisId ?? irisFingerprint;
 
   const [retryNonce, setRetryNonce] = useState(0);
@@ -66,6 +68,12 @@ export default function ResultsScreen() {
       }
     };
 
+    const finish = async (result: IrisAnalysis) => {
+      const ready = await withIrisPaletteFromImage(result, paletteUri);
+      await persistAccount(ready);
+      if (!cancelled) setStatus({ kind: 'ready', result: ready });
+    };
+
     const run = async () => {
       if (!analysisUri && !stableKey) {
         setStatus({ kind: 'error', message: t('results.missingPhoto') });
@@ -77,8 +85,7 @@ export default function ResultsScreen() {
           const local = peekIrisAnalysisByStableKey(stableKey);
           if (local) {
             if (analysisUri) seedIrisAnalysisCache(analysisUri, local, stableKey);
-            await persistAccount(local);
-            if (!cancelled) setStatus({ kind: 'ready', result: local });
+            await finish(local);
             return;
           }
 
@@ -88,7 +95,7 @@ export default function ResultsScreen() {
           });
           if (cloud) {
             seedIrisAnalysisCache(analysisUri, cloud, stableKey);
-            if (!cancelled) setStatus({ kind: 'ready', result: cloud });
+            await finish(cloud);
             return;
           }
         }
@@ -102,18 +109,15 @@ export default function ResultsScreen() {
           const cached = peekIrisAnalysisCache(analysisUri);
           if (cached) {
             if (stableKey) seedIrisAnalysisCache(analysisUri, cached, stableKey);
-            await persistAccount(cached);
-            if (!cancelled) setStatus({ kind: 'ready', result: cached });
+            await finish(cached);
             return;
           }
         }
 
         setStatus({ kind: 'loading' });
-        const result = await analyzeIris(analysisUri, { stableKey });
+        const result = await analyzeIris(analysisUri, { stableKey, paletteUri });
         if (stableKey) seedIrisAnalysisCache(analysisUri, result, stableKey);
-        await persistAccount(result);
-        if (cancelled) return;
-        setStatus({ kind: 'ready', result });
+        await finish(result);
       } catch (e) {
         if (cancelled) return;
         setStatus({ kind: 'error', message: e instanceof Error ? e.message : t('results.failed') });
@@ -123,7 +127,7 @@ export default function ResultsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [analysisUri, stableKey, irisId, irisFingerprint, retryNonce]);
+  }, [analysisUri, paletteUri, stableKey, irisId, irisFingerprint, retryNonce]);
 
   const title = useMemo(() => {
     if (status.kind !== 'ready') return t('results.titleLoading');

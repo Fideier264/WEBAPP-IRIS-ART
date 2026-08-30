@@ -22,6 +22,7 @@ import {
   peekIrisAnalysisByStableKey,
   peekIrisAnalysisCache,
   seedIrisAnalysisCache,
+  withIrisPaletteFromImage,
   type IrisAnalysis,
 } from '@/lib/analyzeIris';
 import { useT } from '@/lib/i18n';
@@ -42,6 +43,7 @@ export default function ArtGalleryScreen() {
   const sourceUri = typeof params.sourceUri === 'string' ? params.sourceUri : undefined;
   const irisFingerprint = typeof params.irisFingerprint === 'string' ? params.irisFingerprint : undefined;
   const analysisUri = sourceUri ?? textureUri;
+  const paletteUri = textureUri ?? sourceUri;
 
   const [analysis, setAnalysis] = useState<IrisAnalysis | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -66,38 +68,36 @@ export default function ArtGalleryScreen() {
       }
     };
 
+    const finish = async (result: IrisAnalysis) => {
+      const ready = await withIrisPaletteFromImage(result, paletteUri);
+      await persistAccount(ready);
+      if (!cancelled) {
+        setAnalysis(ready);
+        setAnalysisStatus('ready');
+      }
+    };
+
     const run = async () => {
       if (!analysisUri) return;
       if (irisFingerprint) {
         const byKey = peekIrisAnalysisByStableKey(irisFingerprint);
         if (byKey) {
           seedIrisAnalysisCache(analysisUri, byKey, irisFingerprint);
-          await persistAccount(byKey);
-          if (!cancelled) {
-            setAnalysis(byKey);
-            setAnalysisStatus('ready');
-          }
+          await finish(byKey);
           return;
         }
       }
       const cached = peekIrisAnalysisCache(analysisUri);
       if (cached) {
         if (irisFingerprint) seedIrisAnalysisCache(analysisUri, cached, irisFingerprint);
-        await persistAccount(cached);
-        if (!cancelled) {
-          setAnalysis(cached);
-          setAnalysisStatus('ready');
-        }
+        await finish(cached);
         return;
       }
       try {
         setAnalysisStatus('loading');
-        const res = await analyzeIris(analysisUri, { stableKey: irisFingerprint });
+        const res = await analyzeIris(analysisUri, { stableKey: irisFingerprint, paletteUri });
         if (irisFingerprint) seedIrisAnalysisCache(analysisUri, res, irisFingerprint);
-        await persistAccount(res);
-        if (cancelled) return;
-        setAnalysis(res);
-        setAnalysisStatus('ready');
+        await finish(res);
       } catch {
         if (cancelled) return;
         setAnalysisStatus('error');
@@ -107,7 +107,7 @@ export default function ArtGalleryScreen() {
     return () => {
       cancelled = true;
     };
-  }, [analysisUri, irisFingerprint]);
+  }, [analysisUri, paletteUri, irisFingerprint]);
 
   const userFamilies = useMemo(() => {
     if (!analysis) return inferEyeColorFamilies('#8B7355', []);

@@ -50,6 +50,7 @@ export default function ReviewScreen() {
   const textureUri = typeof params.textureUri === 'string' ? params.textureUri : undefined;
   const sourceUri = typeof params.sourceUri === 'string' ? params.sourceUri : undefined;
   const analysisUri = sourceUri ?? textureUri;
+  const paletteUri = textureUri ?? analysisUri;
   const initialStyle = ((): ArtStyleId => {
     const s = typeof params.style === 'string' ? params.style : '';
     return s === 'watercolor' || s === 'cyberpunk' || s === 'cosmic' ? s : 'cosmic';
@@ -68,7 +69,7 @@ export default function ReviewScreen() {
       if (!analysisUri) return;
       try {
         setAnalysisStatus('loading');
-        const res = await analyzeIris(analysisUri);
+        const res = await analyzeIris(analysisUri, { paletteUri });
         if (cancelled) return;
         setAnalysis(res);
         setAnalysisStatus('ready');
@@ -81,7 +82,7 @@ export default function ReviewScreen() {
     return () => {
       cancelled = true;
     };
-  }, [analysisUri]);
+  }, [analysisUri, paletteUri]);
 
   const subtitle = useMemo(() => 'Preview exactly what your enhanced iris looks like on print', []);
   const irisPaletteColors = useMemo(() => {

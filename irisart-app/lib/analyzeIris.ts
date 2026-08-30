@@ -2,6 +2,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from '@/lib/platformFileSystem';
 
 import { uploadTempImage } from './aiEnhance';
+import { extractIrisPaletteFromUri } from './extractIrisPalette';
 import { invokeEdgeFunction } from './invokeEdgeFunction';
 
 /** Structured copy from Edge Function `iris-analyze` (German narrative + HEX list). */
@@ -90,6 +91,28 @@ function buildRarityText(g: IrisGeminiDetails): string {
     g.uniqueStructureNote,
     `${g.inheritanceSentence} (${g.inheritancePercent})`,
   ].join('\n\n');
+}
+
+async function applyExtractedPalette(result: IrisAnalysis, paletteUri?: string): Promise<IrisAnalysis> {
+  if (!paletteUri) return result;
+  try {
+    const extracted = await extractIrisPaletteFromUri(paletteUri);
+    if (!extracted.length) return result;
+    const primaryHex = extracted[0]!.hex;
+    const secondaryHex = extracted[1]?.hex ?? primaryHex;
+    return { ...result, primaryHex, secondaryHex, palette: extracted };
+  } catch (e) {
+    console.warn('iris palette extraction failed', e instanceof Error ? e.message : String(e));
+    return result;
+  }
+}
+
+/** Re-sample palette swatches from the enhanced iris image (e.g. after cache hit). */
+export async function withIrisPaletteFromImage(
+  result: IrisAnalysis,
+  paletteUri?: string
+): Promise<IrisAnalysis> {
+  return applyExtractedPalette(result, paletteUri);
 }
 
 /** In-memory: one network call per texture URI (Review + Results share the same result). */
@@ -296,21 +319,26 @@ async function analyzeIrisUncached(uri: string): Promise<IrisAnalysis> {
 /**
  * Gemini-Analyse (Edge `iris-analyze`). Gleiche URI = gecacht; parallele Aufrufe teilen eine Request.
  * Optional `stableKey` (enhance fingerprint / iris id) pins the result across signed-URL changes.
+ * Optional `paletteUri` — enhanced iris image used to extract the displayed color palette.
  */
-export async function analyzeIris(uri: string, opts?: { stableKey?: string }): Promise<IrisAnalysis> {
+export async function analyzeIris(
+  uri: string,
+  opts?: { stableKey?: string; paletteUri?: string }
+): Promise<IrisAnalysis> {
   await ensurePersistedAnalysisLoaded();
   const stableKey = opts?.stableKey;
+  const paletteUri = opts?.paletteUri;
 
   if (stableKey) {
     const byKey = analysisCacheByFingerprint.get(stableKey) ?? persistedAnalysisMap.get(stableKey);
     if (byKey) {
       analysisCache.set(uri, byKey);
-      return byKey;
+      return applyExtractedPalette(byKey, paletteUri);
     }
   }
 
   const hit = analysisCache.get(uri);
-  if (hit) return hit;
+  if (hit) return applyExtractedPalette(hit, paletteUri);
 
   const localUri =
     uri.startsWith('http://') || uri.startsWith('https://')
@@ -332,7 +360,7 @@ export async function analyzeIris(uri: string, opts?: { stableKey?: string }): P
         persistedAnalysisMap.set(stableKey, fpHit);
         await flushPersistedAnalysis();
       }
-      return fpHit;
+      return applyExtractedPalette(fpHit, paletteUri);
     }
     const persisted = persistedAnalysisMap.get(fp);
     if (persisted) {
@@ -343,7 +371,7 @@ export async function analyzeIris(uri: string, opts?: { stableKey?: string }): P
         persistedAnalysisMap.set(stableKey, persisted);
         await flushPersistedAnalysis();
       }
-      return persisted;
+      return applyExtractedPalette(persisted, paletteUri);
     }
   }
 
@@ -377,5 +405,5 @@ export async function analyzeIris(uri: string, opts?: { stableKey?: string }): P
     if (fp) analysisInflightByFingerprint.set(fp, inflight);
     if (stableKey) analysisInflightByFingerprint.set(stableKey, inflight);
   }
-  return inflight;
+  return applyExtractedPalette(await inflight, paletteUri);
 }
