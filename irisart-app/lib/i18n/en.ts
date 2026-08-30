@@ -155,7 +155,7 @@ const en: Record<TranslationKey, string> = {
   'results.inheritanceHeterozygousNote':
     '* Applies when brown-eyed parents carry hidden lighter alleles (heterozygous). With homozygous brown parents, green/blue odds are near 0%.',
   'results.inheritanceCitation':
-    'Based on simplified genetic models (Davenport two-gene model). Source: Peter Voitl et al.',
+    'Based on simplified genetic models (Davenport two-gene model).',
   'results.analyzeAnother': 'Analyze Another Eye',
   'results.palette': 'Iris color palette',
   'results.toGallery': 'To Art Gallery',

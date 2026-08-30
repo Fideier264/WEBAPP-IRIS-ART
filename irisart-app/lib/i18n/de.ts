@@ -162,7 +162,7 @@ const de = {
   'results.inheritanceHeterozygousNote':
     '* Gilt, wenn braunäugige Elternteile hellere Farbgene verdeckt tragen (heterozygot). Bei reinbraunen Eltern liegt die Chance auf Grün/Blau nahe 0 %.',
   'results.inheritanceCitation':
-    'Basierend auf vereinfachten genetischen Modellen (2-Gen-Modell nach Davenport). Quellenangabe: Peter Voitl u. a.',
+    'Basierend auf vereinfachten genetischen Modellen (2-Gen-Modell nach Davenport).',
   'results.analyzeAnother': 'Weiteres Auge analysieren',
   'results.palette': 'Iris-Farbpalette',
   'results.toGallery': 'Zur Kunst-Galerie',
