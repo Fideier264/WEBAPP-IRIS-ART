@@ -496,6 +496,21 @@ export default function CheckoutScreen() {
               )}
             </Pressable>
             <Text style={[styles.legal, { color: c.pageMuted }]}>{t('checkout.legal')}</Text>
+            <View style={styles.legalLinks}>
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => router.push('/privacy')}
+                style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}>
+                <Text style={[styles.legalLink, { color: c.pageMuted }]}>{t('account.privacy')}</Text>
+              </Pressable>
+              <Text style={[styles.legalSep, { color: c.pageMuted }]}>·</Text>
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => router.push('/terms')}
+                style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}>
+                <Text style={[styles.legalLink, { color: c.pageMuted }]}>{t('account.terms')}</Text>
+              </Pressable>
+            </View>
           </ScrollView>
         )}
       </SafeAreaView>
@@ -643,4 +658,13 @@ const styles = StyleSheet.create({
   busyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   primaryBtnText: { color: '#fff', fontSize: 16.5, fontWeight: '800' },
   legal: { fontSize: 12, lineHeight: 17, marginTop: 4 },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  legalLink: { fontSize: 12, fontWeight: '700', textDecorationLine: 'underline' },
+  legalSep: { fontSize: 12 },
 });

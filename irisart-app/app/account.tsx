@@ -284,6 +284,29 @@ export default function AccountScreen() {
 
           <LegalDisclaimer variant="account" />
 
+          <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.legalTitle')}</Text>
+            <Text style={[styles.body, { color: c.muted }]}>{t('account.legalBody')}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/privacy')}
+              style={({ pressed }) => [
+                styles.secondaryBtn,
+                { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.85 : 1 },
+              ]}>
+              <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.privacy')}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/terms')}
+              style={({ pressed }) => [
+                styles.secondaryBtn,
+                { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.85 : 1 },
+              ]}>
+              <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.terms')}</Text>
+            </Pressable>
+          </View>
+
           {busy ? <ActivityIndicator color={c.tint} style={{ marginTop: 12 }} /> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {info ? <Text style={[styles.info, { color: c.pageMuted }]}>{info}</Text> : null}

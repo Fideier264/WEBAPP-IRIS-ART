@@ -50,6 +50,11 @@ const en: Record<TranslationKey, string> = {
   'account.backgroundHint': 'Page background only — cards and content stay light and readable.',
   'account.bg.light': 'Light',
   'account.bg.dark': 'Dark',
+  'account.legalTitle': 'Legal',
+  'account.legalBody':
+    'Privacy (including iris/biometric notes) and Terms — in the app and at /privacy or /terms on the web.',
+  'account.privacy': 'Privacy Policy',
+  'account.terms': 'Terms of Service',
 
   'home.tagline': 'Science of Your Eye',
   'home.sub':
@@ -62,6 +67,8 @@ const en: Record<TranslationKey, string> = {
   'home.tip3Body': 'Preview styles, then order a physical print.',
   'home.cta': 'Begin Iris Scan',
   'home.foot': 'Tip: For best lighting, use the rear camera + flashlight and a mirror.',
+  'home.legalPrivacy': 'Privacy',
+  'home.legalTerms': 'Terms',
 
   'capture.back': 'Back',
   'capture.upload': 'Upload',
@@ -225,7 +232,7 @@ const en: Record<TranslationKey, string> = {
   'checkout.payCta': 'Proceed to payment',
   'checkout.payCtaPrice': 'Proceed to payment — {{price}}',
   'checkout.legal':
-    'Secure payment via Stripe. After successful payment the print order is created automatically at merchOne.',
+    'Secure payment via Stripe. After successful payment the print order is created automatically at merchOne. Privacy Policy and Terms apply (Account, or /privacy and /terms).',
   'checkout.errNoArt': 'No artwork found. Please choose “Order canvas” from the shop.',
   'checkout.errNoTemplate': 'No template selected. Pick one in the shop and order again.',
   'checkout.errNoProduct': 'Please select a product.',

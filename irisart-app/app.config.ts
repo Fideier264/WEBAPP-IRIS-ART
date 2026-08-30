@@ -22,6 +22,10 @@ export default ({ config }: { config: Record<string, any> }) => {
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
       // Bake catalog into the web build (Hostinger runtime env alone is not enough for Expo).
       merchoneCatalog: process.env.EXPO_PUBLIC_MERCHONE_CATALOG ?? null,
+      legalOperatorName: process.env.EXPO_PUBLIC_LEGAL_OPERATOR_NAME ?? null,
+      legalContactEmail: process.env.EXPO_PUBLIC_LEGAL_CONTACT_EMAIL ?? null,
+      legalAddress: process.env.EXPO_PUBLIC_LEGAL_ADDRESS ?? null,
+      legalEffectiveDate: process.env.EXPO_PUBLIC_LEGAL_EFFECTIVE_DATE ?? null,
     },
   };
 };

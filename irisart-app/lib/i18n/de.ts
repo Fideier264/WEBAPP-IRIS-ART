@@ -51,6 +51,11 @@ const de = {
   'account.backgroundHint': 'Nur der Seitenhintergrund — Karten und Inhalte bleiben hell und gut lesbar.',
   'account.bg.light': 'Hell',
   'account.bg.dark': 'Dunkel',
+  'account.legalTitle': 'Rechtliches',
+  'account.legalBody':
+    'Datenschutz (inkl. Iris-/Biometrie-Hinweise) und AGB — in der App und unter /privacy bzw. /terms im Web.',
+  'account.privacy': 'Datenschutz',
+  'account.terms': 'AGB',
 
   // Home / scan
   'home.tagline': 'Die Wissenschaft deines Auges',
@@ -64,6 +69,8 @@ const de = {
   'home.tip3Body': 'Styles wählen, dann physischen Druck bestellen.',
   'home.cta': 'Iris-Scan starten',
   'home.foot': 'Tipp: Beste Ergebnisse mit Rückkamera, Blitz und Spiegel.',
+  'home.legalPrivacy': 'Datenschutz',
+  'home.legalTerms': 'AGB',
 
   // Capture
   'capture.back': 'Zurück',
@@ -240,7 +247,7 @@ const de = {
   'checkout.payCta': 'Weiter zur Zahlung',
   'checkout.payCtaPrice': 'Weiter zur Zahlung — {{price}}',
   'checkout.legal':
-    'Sichere Zahlung über Stripe. Nach erfolgreicher Zahlung wird die Druckbestellung automatisch bei merchOne angelegt.',
+    'Sichere Zahlung über Stripe. Nach erfolgreicher Zahlung wird die Druckbestellung automatisch bei merchOne angelegt. Es gelten Datenschutz und AGB (Konto bzw. /privacy und /terms).',
   'checkout.errNoArt':
     'Kein Kunstwerk gefunden. Bitte vom Shop aus „Leinwand bestellen“ wählen.',
   'checkout.errNoTemplate':

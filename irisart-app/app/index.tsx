@@ -62,6 +62,21 @@ export default function OnboardingScreen() {
         <Text style={[styles.foot, { color: c.pageMuted }]}>
           {t('home.foot')}
         </Text>
+        <View style={styles.legalRow}>
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => router.push('/privacy')}
+            style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}>
+            <Text style={[styles.legalLink, { color: c.pageMuted }]}>{t('home.legalPrivacy')}</Text>
+          </Pressable>
+          <Text style={[styles.legalSep, { color: c.pageMuted }]}>·</Text>
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => router.push('/terms')}
+            style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}>
+            <Text style={[styles.legalLink, { color: c.pageMuted }]}>{t('home.legalTerms')}</Text>
+          </Pressable>
+        </View>
         </ScrollView>
         <AppBottomBar active="scan" />
       </SafeAreaView>
@@ -131,4 +146,13 @@ const styles = StyleSheet.create({
   },
   ctaText: { color: '#fff', fontSize: 16.5, fontWeight: '850' },
   foot: { marginTop: 14, fontSize: 12.5, lineHeight: 18, textAlign: 'center' },
+  legalRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  legalLink: { fontSize: 12.5, fontWeight: '700', textDecorationLine: 'underline' },
+  legalSep: { fontSize: 12.5 },
 });
