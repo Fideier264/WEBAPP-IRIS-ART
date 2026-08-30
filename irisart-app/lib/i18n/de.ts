@@ -94,7 +94,7 @@ const de = {
   'disclaimer.resultsBody':
     'Diese Auswertung ist keine medizinische, genetische oder iridologische Diagnose. Prozentangaben und Texte sind kreative Schätzungen eines KI-Modells, keine wissenschaftlichen Messergebnisse.',
   'disclaimer.captureBody':
-    'Fotos dienen der Kunstgenerierung. Die Analyse ist Unterhaltung, keine medizinische Untersuchung.',
+    'Fotos nur für Kunst — die Analyse ist Unterhaltung, keine medizinische Untersuchung.',
   'disclaimer.accountTitle': 'Daten & Analyse',
   'disclaimer.accountBody':
     'Bei Login speichern wir deine Iris-Renderings und optional die Farbanalyse in deinem Konto. Beides kannst du jederzeit löschen — einzelne Bilder in der Galerie oder das gesamte Konto hier.',

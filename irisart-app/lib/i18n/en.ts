@@ -90,7 +90,7 @@ const en: Record<TranslationKey, string> = {
   'disclaimer.resultsBody':
     'This readout is not a medical, genetic, or iridology diagnosis. Percentages and copy are creative estimates from an AI model, not scientific measurements.',
   'disclaimer.captureBody':
-    'Photos are used to generate artwork. Analysis is entertainment, not a medical exam.',
+    'Photos are for artwork only. Analysis is entertainment, not a medical exam.',
   'disclaimer.accountTitle': 'Data & analysis',
   'disclaimer.accountBody':
     'When signed in we store your iris renderings and optional color analysis on your account. You can delete individual gallery items or the entire account here at any time.',

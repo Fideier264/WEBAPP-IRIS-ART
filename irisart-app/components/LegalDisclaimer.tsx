@@ -40,7 +40,11 @@ export function LegalDisclaimer({
       {title ? (
         <Text style={[styles.title, { color: c.text }]}>{title}</Text>
       ) : null}
-      <Text style={[styles.body, compact && styles.bodyCompact, { color: c.muted }]}>{t(copy.body)}</Text>
+      <Text
+        style={[styles.body, compact && styles.bodyCompact, { color: c.muted }]}
+      >
+        {t(copy.body)}
+      </Text>
     </View>
   );
 }
@@ -52,6 +56,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 6,
+    alignSelf: 'stretch',
+    width: '100%',
   },
   boxCompact: {
     borderRadius: 12,
@@ -59,6 +65,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   title: { fontSize: 13.5, fontWeight: '800' },
-  body: { fontSize: 12.5, lineHeight: 18 },
+  body: { fontSize: 12.5, lineHeight: 18, flexShrink: 1 },
   bodyCompact: { fontSize: 11.5, lineHeight: 16 },
 });

@@ -321,7 +321,11 @@ export default function CaptureScreen() {
           </View>
         ) : null}
 
-        {state.kind === 'camera' ? <LegalDisclaimer variant="capture" compact /> : null}
+        {state.kind === 'camera' ? (
+          <View style={styles.disclaimerWrap}>
+            <LegalDisclaimer variant="capture" compact />
+          </View>
+        ) : null}
 
         <View style={styles.controls}>
           {state.kind === 'preview' ? (
@@ -418,6 +422,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 0 },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: BOTTOM_BAR_CLEARANCE, flexGrow: 1, gap: 10 },
+  disclaimerWrap: { width: '100%', alignSelf: 'stretch' },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   toolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingRight: 4 },
   chip: {
