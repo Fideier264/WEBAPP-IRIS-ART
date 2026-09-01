@@ -12,12 +12,13 @@ const appJson = require('./app.json');
 
 export default ({ config }: { config: Record<string, any> }) => {
   const base = appJson?.expo ?? {};
+  const baseExtra = (base.extra ?? {}) as Record<string, unknown>;
 
   return {
     ...config,
     ...base,
     extra: {
-      ...(base.extra ?? {}),
+      ...baseExtra,
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
       appOrigin: process.env.EXPO_PUBLIC_APP_ORIGIN ?? 'https://irisart.app',
@@ -29,6 +30,9 @@ export default ({ config }: { config: Record<string, any> }) => {
         process.env.EXPO_PUBLIC_LEGAL_ADDRESS ??
         'Lucy-Hillebrandstr. 14, App. 6016, 55128 Mainz, Deutschland',
       legalEffectiveDate: process.env.EXPO_PUBLIC_LEGAL_EFFECTIVE_DATE ?? '2026-09-01',
+      // Required by EAS / expo-router — must survive dynamic extra merge.
+      eas: baseExtra.eas,
+      router: baseExtra.router,
     },
   };
 };

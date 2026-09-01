@@ -57,6 +57,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "owner": "amir.fgt",
+    "extra": {
+      "eas": {
+        "projectId": "3ff17c55-378a-4e72-9bca-2f610a793b94"
+      }
     }
   }
 }
