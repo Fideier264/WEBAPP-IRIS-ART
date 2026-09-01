@@ -65,7 +65,7 @@ npm start
 | `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_30CM` | optional |
 | `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_60CM` | optional |
 
-Nach dem Setzen **Deploy / Rebuild** auslösen — Env-Variablen werden erst beim `npm run build` in die Web-App eingebettet.
+Nach dem Setzen **Deploy / Rebuild** auslösen. Die Web-App liest Supabase-Zugangsdaten zusätzlich zur Build-Zeit zur **Laufzeit** über `https://irisart.app/app-config.json` vom Node-Server — ein reiner App-Neustart reicht oft, ein Rebuild ist nur für andere `EXPO_PUBLIC_*`-Werte nötig.
 
 5. **Deploy** klicken. Hostinger führt aus: `npm install` → `npm run build` → `npm start`.
 

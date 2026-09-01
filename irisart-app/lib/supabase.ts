@@ -2,25 +2,28 @@ import 'react-native-url-polyfill/auto';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import Constants from 'expo-constants';
 
-type Extra = {
-  supabaseUrl?: string;
-  supabaseAnonKey?: string;
-};
+import type { PublicAppConfig } from './appConfigCore';
+import { configFromBuildExtra, isPublicAppConfigReady } from './appConfigCore';
 
-const extra = (Constants.expoConfig?.extra ?? {}) as Extra;
+const baked = configFromBuildExtra();
 
-export const supabaseUrl = extra.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-export const supabaseAnonKey =
-  extra.supabaseAnonKey ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+export const supabaseUrl = baked.supabaseUrl;
+export let supabaseAnonKey = baked.supabaseAnonKey;
 
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+let supabaseClient: SupabaseClient | null = null;
 
-let supabase!: SupabaseClient;
+export function isSupabaseConfigured(config?: PublicAppConfig): boolean {
+  const cfg = config ?? baked;
+  return isPublicAppConfigReady(cfg);
+}
 
-if (typeof window !== 'undefined' && isSupabaseConfigured) {
-  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export function initSupabase(config: PublicAppConfig): SupabaseClient {
+  if (!isPublicAppConfigReady(config)) {
+    throw new Error('Cannot init Supabase without URL and anon key.');
+  }
+  supabaseAnonKey = config.supabaseAnonKey;
+  supabaseClient = createClient(config.supabaseUrl, config.supabaseAnonKey, {
     auth: {
       storage: AsyncStorage,
       persistSession: true,
@@ -28,15 +31,21 @@ if (typeof window !== 'undefined' && isSupabaseConfigured) {
       detectSessionInUrl: false,
     },
   });
+  return supabaseClient;
 }
 
-export function requireSupabase(): SupabaseClient {
-  if (!isSupabaseConfigured || typeof supabase === 'undefined') {
-    throw new Error(
-      'Missing Supabase env. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY before building the app.'
-    );
+export function getSupabase(): SupabaseClient {
+  if (!supabaseClient) {
+    throw new Error('Supabase is not initialized yet.');
   }
-  return supabase;
+  return supabaseClient;
 }
 
-export { supabase };
+/** Backward-compatible export — call after `initSupabase`. */
+export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const client = getSupabase();
+    const value = (client as Record<string | symbol, unknown>)[prop];
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+});

@@ -3,14 +3,14 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppColors } from '@/lib/appTheme';
-import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '@/lib/supabase';
 
-/** Shown when the production web build was deployed without required env vars. */
-export function ConfigErrorScreen() {
+/** Shown when Supabase env vars are missing at build time and runtime. */
+export function ConfigErrorScreen({ missing }: { missing?: string[] }) {
   const c = useAppColors();
-  const missing: string[] = [];
-  if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
-  if (!supabaseAnonKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+  const keys =
+    missing && missing.length > 0
+      ? missing
+      : ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY'];
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
@@ -18,19 +18,20 @@ export function ConfigErrorScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={[styles.title, { color: c.pageText }]}>Konfiguration unvollständig</Text>
           <Text style={[styles.body, { color: c.pageMuted }]}>
-            Die App wurde ohne Supabase-Zugangsdaten gebaut. Das passiert oft nach einem Domain-Wechsel, wenn die
-            Umgebungsvariablen auf Hostinger nicht gesetzt oder kein neuer Build ausgelöst wurde.
+            Supabase-Zugangsdaten fehlen. Auf Hostinger müssen die Variablen in der Node.js Web App gesetzt sein —
+            sie werden beim Start von server.js ausgelesen (nicht nur beim Build).
           </Text>
           <View style={[styles.box, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Text style={[styles.boxTitle, { color: c.text }]}>Fehlt im Build:</Text>
-            {missing.map((key) => (
+            <Text style={[styles.boxTitle, { color: c.text }]}>Fehlt:</Text>
+            {keys.map((key) => (
               <Text key={key} style={[styles.mono, { color: c.text }]}>
                 {key}
               </Text>
             ))}
           </View>
           <Text style={[styles.body, { color: c.pageMuted }]}>
-            Hostinger → Node.js Web App → Environment Variables setzen, dann erneut deployen (Build neu ausführen).
+            Hostinger → Node.js Web App → Environment Variables prüfen → App neu starten (Redeploy). Danach Hard-Refresh
+            (Strg+F5).
           </Text>
         </ScrollView>
       </SafeAreaView>
