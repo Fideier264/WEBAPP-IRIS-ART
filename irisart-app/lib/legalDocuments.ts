@@ -23,8 +23,8 @@ function privacyDe(o: LegalOperator): LegalDocument {
         paragraphs: [
           `${o.operatorName}`,
           o.addressLine,
+          `Website: ${o.website}`,
           `Kontakt Datenschutz / Anfragen: ${o.contactEmail}`,
-          'Bitte ersetze Platzhalter (Firmenname, Anschrift, E-Mail) vor dem öffentlichen Launch bzw. dem App-Store-Eintrag durch deine echten Angaben.',
         ],
       },
       {
@@ -104,8 +104,8 @@ function privacyEn(o: LegalOperator): LegalDocument {
         paragraphs: [
           `${o.operatorName}`,
           o.addressLine,
+          `Website: ${o.website}`,
           `Privacy / requests: ${o.contactEmail}`,
-          'Replace placeholders (legal name, address, email) with your real details before public launch or App Store submission.',
         ],
       },
       {
@@ -185,8 +185,8 @@ function termsDe(o: LegalOperator): LegalDocument {
         paragraphs: [
           `${o.operatorName}`,
           o.addressLine,
+          `Website: ${o.website}`,
           `Kontakt: ${o.contactEmail}`,
-          'Platzhalter vor dem Launch durch echte Anbieterdaten ersetzen.',
         ],
       },
       {
@@ -265,8 +265,8 @@ function termsEn(o: LegalOperator): LegalDocument {
         paragraphs: [
           `${o.operatorName}`,
           o.addressLine,
+          `Website: ${o.website}`,
           `Contact: ${o.contactEmail}`,
-          'Replace placeholders with real provider details before launch.',
         ],
       },
       {
