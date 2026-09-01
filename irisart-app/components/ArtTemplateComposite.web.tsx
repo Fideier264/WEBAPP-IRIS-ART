@@ -2,6 +2,7 @@ import React, { createElement, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import type { ArtTemplate } from '@/lib/artTemplates';
+import { getTemplateCanvasBackground } from '@/lib/artTemplates';
 import { paintArtComposite } from '@/lib/artCompositeTint.web';
 
 type Props = {
@@ -26,6 +27,7 @@ export function ArtTemplateComposite({
   secondaryColorTint = true,
 }: Props) {
   const height = width / template.aspectRatio;
+  const canvasBg = getTemplateCanvasBackground(template);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [busy, setBusy] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -43,7 +45,7 @@ export function ArtTemplateComposite({
     canvas.height = ph;
     const clearCtx = canvas.getContext('2d');
     if (clearCtx) {
-      clearCtx.fillStyle = '#07060c';
+      clearCtx.fillStyle = canvasBg;
       clearCtx.fillRect(0, 0, pw, ph);
     }
 
@@ -97,7 +99,7 @@ export function ArtTemplateComposite({
   }, [textureUri, textureUri2, template, template.id, width, height, secondaryColorTint]);
 
   return (
-    <View style={[styles.root, { width, height }]}>
+    <View style={[styles.root, { width, height, backgroundColor: canvasBg }]}>
       {createElement('canvas', {
         ref: canvasRef,
         style: {

@@ -2,7 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import type { ArtTemplate } from '@/lib/artTemplates';
-import { getArtTemplateHoles } from '@/lib/artTemplates';
+import { getArtTemplateHoles, getTemplateCanvasBackground } from '@/lib/artTemplates';
 import { useT } from '@/lib/i18n';
 
 type Props = {
@@ -33,9 +33,10 @@ export function ArtTemplateComposite({
   const irisScale = template.irisScale ?? 1;
   const resizeMode = template.irisResizeMode ?? 'contain';
   const slotBg = template.irisSlotBackground ?? '#000000';
+  const canvasBg = getTemplateCanvasBackground(template);
 
   return (
-    <View style={[styles.root, { width, height }]}>
+    <View style={[styles.root, { width, height, backgroundColor: canvasBg }]}>
       {holes.map((hole, i) => {
         const left = hole.x * width;
         const top = hole.y * height;

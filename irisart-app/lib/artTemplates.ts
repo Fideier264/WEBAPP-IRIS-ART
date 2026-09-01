@@ -49,6 +49,8 @@ export type ArtTemplate = {
   irisResizeMode?: 'contain' | 'cover';
   /** Hintergrund hinter der Textur im Slot (z. B. #000000 wie Nano-Banana) */
   irisSlotBackground?: string;
+  /** Volle Canvas-Farbe ohne Overlay (Classic Schwarz/Weiß). */
+  canvasBackground?: string;
   /**
    * PNG mit transparentem Bereich für die Iris. Oben drüber, full-bleed.
    * Für Iris-Tint: Graustufen-PNG verwenden und `tintWithIrisColor: true` setzen.
@@ -79,11 +81,53 @@ export function isDualEyeTemplate(template: ArtTemplate): boolean {
   return getArtTemplateHoles(template).length >= 2;
 }
 
+/** Canvas-Hintergrund für Vorschau, Export und Templates ohne Overlay. */
+export function getTemplateCanvasBackground(template: ArtTemplate): string {
+  return template.canvasBackground ?? template.irisSlotBackground ?? '#07060c';
+}
+
 /**
  * Beispiel-Templates ohne PNG — nur zum Testen von Filter + Platzierung.
  * Ersetze/ergänze durch eigene Overlays (Loch = Transparenz in der PNG).
  */
 export const ART_TEMPLATES: ArtTemplate[] = [
+{
+  id: 'classic.black',
+  title: 'Classic Black',
+  subtitle: 'Minimal · schwarzer Hintergrund',
+  aspectRatio: 1,
+  colorFamilies: ['any'],
+  canvasBackground: '#000000',
+  irisSlotBackground: '#000000',
+  irisHole: {
+    x: 0.16,
+    y: 0.16,
+    w: 0.68,
+    h: 0.68,
+    circular: true,
+  },
+  irisResizeMode: 'cover',
+  irisScale: 1.06,
+},
+{
+  id: 'classic.white',
+  title: 'Classic White',
+  subtitle: 'Minimal · weißer Hintergrund',
+  aspectRatio: 1,
+  colorFamilies: ['any'],
+  canvasBackground: '#FFFFFF',
+  irisSlotBackground: '#FFFFFF',
+  irisHole: {
+    x: 0.16,
+    y: 0.16,
+    w: 0.68,
+    h: 0.68,
+    circular: true,
+  },
+  irisResizeMode: 'cover',
+  irisScale: 1.06,
+},
+
 /*
 {
   id: 'galaxyblue',

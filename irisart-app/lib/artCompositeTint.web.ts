@@ -2,6 +2,7 @@ import { Asset } from 'expo-asset';
 import type { ImageSourcePropType } from 'react-native';
 
 import type { ArtTemplate } from './artTemplates';
+import { getTemplateCanvasBackground } from './artTemplates';
 import { getArtTemplateHoles } from './artTemplates';
 
 export type RgbColor = { r: number; g: number; b: number };
@@ -1021,9 +1022,10 @@ export async function paintArtComposite(
     template,
     width,
     height,
-    background = '#07060c',
+    background: backgroundOpt,
     secondaryColorTint = true,
   } = opts;
+  const background = backgroundOpt ?? getTemplateCanvasBackground(template);
   const holes = getArtTemplateHoles(template);
   const textureUris = [textureUri, textureUri2].filter(
     (u): u is string => typeof u === 'string' && u.length > 0

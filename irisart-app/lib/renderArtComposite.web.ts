@@ -5,6 +5,7 @@ import {
   type RgbColor,
 } from './artCompositeTint.web';
 import type { ArtTemplate } from './artTemplates';
+import { getTemplateCanvasBackground } from './artTemplates';
 
 export type { RgbColor };
 
@@ -100,7 +101,7 @@ export async function renderArtCompositeToLocalUri(input: RenderArtCompositeInpu
   const productCtx = product.getContext('2d');
   if (!productCtx) throw new Error('Canvas 2D not available.');
 
-  productCtx.fillStyle = '#07060c';
+  productCtx.fillStyle = getTemplateCanvasBackground(input.template);
   productCtx.fillRect(0, 0, outW, outH);
 
   const coverScale = Math.max(outW / designW, outH / designH);
