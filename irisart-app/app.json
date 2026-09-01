@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "irisart-app",
+    "name": "IrisArt",
     "slug": "irisart-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,13 +13,18 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "bundleIdentifier": "app.irisart.mobile",
+      "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "IrisArt uses the camera to capture a close-up photo of your iris for color analysis and artwork generation.",
-        "NSPhotoLibraryUsageDescription": "IrisArt uses your photo library to let you select a close-up image of your iris for analysis."
+        "NSCameraUsageDescription": "IrisArt nutzt die Kamera für Nahaufnahmen deiner Iris zur Farbanalyse und Kunstgenerierung.",
+        "NSPhotoLibraryUsageDescription": "IrisArt greift auf deine Fotomediathek zu, damit du eine Nahaufnahme deiner Iris auswählen kannst.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
+      "package": "app.irisart.mobile",
+      "versionCode": 1,
       "permissions": [
         "CAMERA",
         "FLASHLIGHT"
@@ -43,8 +48,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow IrisArt to access your camera for iris capture.",
-          "microphonePermission": "Allow IrisArt to access your microphone.",
+          "cameraPermission": "IrisArt benötigt Kamerazugriff für Iris-Aufnahmen.",
           "recordAudioAndroid": false
         }
       ],

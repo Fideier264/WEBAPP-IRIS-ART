@@ -82,6 +82,65 @@ Siehe `vercel.json`. Environment Variables wie oben.
 - Build: `npm run build`
 - Publish-Verzeichnis: `irisart-app/dist`
 
+## iOS (EAS Build + TestFlight)
+
+Voraussetzungen: [Apple Developer Program](https://developer.apple.com/programs/) (99 €/Jahr), Expo-Konto (`npx eas login`).
+
+### 1) EAS-Projekt verknüpfen
+
+```bash
+cd irisart-app
+npm install
+npx eas login
+npm run eas:init
+```
+
+`eas init` legt die `projectId` in `app.json` an und verknüpft das Repo mit Expo.
+
+### 2) Build-Secrets (EAS Environment)
+
+Supabase- und Legal-Werte müssen **zum Build-Zeitpunkt** gesetzt sein (native Apps lesen kein Hostinger-Runtime-Config):
+
+```bash
+cd irisart-app
+npx eas env:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://…supabase.co" --environment production --visibility plaintext
+npx eas env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "eyJ…" --environment production --visibility plaintext
+npx eas env:create --name EXPO_PUBLIC_LEGAL_OPERATOR_NAME --value "Amir Figut" --environment production --visibility plaintext
+npx eas env:create --name EXPO_PUBLIC_LEGAL_CONTACT_EMAIL --value "contact@irisart.app" --environment production --visibility plaintext
+npx eas env:create --name EXPO_PUBLIC_LEGAL_ADDRESS --value "Lucy-Hillebrandstr. 14, App. 6016, 55128 Mainz, Deutschland" --environment production --visibility plaintext
+```
+
+Optional: `EXPO_PUBLIC_MERCHONE_CATALOG` oder SKU-Variablen wie in `.env.example`.
+
+Für **Preview/TestFlight intern** dieselben Variablen auch unter `--environment preview` anlegen.
+
+### 3) Ersten iOS-Build starten
+
+```bash
+npm run eas:build:ios:preview
+```
+
+EAS fragt nach Apple-Zugangsdaten (oder App Store Connect API Key). Nach dem Build: `.ipa` in **TestFlight** laden oder QR-Link auf dem Gerät installieren.
+
+Production / App Store:
+
+```bash
+npm run eas:build:ios
+npm run eas:submit:ios
+```
+
+### 4) Apple / Supabase für die native App
+
+| Thema | Wert / Aktion |
+|--------|----------------|
+| Bundle ID | `app.irisart.mobile` (in `app.json`) |
+| URL Scheme | `irisartapp` |
+| OAuth Redirect | `irisartapp://auth/callback` in Supabase **Authentication → URL configuration** |
+| Privacy URL | `https://irisart.app/privacy` (App Store Connect) |
+| Sign in with Apple | **Pflicht**, solange Google-Login auf iOS aktiv ist — als nächster Dev-Schritt |
+
+Details Auth: `supabase/AUTH.md`.
+
 ## GitHub einrichten
 
 ```bash
