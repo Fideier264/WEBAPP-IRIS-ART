@@ -11,7 +11,9 @@ import { AppThemeProvider, useAppColors } from '@/lib/appTheme';
 import { AuthProvider } from '@/lib/auth';
 import { LocaleProvider } from '@/lib/i18n';
 import { AppAccountButton } from '@/components/AppAccountButton';
+import { ConfigErrorScreen } from '@/components/ConfigErrorScreen';
 import { View } from 'react-native';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -91,6 +93,16 @@ function RootLayoutNavInner() {
 }
 
 function RootLayoutNav() {
+  if (!isSupabaseConfigured) {
+    return (
+      <LocaleProvider>
+        <AppThemeProvider>
+          <ConfigErrorScreen />
+        </AppThemeProvider>
+      </LocaleProvider>
+    );
+  }
+
   return (
     <LocaleProvider>
       <AppThemeProvider>

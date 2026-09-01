@@ -15,16 +15,11 @@ export const supabaseUrl = extra.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE
 export const supabaseAnonKey =
   extra.supabaseAnonKey ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+
 let supabase!: SupabaseClient;
 
-if (typeof window !== 'undefined') {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    // Keep this as a hard failure so misconfig is obvious during setup.
-    throw new Error(
-      'Missing Supabase env. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in the workspace root .env.'
-    );
-  }
-
+if (typeof window !== 'undefined' && isSupabaseConfigured) {
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       storage: AsyncStorage,
@@ -33,6 +28,15 @@ if (typeof window !== 'undefined') {
       detectSessionInUrl: false,
     },
   });
+}
+
+export function requireSupabase(): SupabaseClient {
+  if (!isSupabaseConfigured || typeof supabase === 'undefined') {
+    throw new Error(
+      'Missing Supabase env. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY before building the app.'
+    );
+  }
+  return supabase;
 }
 
 export { supabase };

@@ -52,14 +52,20 @@ npm start
 | Entry-Datei | `server.js` |
 | Node.js-Version | **22.x** |
 
-4. **Environment Variables** — **vor dem ersten Deploy** setzen (werden beim **Build** in die App eingebettet):
+4. **Environment Variables** — **vor dem Build** setzen (beim Domain-Wechsel erneut prüfen; fehlen sie, bleibt die Seite schwarz):
 
 | Variable | Pflicht |
 |----------|---------|
 | `EXPO_PUBLIC_SUPABASE_URL` | ja |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | ja |
+| `EXPO_PUBLIC_APP_ORIGIN` | ja (z. B. `https://irisart.app`) |
+| `EXPO_PUBLIC_LEGAL_OPERATOR_NAME` | empfohlen |
+| `EXPO_PUBLIC_LEGAL_CONTACT_EMAIL` | empfohlen |
+| `EXPO_PUBLIC_LEGAL_ADDRESS` | empfohlen |
 | `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_30CM` | optional |
 | `EXPO_PUBLIC_MERCHONE_SKU_CANVAS_60CM` | optional |
+
+Nach dem Setzen **Deploy / Rebuild** auslösen — Env-Variablen werden erst beim `npm run build` in die Web-App eingebettet.
 
 5. **Deploy** klicken. Hostinger führt aus: `npm install` → `npm run build` → `npm start`.
 
