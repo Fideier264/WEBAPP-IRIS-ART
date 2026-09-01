@@ -31,7 +31,7 @@ function privacyDe(o: LegalOperator): LegalDocument {
         heading: '2. Was IrisArt ist — und was nicht',
         paragraphs: [
           `${o.productName} ist ein Unterhaltungs- und Kunstprodukt: Du kannst ein Auge fotografieren oder hochladen, ein Iris-Rendering erzeugen, Farben/Seltenheit als kreative Schätzung sehen und Druckprodukte bestellen.`,
-          'IrisArt ist kein medizinischer Service, keine Iridologie, keine Diagnose und kein Gentest. Auswertungstexte und Prozentangaben sind KI-Schätzungen zur Unterhaltung.',
+          'IrisArt ist kein medizinischer Service, keine Iridologie, keine Diagnose und kein Gentest. Auswertungstexte und Prozentangaben sind Algorithmische Schätzungen zur Unterhaltung.',
         ],
       },
       {
@@ -59,7 +59,7 @@ function privacyDe(o: LegalOperator): LegalDocument {
           'KI-Verarbeitung: externe Modelle/APIs können Bildausschnitte oder abgeleitete Daten verarbeiten, um Enhancement oder Analyse zu erzeugen. Wir setzen sie nur für die genannten App-Funktionen ein.',
           'Zahlung: Stripe (Checkout, Zahlungsabwicklung).',
           'Druck/Versand: merchOne oder vergleichbare Produktionspartner — dafür werden Druckdatei und Lieferadresse benötigt.',
-          'Hosting der Web-App kann bei einem Webhoster (z. B. Hostinger) liegen. Anbieter können Server-Logs (IP, User-Agent) speichern.',
+          'Hosting der Web-App kann bei einem Webhoster liegen. Anbieter können Server-Logs (IP, User-Agent) speichern.',
         ],
       },
       {
@@ -76,7 +76,6 @@ function privacyDe(o: LegalOperator): LegalDocument {
           'Du kannst Auskunft, Berichtigung, Löschung, Einschränkung und Datenübertragbarkeit verlangen sowie der Verarbeitung widersprechen, soweit gesetzlich vorgesehen.',
           `In der App (Konto): einzelne Galerie-Einträge löschen oder „Konto löschen“. Dabei werden Login, Galerie-Bilder und gespeicherte Analysen in IrisArt entfernt.`,
           `Weitere Anfragen: ${o.contactEmail}.`,
-          'Du kannst dich bei einer Aufsichtsbehörde beschweren (in Deutschland z. B. die für dich zuständige Landesbehörde).',
         ],
       },
       {
@@ -113,7 +112,7 @@ function privacyEn(o: LegalOperator): LegalDocument {
         heading: '2. What IrisArt is — and is not',
         paragraphs: [
           `${o.productName} is an entertainment and art product: capture or upload an eye, generate an iris rendering, see creative color/rarity estimates, and order print products.`,
-          'IrisArt is not a medical service, iridology, diagnosis, or genetic test. Result text and percentages are AI estimates for entertainment.',
+          'IrisArt is not a medical service, iridology, diagnosis, or genetic test. Result text and percentages are algorithmic estimates for entertainment.',
         ],
       },
       {
@@ -141,7 +140,7 @@ function privacyEn(o: LegalOperator): LegalDocument {
           'AI processing: external models/APIs may process image crops or derived data for enhancement or analysis, only for the app features described here.',
           'Payments: Stripe (checkout and payment processing).',
           'Print/shipping: merchOne or similar production partners — requiring the print file and shipping address.',
-          'The web app may be hosted by a web host (e.g. Hostinger). Providers may keep server logs (IP, user agent).',
+          'The web app may be hosted by a web hosting provider. Providers may keep server logs (IP, user agent).',
         ],
       },
       {
@@ -158,7 +157,6 @@ function privacyEn(o: LegalOperator): LegalDocument {
           'You may request access, correction, deletion, restriction, portability, and object to processing where the law provides.',
           'In the app (Account): delete individual gallery items or use “Delete account”. That removes login, gallery images, and stored analyses in IrisArt.',
           `Further requests: ${o.contactEmail}.`,
-          'You may lodge a complaint with a supervisory authority.',
         ],
       },
       {
@@ -223,7 +221,7 @@ function termsDe(o: LegalOperator): LegalDocument {
       {
         heading: '6. Bestellungen, Zahlung, Versand',
         paragraphs: [
-          'Druckprodukte werden über Stripe bezahlt und über Produktionspartner (z. B. merchOne) hergestellt und versendet.',
+          'Druckprodukte werden über Stripe bezahlt und über Produktionspartner hergestellt und versendet.',
           'Preise und verfügbare Formate ergeben sich aus dem jeweiligen Checkout. Lieferzeiten und Versandbedingungen können vom Partner abhängen.',
           'Nach erfolgreicher Zahlung wird das Druckmotiv als Datei an den Partner übermittelt. Korrekturen nach Produktionsstart sind ggf. nicht möglich.',
         ],
