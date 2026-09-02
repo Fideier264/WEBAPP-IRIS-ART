@@ -123,10 +123,11 @@ export async function loadRgba(
 }
 
 export function encodeRgbaToJpegDataUri(image: RgbaImage, quality = 94): string {
-  const encoded = jpeg.encode(
-    { data: image.data, width: image.width, height: image.height },
-    quality
-  );
+  const rgba =
+    image.data instanceof Uint8Array && image.data.constructor === Uint8Array
+      ? image.data
+      : new Uint8Array(image.data.buffer, image.data.byteOffset, image.data.byteLength);
+  const encoded = jpeg.encode({ data: rgba, width: image.width, height: image.height }, quality);
   const base64 = Buffer.from(encoded.data).toString('base64');
   return `data:image/jpeg;base64,${base64}`;
 }
@@ -140,4 +141,13 @@ export function decodeJpegDataUri(dataUri: string): RgbaImage {
 export function dataUriToBase64(dataUri: string): string {
   const comma = dataUri.indexOf(',');
   return comma >= 0 ? dataUri.slice(comma + 1) : dataUri;
+}
+
+/** RN `<Image>` on iOS does not reliably render data-URI JPEGs — write to cache instead. */
+export async function persistJpegDataUri(dataUri: string, cacheKey: string): Promise<string> {
+  const base64 = dataUriToBase64(dataUri);
+  const safeKey = cacheKey.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 80);
+  const fileUri = `${FileSystem.cacheDirectory}art_${safeKey}.jpg`;
+  await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+  return fileUri;
 }

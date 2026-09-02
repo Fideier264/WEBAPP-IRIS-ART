@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, PixelRatio, StyleSheet, View } from 'react-na
 import type { ArtTemplate } from '@/lib/artTemplates';
 import { getTemplateCanvasBackground } from '@/lib/artTemplates';
 import { paintArtComposite } from '@/lib/artCompositeTint.native';
+import { persistJpegDataUri } from '@/lib/artRgba.native';
 
 type Props = {
   textureUri: string;
@@ -51,8 +52,10 @@ export function ArtTemplateComposite({
           height: ph,
           secondaryColorTint,
         });
+        const cacheKey = `${template.id}_${pw}x${ph}_${secondaryColorTint ? '1' : '0'}`;
+        const fileUri = await persistJpegDataUri(painted, cacheKey);
         if (!cancelled) {
-          setDataUri(painted);
+          setDataUri(fileUri);
           setBusy(false);
         }
       } catch (e) {
