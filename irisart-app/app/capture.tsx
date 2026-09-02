@@ -21,7 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import { useAppColors } from '@/lib/appTheme';
-import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
+import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE, HEADER_BACK_CHIP_MIN_WIDTH } from '@/constants/Layout';
 import { useT } from '@/lib/i18n';
 
 type CaptureState =
@@ -426,10 +426,12 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   toolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingRight: 4 },
   chip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
+    minWidth: HEADER_BACK_CHIP_MIN_WIDTH,
+    alignItems: 'center',
   },
   chipText: { fontSize: 13.5, fontWeight: '650' },
 

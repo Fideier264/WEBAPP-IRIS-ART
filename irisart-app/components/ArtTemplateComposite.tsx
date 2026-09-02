@@ -1,13 +1,12 @@
-import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, PixelRatio, StyleSheet, View } from 'react-native';
 
 import type { ArtTemplate } from '@/lib/artTemplates';
-import { getArtTemplateHoles, getTemplateCanvasBackground } from '@/lib/artTemplates';
-import { useT } from '@/lib/i18n';
+import { getTemplateCanvasBackground } from '@/lib/artTemplates';
+import { paintArtComposite } from '@/lib/artCompositeTint.native';
 
 type Props = {
   textureUri: string;
-  /** Second iris for dual-eye templates */
   textureUri2?: string;
   template: ArtTemplate;
   /** Layout-Breite; Höhe = width / aspectRatio */
@@ -16,65 +15,75 @@ type Props = {
 };
 
 /**
- * Native fallback preview (no canvas tint). Web uses ArtTemplateComposite.web.tsx
- * with the same dynamic color-tinting as the print export.
+ * Native preview: same dynamic iris-color tinting as web preview and print export.
  */
 export function ArtTemplateComposite({
   textureUri,
   textureUri2,
   template,
   width,
-  secondaryColorTint: _secondaryColorTint = true,
+  secondaryColorTint = true,
 }: Props) {
-  const t = useT();
   const height = width / template.aspectRatio;
-  const holes = getArtTemplateHoles(template);
-  const uris = [textureUri, textureUri2].filter((u): u is string => Boolean(u));
-  const irisScale = template.irisScale ?? 1;
-  const resizeMode = template.irisResizeMode ?? 'contain';
-  const slotBg = template.irisSlotBackground ?? '#000000';
   const canvasBg = getTemplateCanvasBackground(template);
+  const [dataUri, setDataUri] = useState<string | null>(null);
+  const [busy, setBusy] = useState(true);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (width <= 0) return;
+
+    const dpr = Math.min(2, PixelRatio.get());
+    const pw = Math.max(1, Math.round(width * dpr));
+    const ph = Math.max(1, Math.round(height * dpr));
+
+    const run = async () => {
+      setBusy(true);
+      setFailed(false);
+      setDataUri(null);
+      try {
+        const { dataUri: painted } = await paintArtComposite({
+          textureUri,
+          textureUri2,
+          template,
+          width: pw,
+          height: ph,
+          secondaryColorTint,
+        });
+        if (!cancelled) {
+          setDataUri(painted);
+          setBusy(false);
+        }
+      } catch (e) {
+        console.warn(
+          'ArtTemplateComposite preview failed',
+          e instanceof Error ? e.message : String(e)
+        );
+        if (!cancelled) {
+          setFailed(true);
+          setBusy(false);
+        }
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [textureUri, textureUri2, template, template.id, width, height, secondaryColorTint]);
 
   return (
     <View style={[styles.root, { width, height, backgroundColor: canvasBg }]}>
-      {holes.map((hole, i) => {
-        const left = hole.x * width;
-        const top = hole.y * height;
-        const w = Math.max(1, hole.w * width);
-        const h = Math.max(1, hole.h * height);
-        const uri = uris[Math.min(i, uris.length - 1)] ?? textureUri;
-        return (
-          <View
-            key={`hole-${i}`}
-            style={[
-              styles.irisSlot,
-              {
-                left,
-                top,
-                width: w,
-                height: h,
-                backgroundColor: slotBg,
-              },
-            ]}>
-            <Image
-              source={{ uri }}
-              style={[
-                { width: w, height: h },
-                irisScale !== 1 ? { transform: [{ scale: irisScale }] } : null,
-              ]}
-              resizeMode={resizeMode}
-            />
-          </View>
-        );
-      })}
-
-      {template.overlayImage ? (
-        <Image source={template.overlayImage} style={[styles.overlay, { width, height }]} resizeMode="stretch" />
-      ) : (
-        <View pointerEvents="none" style={[styles.overlay, { width, height, backgroundColor: 'transparent' }]}>
-          <Text style={styles.placeholderHint}>{t('shop.overlayPlaceholder')}</Text>
+      {dataUri ? (
+        <Image source={{ uri: dataUri }} style={{ width, height, borderRadius: 14 }} resizeMode="stretch" />
+      ) : null}
+      {busy ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color="#7c5cff" />
         </View>
-      )}
+      ) : null}
+      {failed && !busy ? <View style={styles.failed} /> : null}
     </View>
   );
 }
@@ -82,29 +91,17 @@ export function ArtTemplateComposite({
 const styles = StyleSheet.create({
   root: {
     position: 'relative',
-    backgroundColor: '#07060c',
     borderRadius: 14,
     overflow: 'hidden',
   },
-  irisSlot: {
-    position: 'absolute',
-    overflow: 'hidden',
-    justifyContent: 'center',
+  loading: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(7,6,12,0.35)',
   },
-  overlay: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-  },
-  placeholderHint: {
-    position: 'absolute',
-    bottom: 10,
-    left: 8,
-    right: 8,
-    textAlign: 'center',
-    fontSize: 10,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.38)',
+  failed: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(220,80,80,0.12)',
   },
 });

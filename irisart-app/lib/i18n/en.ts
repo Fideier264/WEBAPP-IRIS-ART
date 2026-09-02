@@ -42,6 +42,32 @@ const en: Record<TranslationKey, string> = {
   'account.signedInInfo': 'Signed in.',
   'account.createdInfo':
     'Account created. You can sign in now (confirm email if required by your project).',
+  'account.forgotPassword': 'Forgot password?',
+  'account.forgotPasswordTitle': 'Reset password',
+  'account.forgotPasswordBody':
+    'We’ll email you a link. Open it on this device to choose a new password.',
+  'account.forgotPasswordCta': 'Send link',
+  'account.forgotPasswordSent':
+    'Email sent. Check your inbox (and spam), then tap the link to reset your password.',
+  'account.resetPasswordTitle': 'New password',
+  'account.resetPasswordBody': 'Choose a new password for your IrisArt account (min. 6 characters).',
+  'account.resetPasswordCta': 'Save password',
+  'account.resetPasswordDone': 'Password saved. You can sign in now.',
+  'account.newPassword': 'New password (min. 6 characters)',
+  'account.newPasswordConfirm': 'Repeat password',
+  'account.confirmEmailSent':
+    'Confirmation email sent. Please tap the link in the email before signing in.',
+  'account.error.invalidCredentials': 'Incorrect email or password.',
+  'account.error.emailNotConfirmed':
+    'Please confirm your email first (link in your registration email).',
+  'account.error.userAlreadyRegistered': 'This email is already registered. Please sign in.',
+  'account.error.weakPassword': 'Password too short — at least 6 characters.',
+  'account.error.invalidEmail': 'Please enter a valid email address.',
+  'account.error.rateLimit': 'Too many attempts. Please wait and try again.',
+  'account.error.network': 'Network error. Check your connection.',
+  'account.error.googleCancelled': 'Google sign-in was cancelled.',
+  'account.error.passwordMismatch': 'Passwords do not match.',
+  'account.error.generic': 'Sign-in failed. Please check your details.',
   'account.language': 'Language',
   'account.languageHint': 'App language for all screens.',
   'account.lang.de': 'Deutsch',

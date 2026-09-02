@@ -28,6 +28,19 @@ export function missingConfigKeys(config: PublicAppConfig): string[] {
   return missing;
 }
 
+/** Wrong key type causes "Invalid API key" / "Invalid Compact JWS" on native + Edge Functions. */
+export function supabaseAnonKeyIssue(key: string): string | null {
+  const trimmed = key.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('sb_publishable_')) {
+    return 'Der Publishable Key (sb_publishable_…) funktioniert nicht. Nutze den legacy anon JWT (beginnt mit eyJ…).';
+  }
+  if (!trimmed.startsWith('eyJ')) {
+    return 'EXPO_PUBLIC_SUPABASE_ANON_KEY muss ein JWT sein (beginnt mit eyJ…).';
+  }
+  return null;
+}
+
 export function isPublicAppConfigReady(config: PublicAppConfig): boolean {
-  return missingConfigKeys(config).length === 0;
+  return missingConfigKeys(config).length === 0 && !supabaseAnonKeyIssue(config.supabaseAnonKey);
 }

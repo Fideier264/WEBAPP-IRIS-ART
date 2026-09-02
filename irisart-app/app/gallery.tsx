@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArtTemplateComposite } from '@/components/ArtTemplateComposite';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { useAppColors } from '@/lib/appTheme';
-import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
+import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE, HEADER_BACK_CHIP_MIN_WIDTH } from '@/constants/Layout';
 import { ART_TEMPLATES, filterTemplatesByEyeFamilies, getArtTemplateHoles, isDualEyeTemplate } from '@/lib/artTemplates';
 import {
   analyzeIris,
@@ -331,22 +331,24 @@ export default function ArtGalleryScreen() {
                     </Pressable>
                   </View>
                 ) : null}
-                <Text style={[styles.meta, { color: c.muted }]}>
-                  {isDualEyeTemplate(selected)
-                    ? t('shop.holeMetaDual', {
-                        count: getArtTemplateHoles(selected).length,
-                        mode: selected.irisResizeMode ?? 'contain',
-                        scale: selected.irisScale ?? 1,
-                      })
-                    : t('shop.holeMeta', {
-                        x: selected.irisHole.x.toFixed(2),
-                        y: selected.irisHole.y.toFixed(2),
-                        w: selected.irisHole.w.toFixed(2),
-                        h: selected.irisHole.h.toFixed(2),
-                        mode: selected.irisResizeMode ?? 'contain',
-                        scale: selected.irisScale ?? 1,
-                      })}
-                </Text>
+                {__DEV__ ? (
+                  <Text style={[styles.meta, { color: c.muted }]}>
+                    {isDualEyeTemplate(selected)
+                      ? t('shop.holeMetaDual', {
+                          count: getArtTemplateHoles(selected).length,
+                          mode: selected.irisResizeMode ?? 'contain',
+                          scale: selected.irisScale ?? 1,
+                        })
+                      : t('shop.holeMeta', {
+                          x: selected.irisHole.x.toFixed(2),
+                          y: selected.irisHole.y.toFixed(2),
+                          w: selected.irisHole.w.toFixed(2),
+                          h: selected.irisHole.h.toFixed(2),
+                          mode: selected.irisResizeMode ?? 'contain',
+                          scale: selected.irisScale ?? 1,
+                        })}
+                  </Text>
+                ) : null}
               </View>
             ) : null}
 
@@ -425,11 +427,11 @@ const styles = StyleSheet.create({
   safe: { flex: 1, paddingHorizontal: 18, paddingTop: 8, gap: 10 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   chip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    width: 56,
+    minWidth: HEADER_BACK_CHIP_MIN_WIDTH,
     alignItems: 'center',
   },
   chipText: { fontSize: 13.5, fontWeight: '650' },

@@ -1,0 +1,135 @@
+import { Asset } from 'expo-asset';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { Buffer } from 'buffer';
+import jpeg from 'jpeg-js';
+import { PNG } from 'pngjs';
+import type { ImageSourcePropType } from 'react-native';
+
+import * as FileSystem from '@/lib/platformFileSystem';
+
+import type { RgbaImage } from './artTintShared';
+
+export type { RgbaImage };
+
+export async function resolveImageUrl(source: string | ImageSourcePropType): Promise<string> {
+  if (typeof source === 'string') return source;
+  if (typeof source === 'number') {
+    const asset = Asset.fromModule(source);
+    await asset.downloadAsync();
+    const uri = asset.localUri ?? asset.uri;
+    if (!uri) throw new Error('Template asset URI missing.');
+    return uri;
+  }
+  if (source && typeof source === 'object' && 'uri' in source && typeof source.uri === 'string') {
+    return source.uri;
+  }
+  throw new Error('Unsupported image source.');
+}
+
+async function readUriBytes(uri: string): Promise<Uint8Array> {
+  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+  return new Uint8Array(Buffer.from(base64, 'base64'));
+}
+
+function isPngBytes(bytes: Uint8Array): boolean {
+  return bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+}
+
+function decodePngRgba(bytes: Uint8Array): RgbaImage {
+  const png = PNG.sync.read(Buffer.from(bytes));
+  const data = new Uint8ClampedArray(png.data.buffer, png.data.byteOffset, png.data.byteLength);
+  return { width: png.width, height: png.height, data };
+}
+
+function decodeJpegRgba(bytes: Uint8Array): RgbaImage {
+  const decoded = jpeg.decode(Buffer.from(bytes), { useTArray: true });
+  if (!decoded?.data || !decoded.width || !decoded.height) {
+    throw new Error('Failed to decode JPEG image.');
+  }
+  const data = new Uint8ClampedArray(decoded.data.buffer, decoded.data.byteOffset, decoded.data.byteLength);
+  return { width: decoded.width, height: decoded.height, data };
+}
+
+function decodeImageBytes(bytes: Uint8Array): RgbaImage {
+  return isPngBytes(bytes) ? decodePngRgba(bytes) : decodeJpegRgba(bytes);
+}
+
+function resizeRgbaNearest(src: RgbaImage, width: number, height: number): RgbaImage {
+  if (src.width === width && src.height === height) return src;
+  const data = new Uint8ClampedArray(width * height * 4);
+  const xRatio = src.width / width;
+  const yRatio = src.height / height;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const sx = Math.min(src.width - 1, Math.floor(x * xRatio));
+      const sy = Math.min(src.height - 1, Math.floor(y * yRatio));
+      const si = (sy * src.width + sx) * 4;
+      const di = (y * width + x) * 4;
+      data[di] = src.data[si]!;
+      data[di + 1] = src.data[si + 1]!;
+      data[di + 2] = src.data[si + 2]!;
+      data[di + 3] = src.data[si + 3]!;
+    }
+  }
+  return { width, height, data };
+}
+
+/** Load RGBA from a local file URI. PNG alpha is preserved via pngjs. */
+export async function loadRgbaFromUri(
+  uri: string,
+  targetWidth?: number,
+  targetHeight?: number
+): Promise<RgbaImage> {
+  const lower = uri.split('?')[0]?.toLowerCase() ?? '';
+  const looksPng = lower.endsWith('.png');
+
+  if (looksPng) {
+    const bytes = await readUriBytes(uri);
+    let img = decodePngRgba(bytes);
+    if (targetWidth && targetHeight) img = resizeRgbaNearest(img, targetWidth, targetHeight);
+    return img;
+  }
+
+  if (targetWidth && targetHeight) {
+    const prepared = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: targetWidth, height: targetHeight } }],
+      { format: ImageManipulator.SaveFormat.JPEG, compress: 0.92, base64: true }
+    );
+    if (!prepared.base64) throw new Error(`Could not read image: ${uri.slice(0, 80)}`);
+    return decodeJpegRgba(new Uint8Array(Buffer.from(prepared.base64, 'base64')));
+  }
+
+  const bytes = await readUriBytes(uri);
+  return decodeImageBytes(bytes);
+}
+
+/** Load RGBA from a URI string or bundled `require()` asset. */
+export async function loadRgba(
+  source: string | ImageSourcePropType,
+  targetWidth?: number,
+  targetHeight?: number
+): Promise<RgbaImage> {
+  const uri = await resolveImageUrl(source);
+  return loadRgbaFromUri(uri, targetWidth, targetHeight);
+}
+
+export function encodeRgbaToJpegDataUri(image: RgbaImage, quality = 94): string {
+  const encoded = jpeg.encode(
+    { data: image.data, width: image.width, height: image.height },
+    quality
+  );
+  const base64 = Buffer.from(encoded.data).toString('base64');
+  return `data:image/jpeg;base64,${base64}`;
+}
+
+export function decodeJpegDataUri(dataUri: string): RgbaImage {
+  const comma = dataUri.indexOf(',');
+  const base64 = comma >= 0 ? dataUri.slice(comma + 1) : dataUri;
+  return decodeJpegRgba(new Uint8Array(Buffer.from(base64, 'base64')));
+}
+
+export function dataUriToBase64(dataUri: string): string {
+  const comma = dataUri.indexOf(',');
+  return comma >= 0 ? dataUri.slice(comma + 1) : dataUri;
+}

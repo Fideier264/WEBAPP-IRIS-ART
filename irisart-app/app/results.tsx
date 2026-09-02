@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppColors } from '@/lib/appTheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
-import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
+import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE, HEADER_BACK_CHIP_MIN_WIDTH } from '@/constants/Layout';
 import { InheritanceEstimate } from '@/components/InheritanceEstimate';
 import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import {
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    width: 56,
+    minWidth: HEADER_BACK_CHIP_MIN_WIDTH,
     alignItems: 'center',
   },
   chipText: { fontSize: 13.5, fontWeight: '650' },

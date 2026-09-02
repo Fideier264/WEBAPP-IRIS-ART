@@ -11,7 +11,8 @@ Already wired in the Expo app:
 - Galerie header **Login / Account** button
 
 Deep-link scheme (from `app.json`): `irisartapp`  
-OAuth redirect used by the app: `irisartapp://auth/callback` (via `Linking.createURL('auth/callback')`).
+OAuth redirect used by the app: `irisartapp://auth/callback` (via `Linking.createURL('auth/callback')`).  
+Password reset redirect: `irisartapp://auth/reset-password`.
 
 ## Supabase Dashboard (required)
 
@@ -27,8 +28,24 @@ Run the SQL in:
 ### 2) Email / password
 
 1. **Authentication → Providers → Email**: enable.
-2. For faster MVP testing, turn **Confirm email** off (you can re-enable later).
-3. Optionally set Site URL / redirect allow-list to include your app redirects.
+2. **Confirm email**: enable for production (app shows “Bestätigungs-E-Mail gesendet” after sign-up).
+3. **Authentication → URL configuration**:
+   - Site URL: `https://irisart.app`
+   - Redirect URLs (add all):
+     - `irisartapp://auth/callback`
+     - `irisartapp://auth/reset-password`
+     - `https://irisart.app/**` (optional, for web)
+4. **Authentication → Email templates**: customize Confirm signup / Reset password (sender name **IrisArt**, reply-to `contact@irisart.app`).
+5. Supabase sends mail via its built-in SMTP on free tier (rate limits apply). For production volume, configure **Project Settings → Authentication → SMTP** (e.g. Hostinger, Resend, SendGrid).
+
+**In-app flows**
+
+| Flow | App screen / action |
+|------|---------------------|
+| Sign up | `/account` → Konto erstellen → confirmation email if enabled |
+| Sign in | `/account` → Anmelden (clear error if wrong password) |
+| Forgot password | `/account` → Passwort vergessen? → email with reset link |
+| New password | Opens `irisartapp://auth/reset-password` → `/auth/reset-password` |
 
 ### 3) Google provider
 
@@ -76,3 +93,6 @@ Completed print orders at Stripe / merchOne are business records and may remain 
 - **Upload fails**: confirm user is authenticated and migration + storage policies are applied.
 - **Empty signed URLs**: signed URL creation may fail if the storage path is wrong or the object was deleted.
 - **Konto löschen schlägt fehl / 404**: Function `delete-account` deployen (`supabase functions deploy delete-account`). 401: User-JWT senden, nicht den Anon-Key.
+- **Invalid login credentials / falsches Passwort**: App zeigt jetzt „E-Mail oder Passwort ist falsch“ direkt im Formular.
+- **Keine Registrierungs-/Reset-Mail**: Supabase → Authentication → Confirm email aktiv; Redirect URLs `irisartapp://…` gesetzt; Spam prüfen; ggf. eigenes SMTP unter Project Settings → Authentication.
+- **Reset-Link öffnet nicht die App**: Redirect `irisartapp://auth/reset-password` in Supabase URL configuration; TestFlight-Build neu installieren.

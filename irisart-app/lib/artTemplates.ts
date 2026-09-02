@@ -86,6 +86,10 @@ export function getTemplateCanvasBackground(template: ArtTemplate): string {
   return template.canvasBackground ?? template.irisSlotBackground ?? '#07060c';
 }
 
+export function templateHasOverlay(template: ArtTemplate): boolean {
+  return template.overlayImage != null;
+}
+
 /**
  * Beispiel-Templates ohne PNG — nur zum Testen von Filter + Platzierung.
  * Ersetze/ergänze durch eigene Overlays (Loch = Transparenz in der PNG).
@@ -106,8 +110,8 @@ export const ART_TEMPLATES: ArtTemplate[] = [
     h: 0.68,
     circular: true,
   },
-  irisResizeMode: 'cover',
-  irisScale: 1.06,
+  irisResizeMode: 'contain',
+  irisScale: 1.02,
 },
 {
   id: 'classic.white',
@@ -124,8 +128,8 @@ export const ART_TEMPLATES: ArtTemplate[] = [
     h: 0.68,
     circular: true,
   },
-  irisResizeMode: 'cover',
-  irisScale: 1.06,
+  irisResizeMode: 'contain',
+  irisScale: 1.02,
 },
 
 /*

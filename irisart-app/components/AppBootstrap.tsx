@@ -7,6 +7,7 @@ import {
   isPublicAppConfigReady,
   loadPublicAppConfig,
   missingConfigKeys,
+  supabaseAnonKeyIssue,
   type PublicAppConfig,
 } from '@/lib/appConfig';
 import { initSupabase } from '@/lib/supabase';
@@ -18,6 +19,7 @@ type Props = { children: React.ReactNode };
 export function AppBootstrap({ children }: Props) {
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
   const [config, setConfig] = useState<PublicAppConfig | null>(null);
+  const [configHint, setConfigHint] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +29,7 @@ export function AppBootstrap({ children }: Props) {
         if (cancelled) return;
         if (!isPublicAppConfigReady(loaded)) {
           setConfig(loaded);
+          setConfigHint(supabaseAnonKeyIssue(loaded.supabaseAnonKey));
           setStatus('error');
           return;
         }
@@ -44,7 +47,7 @@ export function AppBootstrap({ children }: Props) {
 
   if (status === 'loading') return <BootLoadingScreen label="IrisArt wird geladen…" />;
   if (status === 'error') {
-    return <ConfigErrorScreen missing={config ? missingConfigKeys(config) : undefined} />;
+    return <ConfigErrorScreen missing={config ? missingConfigKeys(config) : undefined} hint={configHint} />;
   }
   return <>{children}</>;
 }

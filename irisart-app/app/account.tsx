@@ -15,32 +15,72 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import { BACKGROUND_THEMES, useAppColors, useAppTheme } from '@/lib/appTheme';
 import { useAuth } from '@/lib/auth';
+import { authErrorMessageKey } from '@/lib/authErrors';
 import { requestDeleteOwnAccount } from '@/lib/deleteAccount';
 import { LOCALES, useLocale, type Locale } from '@/lib/i18n';
+
+type AuthMode = 'login' | 'forgot';
+
+function AuthBanner({ message, tone }: { message: string; tone: 'error' | 'info' | 'success' }) {
+  const styles =
+    tone === 'error'
+      ? { bg: 'rgba(255,107,122,0.12)', border: 'rgba(255,107,122,0.45)', text: '#FF6B7A' }
+      : tone === 'success'
+        ? { bg: 'rgba(52,199,89,0.1)', border: 'rgba(52,199,89,0.35)', text: '#2E7D32' }
+        : { bg: 'rgba(124,92,255,0.1)', border: 'rgba(124,92,255,0.28)', text: '#5B45C9' };
+
+  return (
+    <View style={[bannerStyles.root, { backgroundColor: styles.bg, borderColor: styles.border }]}>
+      <Text style={[bannerStyles.text, { color: styles.text }]}>{message}</Text>
+    </View>
+  );
+}
+
+const bannerStyles = StyleSheet.create({
+  root: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 12,
+  },
+  text: { fontSize: 14, lineHeight: 20, fontWeight: '650' },
+});
 
 export default function AccountScreen() {
   const c = useAppColors();
   const { backgroundTheme, setBackgroundTheme } = useAppTheme();
-  const { user, loading, signInEmail, signUpEmail, signInGoogle, signOut } = useAuth();
+  const {
+    user,
+    loading,
+    signInEmail,
+    signUpEmail,
+    signInGoogle,
+    signOut,
+    resetPasswordForEmail,
+  } = useAuth();
   const { t, locale, setLocale } = useLocale();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
+  const [infoKey, setInfoKey] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
 
   const gradient = useMemo(() => c.pageGradient, [c.pageGradient]);
 
+  const clearMessages = () => {
+    setErrorKey(null);
+    setInfoKey(null);
+  };
+
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
-    setError(null);
-    setInfo(null);
+    clearMessages();
     try {
       await fn();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('common.errorGeneric'));
+      setErrorKey(authErrorMessageKey(e));
     } finally {
       setBusy(false);
     }
@@ -126,93 +166,136 @@ export default function AccountScreen() {
             <ActivityIndicator color={c.tint} />
           ) : user ? (
             <>
-            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.signedIn')}</Text>
-              <Text style={[styles.body, { color: c.muted }]}>{user.email ?? user.id}</Text>
-              <Pressable
-                accessibilityRole="button"
-                disabled={busy}
-                onPress={() =>
-                  run(async () => {
-                    setConfirmDelete(false);
-                    await signOut();
-                  })
-                }
-                style={({ pressed }) => [
-                  styles.secondaryBtn,
-                  { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
-                ]}>
-                <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.signOut')}</Text>
-              </Pressable>
-            </View>
-
-            <View
-              style={[
-                styles.card,
-                {
-                  backgroundColor: c.surface,
-                  borderColor: confirmDelete ? 'rgba(220,80,80,0.45)' : c.border,
-                },
-              ]}>
-              <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.deleteTitle')}</Text>
-              <Text style={[styles.body, { color: c.muted }]}>
-                {confirmDelete ? t('account.deleteConfirmBody') : t('account.deleteBody')}
-              </Text>
-              {confirmDelete ? (
-                <>
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={busy}
-                    onPress={() =>
-                      run(async () => {
-                        const res = await requestDeleteOwnAccount();
-                        if (!res.ok) {
-                          throw new Error(
-                            res.error === 'AUTH_REQUIRED' ? t('account.deleteFailed') : res.error
-                          );
-                        }
-                        setConfirmDelete(false);
-                        setInfo(t('account.deletedInfo'));
-                        router.replace('/');
-                      })
-                    }
-                    style={({ pressed }) => [
-                      styles.dangerBtn,
-                      { opacity: pressed || busy ? 0.88 : 1 },
-                    ]}>
-                    <Text style={styles.dangerText}>
-                      {busy ? t('account.deleteBusy') : t('account.deleteConfirmCta')}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={busy}
-                    onPress={() => setConfirmDelete(false)}
-                    style={({ pressed }) => [
-                      styles.secondaryBtn,
-                      { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
-                    ]}>
-                    <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.deleteCancel')}</Text>
-                  </Pressable>
-                </>
-              ) : (
+              <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+                <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.signedIn')}</Text>
+                <Text style={[styles.body, { color: c.muted }]}>{user.email ?? user.id}</Text>
                 <Pressable
                   accessibilityRole="button"
                   disabled={busy}
-                  onPress={() => {
-                    setError(null);
-                    setInfo(null);
-                    setConfirmDelete(true);
-                  }}
+                  onPress={() =>
+                    run(async () => {
+                      setConfirmDelete(false);
+                      await signOut();
+                    })
+                  }
                   style={({ pressed }) => [
-                    styles.dangerOutlineBtn,
-                    { borderColor: 'rgba(220,80,80,0.55)', opacity: pressed || busy ? 0.85 : 1 },
+                    styles.secondaryBtn,
+                    { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
                   ]}>
-                  <Text style={styles.dangerOutlineText}>{t('account.deleteCta')}</Text>
+                  <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.signOut')}</Text>
                 </Pressable>
-              )}
-            </View>
+              </View>
+
+              <View
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: c.surface,
+                    borderColor: confirmDelete ? 'rgba(220,80,80,0.45)' : c.border,
+                  },
+                ]}>
+                <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.deleteTitle')}</Text>
+                <Text style={[styles.body, { color: c.muted }]}>
+                  {confirmDelete ? t('account.deleteConfirmBody') : t('account.deleteBody')}
+                </Text>
+                {confirmDelete ? (
+                  <>
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={busy}
+                      onPress={() =>
+                        run(async () => {
+                          const res = await requestDeleteOwnAccount();
+                          if (!res.ok) {
+                            throw new Error(
+                              res.error === 'AUTH_REQUIRED' ? t('account.deleteFailed') : res.error
+                            );
+                          }
+                          setConfirmDelete(false);
+                          setInfoKey('account.deletedInfo');
+                          router.replace('/');
+                        })
+                      }
+                      style={({ pressed }) => [
+                        styles.dangerBtn,
+                        { opacity: pressed || busy ? 0.88 : 1 },
+                      ]}>
+                      <Text style={styles.dangerText}>
+                        {busy ? t('account.deleteBusy') : t('account.deleteConfirmCta')}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={busy}
+                      onPress={() => setConfirmDelete(false)}
+                      style={({ pressed }) => [
+                        styles.secondaryBtn,
+                        { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
+                      ]}>
+                      <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.deleteCancel')}</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={busy}
+                    onPress={() => {
+                      clearMessages();
+                      setConfirmDelete(true);
+                    }}
+                    style={({ pressed }) => [
+                      styles.dangerOutlineBtn,
+                      { borderColor: 'rgba(220,80,80,0.55)', opacity: pressed || busy ? 0.85 : 1 },
+                    ]}>
+                    <Text style={styles.dangerOutlineText}>{t('account.deleteCta')}</Text>
+                  </Pressable>
+                )}
+              </View>
             </>
+          ) : authMode === 'forgot' ? (
+            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+              <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.forgotPasswordTitle')}</Text>
+              <Text style={[styles.body, { color: c.muted }]}>{t('account.forgotPasswordBody')}</Text>
+              <TextInput
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                placeholder={t('account.email')}
+                placeholderTextColor={c.muted}
+                value={email}
+                onChangeText={setEmail}
+                style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.surfaceAlt }]}
+              />
+              {errorKey ? <AuthBanner message={t(errorKey)} tone="error" /> : null}
+              {infoKey ? <AuthBanner message={t(infoKey)} tone="info" /> : null}
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy || !email.trim()}
+                onPress={() =>
+                  run(async () => {
+                    await resetPasswordForEmail(email);
+                    setInfoKey('account.forgotPasswordSent');
+                  })
+                }
+                style={({ pressed }) => [
+                  styles.primaryBtn,
+                  { backgroundColor: c.tint, opacity: pressed || busy || !email.trim() ? 0.9 : 1 },
+                ]}>
+                <Text style={styles.primaryText}>{t('account.forgotPasswordCta')}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setAuthMode('login');
+                  clearMessages();
+                }}
+                style={({ pressed }) => [
+                  styles.secondaryBtn,
+                  { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.85 : 1 },
+                ]}>
+                <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.signIn')}</Text>
+              </Pressable>
+            </View>
           ) : (
             <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
               <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.saveGalleryTitle')}</Text>
@@ -237,13 +320,21 @@ export default function AccountScreen() {
                 style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.surfaceAlt }]}
               />
 
+              {errorKey ? <AuthBanner message={t(errorKey)} tone="error" /> : null}
+              {infoKey ? (
+                <AuthBanner
+                  message={t(infoKey)}
+                  tone={infoKey === 'account.signedInInfo' ? 'success' : 'info'}
+                />
+              ) : null}
+
               <Pressable
                 accessibilityRole="button"
                 disabled={busy}
                 onPress={() =>
                   run(async () => {
                     await signInEmail(email, password);
-                    setInfo(t('account.signedInInfo'));
+                    setInfoKey('account.signedInInfo');
                   })
                 }
                 style={({ pressed }) => [
@@ -258,8 +349,12 @@ export default function AccountScreen() {
                 disabled={busy}
                 onPress={() =>
                   run(async () => {
-                    await signUpEmail(email, password);
-                    setInfo(t('account.createdInfo'));
+                    const result = await signUpEmail(email, password);
+                    setInfoKey(
+                      result.kind === 'confirmEmail'
+                        ? 'account.confirmEmailSent'
+                        : 'account.signedInInfo'
+                    );
                   })
                 }
                 style={({ pressed }) => [
@@ -278,6 +373,16 @@ export default function AccountScreen() {
                   { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
                 ]}>
                 <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.continueGoogle')}</Text>
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  clearMessages();
+                  setAuthMode('forgot');
+                }}
+                style={({ pressed }) => [styles.linkBtn, pressed && { opacity: 0.75 }]}>
+                <Text style={[styles.linkText, { color: c.tint }]}>{t('account.forgotPassword')}</Text>
               </Pressable>
             </View>
           )}
@@ -308,8 +413,6 @@ export default function AccountScreen() {
           </View>
 
           {busy ? <ActivityIndicator color={c.tint} style={{ marginTop: 12 }} /> : null}
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          {info ? <Text style={[styles.info, { color: c.pageMuted }]}>{info}</Text> : null}
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -364,6 +467,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   secondaryText: { fontSize: 15, fontWeight: '750' },
+  linkBtn: { alignItems: 'center', paddingVertical: 4 },
+  linkText: { fontSize: 14, fontWeight: '750' },
   dangerOutlineBtn: {
     borderRadius: 16,
     paddingVertical: 13,
@@ -379,6 +484,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#C43A4A',
   },
   dangerText: { color: '#FFFFFF', fontSize: 15.5, fontWeight: '850' },
-  error: { color: '#FF6B7A', fontSize: 13.5, lineHeight: 19 },
-  info: { fontSize: 13.5, lineHeight: 19 },
 });

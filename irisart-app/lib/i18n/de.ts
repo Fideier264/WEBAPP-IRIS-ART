@@ -43,6 +43,32 @@ const de = {
   'account.signedInInfo': 'Angemeldet.',
   'account.createdInfo':
     'Konto erstellt. Du kannst dich jetzt anmelden (E-Mail ggf. im Projekt bestätigen).',
+  'account.forgotPassword': 'Passwort vergessen?',
+  'account.forgotPasswordTitle': 'Passwort zurücksetzen',
+  'account.forgotPasswordBody':
+    'Wir senden dir einen Link an deine E-Mail-Adresse. Öffne den Link auf diesem Gerät, um ein neues Passwort zu setzen.',
+  'account.forgotPasswordCta': 'Link senden',
+  'account.forgotPasswordSent':
+    'E-Mail gesendet. Prüfe dein Postfach (auch Spam) und tippe auf den Link, um dein Passwort zurückzusetzen.',
+  'account.resetPasswordTitle': 'Neues Passwort',
+  'account.resetPasswordBody': 'Wähle ein neues Passwort für dein IrisArt-Konto (min. 6 Zeichen).',
+  'account.resetPasswordCta': 'Passwort speichern',
+  'account.resetPasswordDone': 'Passwort gespeichert. Du kannst dich jetzt anmelden.',
+  'account.newPassword': 'Neues Passwort (min. 6 Zeichen)',
+  'account.newPasswordConfirm': 'Passwort wiederholen',
+  'account.confirmEmailSent':
+    'Bestätigungs-E-Mail gesendet. Bitte tippe auf den Link in der E-Mail, bevor du dich anmeldest.',
+  'account.error.invalidCredentials': 'E-Mail oder Passwort ist falsch.',
+  'account.error.emailNotConfirmed':
+    'Bitte bestätige zuerst deine E-Mail-Adresse (Link in der Registrierungs-Mail).',
+  'account.error.userAlreadyRegistered': 'Diese E-Mail ist bereits registriert. Bitte anmelden.',
+  'account.error.weakPassword': 'Passwort zu kurz — mindestens 6 Zeichen.',
+  'account.error.invalidEmail': 'Bitte gib eine gültige E-Mail-Adresse ein.',
+  'account.error.rateLimit': 'Zu viele Versuche. Bitte warte kurz und versuche es erneut.',
+  'account.error.network': 'Netzwerkfehler. Bitte Internetverbindung prüfen.',
+  'account.error.googleCancelled': 'Google-Anmeldung abgebrochen.',
+  'account.error.passwordMismatch': 'Die Passwörter stimmen nicht überein.',
+  'account.error.generic': 'Anmeldung fehlgeschlagen. Bitte Eingaben prüfen.',
   'account.language': 'Sprache',
   'account.languageHint': 'App-Sprache für alle Texte.',
   'account.lang.de': 'Deutsch',

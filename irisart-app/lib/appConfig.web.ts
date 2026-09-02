@@ -29,4 +29,4 @@ export async function loadPublicAppConfig(): Promise<PublicAppConfig> {
 }
 
 export type { PublicAppConfig };
-export { configFromBuildExtra, isPublicAppConfigReady, missingConfigKeys } from './appConfigCore';
+export { configFromBuildExtra, isPublicAppConfigReady, missingConfigKeys, supabaseAnonKeyIssue } from './appConfigCore';
