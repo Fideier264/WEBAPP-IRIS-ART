@@ -2,7 +2,7 @@ import { Asset } from 'expo-asset';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Buffer } from 'buffer';
 import jpeg from 'jpeg-js';
-import { PNG } from 'pngjs';
+import UPNG from 'upng-js';
 import type { ImageSourcePropType } from 'react-native';
 
 import * as FileSystem from '@/lib/platformFileSystem';
@@ -35,9 +35,17 @@ function isPngBytes(bytes: Uint8Array): boolean {
   return bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
 function decodePngRgba(bytes: Uint8Array): RgbaImage {
-  const png = PNG.sync.read(Buffer.from(bytes));
-  const data = new Uint8ClampedArray(png.data.buffer, png.data.byteOffset, png.data.byteLength);
+  const png = UPNG.decode(toArrayBuffer(bytes));
+  const rgba = UPNG.toRGBA8(png);
+  const data =
+    rgba instanceof Uint8Array
+      ? new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, rgba.byteLength)
+      : new Uint8ClampedArray((rgba as ArrayBuffer[])[0]!);
   return { width: png.width, height: png.height, data };
 }
 
@@ -74,7 +82,7 @@ function resizeRgbaNearest(src: RgbaImage, width: number, height: number): RgbaI
   return { width, height, data };
 }
 
-/** Load RGBA from a local file URI. PNG alpha is preserved via pngjs. */
+/** Load RGBA from a local file URI. PNG alpha is preserved via upng-js. */
 export async function loadRgbaFromUri(
   uri: string,
   targetWidth?: number,
