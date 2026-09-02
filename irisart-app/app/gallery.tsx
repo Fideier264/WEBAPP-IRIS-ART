@@ -27,6 +27,7 @@ import {
 } from '@/lib/analyzeIris';
 import { useT } from '@/lib/i18n';
 import { inferEyeColorFamilies } from '@/lib/irisColorFamily';
+import { resolveEnhancedIrisUri } from '@/lib/aiIrisInpaint';
 import { saveUserIrisAnalysis } from '@/lib/userIrisLibrary';
 
 export default function ArtGalleryScreen() {
@@ -42,8 +43,28 @@ export default function ArtGalleryScreen() {
   const textureUri2 = typeof params.textureUri2 === 'string' ? params.textureUri2 : undefined;
   const sourceUri = typeof params.sourceUri === 'string' ? params.sourceUri : undefined;
   const irisFingerprint = typeof params.irisFingerprint === 'string' ? params.irisFingerprint : undefined;
-  const analysisUri = sourceUri ?? textureUri;
-  const paletteUri = textureUri ?? sourceUri;
+  const [resolvedTextureUri, setResolvedTextureUri] = useState<string | undefined>(textureUri);
+  const [resolvedTextureUri2, setResolvedTextureUri2] = useState<string | undefined>(textureUri2);
+  const effectiveTextureUri = resolvedTextureUri ?? textureUri;
+  const effectiveTextureUri2 = resolvedTextureUri2 ?? textureUri2;
+  const analysisUri = sourceUri ?? effectiveTextureUri;
+  const paletteUri = effectiveTextureUri ?? sourceUri;
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      const primary = await resolveEnhancedIrisUri({ fingerprint: irisFingerprint, fallbackUri: textureUri });
+      const secondary = textureUri2 ? await resolveEnhancedIrisUri({ fallbackUri: textureUri2 }) : undefined;
+      if (!cancelled) {
+        setResolvedTextureUri(primary);
+        setResolvedTextureUri2(secondary);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [textureUri, textureUri2, irisFingerprint]);
 
   const [analysis, setAnalysis] = useState<IrisAnalysis | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -132,15 +153,15 @@ export default function ArtGalleryScreen() {
   );
 
   const selectedIsDual = selected ? isDualEyeTemplate(selected) : false;
-  const canOrder = Boolean(selected && textureUri && (!selectedIsDual || textureUri2));
+  const canOrder = Boolean(selected && effectiveTextureUri && (!selectedIsDual || effectiveTextureUri2));
   const showSecondaryToggle = Boolean(selected?.multiColorTint);
 
   useEffect(() => {
     if (!visibleTemplates.length) return;
     if (visibleTemplates.find((tmpl) => tmpl.id === selectedId)) return;
-    const dual = textureUri2 ? visibleTemplates.find((tmpl) => isDualEyeTemplate(tmpl)) : undefined;
+    const dual = effectiveTextureUri2 ? visibleTemplates.find((tmpl) => isDualEyeTemplate(tmpl)) : undefined;
     setSelectedId(dual?.id ?? visibleTemplates[0]!.id);
-  }, [visibleTemplates, selectedId, textureUri2]);
+  }, [visibleTemplates, selectedId, effectiveTextureUri2]);
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
@@ -169,7 +190,7 @@ export default function ArtGalleryScreen() {
           <View style={{ width: ACCOUNT_HEADER_CLEARANCE }} />
         </View>
 
-        {!textureUri ? (
+        {!effectiveTextureUri ? (
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
             <Text style={[styles.cardTitle, { color: c.text }]}>{t('shop.noTexture')}</Text>
             <Text style={[styles.cardBody, { color: c.muted }]}>{t('shop.noTextureBody')}</Text>
@@ -186,8 +207,8 @@ export default function ArtGalleryScreen() {
                 router.push({
                   pathname: '/checkout',
                   params: {
-                    textureUri,
-                    ...(textureUri2 ? { textureUri2 } : {}),
+                    textureUri: effectiveTextureUri,
+                    ...(effectiveTextureUri2 ? { textureUri2: effectiveTextureUri2 } : {}),
                     templateId: selected?.id ?? visibleTemplates[0]?.id ?? '',
                     secondaryColorTint: secondaryColorTint ? '1' : '0',
                   },
@@ -204,7 +225,7 @@ export default function ArtGalleryScreen() {
               <Text style={styles.primaryCtaSub}>
                 {!selected
                   ? t('shop.orderSubPick')
-                  : selectedIsDual && !textureUri2
+                  : selectedIsDual && !effectiveTextureUri2
                     ? t('shop.orderSubNeedSecond')
                     : t('shop.orderSub', { title: selected.title })}
               </Text>
@@ -259,7 +280,7 @@ export default function ArtGalleryScreen() {
               )}
             </View>
 
-            {selected && textureUri ? (
+            {selected && effectiveTextureUri ? (
               <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
                 <Text style={[styles.cardTitle, { color: c.text }]}>
                   {t('shop.preview', { title: selected.title })}
@@ -304,15 +325,15 @@ export default function ArtGalleryScreen() {
                 ) : null}
                 <View style={{ alignItems: 'center', marginTop: 8 }}>
                   <ArtTemplateComposite
-                    key={`preview:${selected.id}:${textureUri}:${textureUri2 ?? ''}:${secondaryColorTint ? '1' : '0'}`}
-                    textureUri={textureUri}
-                    textureUri2={textureUri2}
+                    key={`preview:${selected.id}:${effectiveTextureUri}:${effectiveTextureUri2 ?? ''}:${secondaryColorTint ? '1' : '0'}`}
+                    textureUri={effectiveTextureUri}
+                    textureUri2={effectiveTextureUri2}
                     template={selected}
                     width={cardWidth}
                     secondaryColorTint={secondaryColorTint}
                   />
                 </View>
-                {selectedIsDual && !textureUri2 ? (
+                {selectedIsDual && !effectiveTextureUri2 ? (
                   <View style={{ gap: 8, marginTop: 10 }}>
                     <Text style={[styles.cardBody, { color: c.muted }]}>{t('shop.dualNeedSecond')}</Text>
                     <Pressable
@@ -320,7 +341,7 @@ export default function ArtGalleryScreen() {
                       onPress={() =>
                         router.push({
                           pathname: '/library',
-                          params: { pickDual: '1', textureUri },
+                          params: { pickDual: '1', textureUri: effectiveTextureUri },
                         })
                       }
                       style={({ pressed }) => [
@@ -371,11 +392,11 @@ export default function ArtGalleryScreen() {
                         opacity: pressed ? 0.92 : 1,
                       },
                     ]}>
-                    {textureUri ? (
+                    {effectiveTextureUri ? (
                       <ArtTemplateComposite
-                        key={`${tmpl.id}:${secondaryColorTint ? '1' : '0'}`}
-                        textureUri={textureUri}
-                        textureUri2={textureUri2}
+                        key={`${tmpl.id}:${effectiveTextureUri}:${secondaryColorTint ? '1' : '0'}`}
+                        textureUri={effectiveTextureUri}
+                        textureUri2={effectiveTextureUri2}
                         template={tmpl}
                         width={thumbWidth - 2}
                         secondaryColorTint={secondaryColorTint}
@@ -402,7 +423,7 @@ export default function ArtGalleryScreen() {
                 router.push({
                   pathname: '/results',
                   params: {
-                    uri: textureUri,
+                    uri: effectiveTextureUri,
                     sourceUri: analysisUri,
                     ...(irisFingerprint ? { irisFingerprint } : {}),
                   },
@@ -416,7 +437,11 @@ export default function ArtGalleryScreen() {
             </Pressable>
           </ScrollView>
         )}
-        <AppBottomBar active="shop" shopTextureUri={textureUri} />
+        <AppBottomBar
+          active="shop"
+          shopTextureUri={effectiveTextureUri}
+          shopIrisFingerprint={irisFingerprint}
+        />
       </SafeAreaView>
     </View>
   );

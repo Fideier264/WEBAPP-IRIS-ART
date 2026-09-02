@@ -109,6 +109,7 @@ const en: Record<TranslationKey, string> = {
   'capture.zoom': 'Zoom',
   'capture.cropTitle': 'Crop Eye Area',
   'capture.cropHint': 'Frame the eye including eyelid and brow.',
+  'capture.exampleCaption': 'This is how your photo should look',
   'capture.retake': 'Retake',
   'capture.usePhoto': 'Use Photo',
   'capture.cameraError': 'Camera error',
@@ -141,6 +142,8 @@ const en: Record<TranslationKey, string> = {
   'iris.retake': 'Retake Photo',
   'iris.missingPhoto': 'Missing photo.',
   'iris.enhanceFailed': 'Failed to enhance iris.',
+  'iris.configKeyError':
+    'Invalid app configuration. Set EXPO_PUBLIC_SUPABASE_ANON_KEY to the legacy anon JWT (starts with eyJ…) in EAS, then rebuild and upload to TestFlight.',
 
   'review.back': 'Back',
   'review.title': 'Iris Texture Preview',

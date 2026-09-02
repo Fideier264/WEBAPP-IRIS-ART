@@ -10,6 +10,15 @@ import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE, HEADER_BACK_CHIP_MIN_WI
 import { enhanceIrisTextureWithInpaint } from '@/lib/aiIrisInpaint';
 import { useT } from '@/lib/i18n';
 
+function formatEnhanceError(raw: string, t: (key: string) => string): string {
+  if (/Invalid Compact JWS|Invalid API key|sb_publishable_/i.test(raw)) {
+    return t('iris.configKeyError');
+  }
+  const firstLine = raw.split('\n').find((line) => line.trim().length > 0)?.trim();
+  if (firstLine && firstLine.length <= 140) return firstLine;
+  return t('iris.enhanceFailed');
+}
+
 type Status =
   | { kind: 'loading' }
   | { kind: 'ready'; textureUrl: string; maskedImageUri: string; maskImageUri: string; fingerprint: string }
@@ -57,7 +66,7 @@ export default function IrisPrepScreen() {
         if (cancelled) return;
         setStatus({
           kind: 'error',
-          message: e instanceof Error ? e.message : t('iris.enhanceFailed'),
+          message: formatEnhanceError(e instanceof Error ? e.message : t('iris.enhanceFailed'), t),
         });
       }
     };
@@ -212,7 +221,11 @@ export default function IrisPrepScreen() {
             </Pressable>
           )}
         </ScrollView>
-        <AppBottomBar active="scan" shopTextureUri={status.kind === 'ready' ? status.textureUrl : undefined} />
+        <AppBottomBar
+          active="scan"
+          shopTextureUri={status.kind === 'ready' ? status.textureUrl : undefined}
+          shopIrisFingerprint={status.kind === 'ready' ? status.fingerprint : undefined}
+        />
       </SafeAreaView>
     </View>
   );

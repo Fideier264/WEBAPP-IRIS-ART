@@ -165,3 +165,52 @@ export async function enhanceIrisTextureWithInpaint(
   return inflight;
 }
 
+function stripFileScheme(uri: string): string {
+  return uri.startsWith('file://') ? uri.slice(7) : uri;
+}
+
+/** Resolve enhanced iris file from in-memory/disk cache when router params truncate local paths. */
+export async function resolveEnhancedIrisUri(opts: {
+  fingerprint?: string;
+  fallbackUri?: string;
+}): Promise<string | undefined> {
+  await ensurePersistedEnhanceLoaded();
+
+  const exists = async (uri: string) => {
+    try {
+      const info = await FileSystem.getInfoAsync(stripFileScheme(uri));
+      return info.exists && (info.size ?? 0) > 0;
+    } catch {
+      return false;
+    }
+  };
+
+  if (opts.fingerprint) {
+    const cached = enhanceCacheByFingerprint.get(opts.fingerprint);
+    if (cached?.outputUrl && (await exists(cached.outputUrl))) {
+      return cached.outputUrl;
+    }
+    const persisted = persistedEnhanceMap.get(opts.fingerprint);
+    if (persisted && (await exists(persisted))) {
+      return resolveDisplayUri(persisted);
+    }
+  }
+
+  if (opts.fallbackUri) {
+    const decoded = opts.fallbackUri.includes('%')
+      ? (() => {
+          try {
+            return decodeURIComponent(opts.fallbackUri!);
+          } catch {
+            return opts.fallbackUri!;
+          }
+        })()
+      : opts.fallbackUri;
+    if (await exists(decoded)) return resolveDisplayUri(decoded);
+    // Still return — ImageManipulator may read paths getInfoAsync rejects.
+    return resolveDisplayUri(decoded);
+  }
+
+  return undefined;
+}
+

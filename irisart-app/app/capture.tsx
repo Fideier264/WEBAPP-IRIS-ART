@@ -8,7 +8,6 @@ import {
   PanResponder,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -49,12 +48,14 @@ export default function CaptureScreen() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isPicking, setIsPicking] = useState(false);
   const [zoom, setZoom] = useState(0.3); // 0..1, ~1.5–2x default
-  const { width: windowW } = useWindowDimensions();
-  const cameraStageSize = Math.min(Math.max(240, windowW - 36), 520);
+  const { width: windowW, height: windowH } = useWindowDimensions();
+  const compact = windowH < 760;
+  const cameraStageSize = Math.min(Math.max(compact ? 220 : 240, windowW - 36), compact ? 400 : 520);
   const isPreview = state.kind === 'preview';
   const stageSize = isPreview
-    ? Math.min(Math.round(cameraStageSize * 0.68), 340)
+    ? Math.min(Math.round(cameraStageSize * (compact ? 0.5 : 0.56)), compact ? 250 : 290)
     : cameraStageSize;
+  const exampleMaxHeight = compact ? 84 : 108;
   const [cropRect, setCropRect] = useState<{ cx: number; cy: number; scale: number }>({
     cx: 0.5,
     cy: 0.5,
@@ -196,11 +197,7 @@ export default function CaptureScreen() {
       />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator
-          keyboardShouldPersistTaps="handled">
+        <View style={[styles.content, { paddingBottom: BOTTOM_BAR_CLEARANCE }]}>
         <View style={styles.topBar}>
           <Pressable
             accessibilityRole="button"
@@ -216,6 +213,8 @@ export default function CaptureScreen() {
         </View>
 
         <View style={styles.toolRow}>
+          {!isPreview ? (
+            <>
           <Pressable
             accessibilityRole="button"
             onPress={pickFromGallery}
@@ -241,6 +240,8 @@ export default function CaptureScreen() {
               {torchOn ? t('capture.torchOn') : t('capture.torchOff')}
             </Text>
           </Pressable>
+            </>
+          ) : null}
         </View>
 
         <View style={styles.stage}>
@@ -330,13 +331,17 @@ export default function CaptureScreen() {
         <View style={styles.controls}>
           {state.kind === 'preview' ? (
             <>
-              <View style={styles.cropPanel}>
-                <Text style={[styles.cropTitle, { color: '#F3F5FF' }]}>{t('capture.cropTitle')}</Text>
-                <Text style={[styles.cropHint, { color: 'rgba(243,245,255,0.72)' }]}>
+              <View style={[styles.cropPanel, compact && styles.cropPanelCompact]}>
+                <Text style={[styles.cropTitle, compact && styles.cropTitleCompact, { color: '#F3F5FF' }]}>
+                  {t('capture.cropTitle')}
+                </Text>
+                <Text
+                  style={[styles.cropHint, compact && styles.cropHintCompact, { color: 'rgba(243,245,255,0.72)' }]}
+                  numberOfLines={compact ? 1 : 2}>
                   {t('capture.cropHint')}
                 </Text>
                 <Slider
-                  style={styles.cropSlider}
+                  style={[styles.cropSlider, compact && styles.cropSliderCompact]}
                   minimumValue={0.62}
                   maximumValue={1.12}
                   value={cropRect.scale}
@@ -363,12 +368,20 @@ export default function CaptureScreen() {
                   maximumTrackTintColor={scheme === 'dark' ? 'rgba(243,245,255,0.25)' : 'rgba(10,11,16,0.25)'}
                   thumbTintColor={c.tint}
                 />
-                <View style={[styles.exampleFrame, { borderColor: c.border, backgroundColor: c.surfaceAlt }]}>
+                <Text style={[styles.exampleCaption, compact && styles.exampleCaptionCompact]}>
+                  {t('capture.exampleCaption')}
+                </Text>
+                <View
+                  style={[
+                    styles.exampleFrame,
+                    compact && styles.exampleFrameCompact,
+                    { borderColor: c.border, backgroundColor: c.surfaceAlt, maxHeight: exampleMaxHeight },
+                  ]}>
                   <Image
                     source={require('@/assets/crop-eye-example.png')}
                     style={styles.exampleImage}
                     resizeMode="cover"
-                    accessibilityLabel={t('capture.cropHint')}
+                    accessibilityLabel={t('capture.exampleCaption')}
                   />
                 </View>
               </View>
@@ -410,7 +423,7 @@ export default function CaptureScreen() {
             </View>
           )}
         </View>
-        </ScrollView>
+        </View>
         <AppBottomBar active="scan" />
       </SafeAreaView>
     </View>
@@ -420,8 +433,7 @@ export default function CaptureScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 0 },
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: BOTTOM_BAR_CLEARANCE, flexGrow: 1, gap: 10 },
+  content: { flex: 1, justifyContent: 'space-between', gap: 8 },
   disclaimerWrap: { width: '100%', alignSelf: 'stretch' },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   toolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingRight: 4 },
@@ -435,7 +447,7 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 13.5, fontWeight: '650' },
 
-  stage: { flexShrink: 0, justifyContent: 'center', alignItems: 'center', paddingTop: 8 },
+  stage: { flexShrink: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 4 },
   cameraWrap: {
     borderRadius: 26,
     overflow: 'hidden',
@@ -488,11 +500,11 @@ const styles = StyleSheet.create({
   },
   permissionButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '750' },
 
-  zoomRow: { paddingTop: 10, paddingHorizontal: 4 },
-  zoomLabel: { fontSize: 12.5, marginBottom: 4 },
-  slider: { width: '100%', height: 32 },
+  zoomRow: { paddingTop: 6, paddingHorizontal: 4 },
+  zoomLabel: { fontSize: 12.5, marginBottom: 2 },
+  slider: { width: '100%', height: 28 },
 
-  controls: { paddingTop: 14, flexDirection: 'column', justifyContent: 'center', gap: 12, alignItems: 'stretch' },
+  controls: { paddingTop: 8, flexDirection: 'column', justifyContent: 'flex-end', gap: 10, alignItems: 'stretch' },
   shutterRow: { width: '100%', alignItems: 'center', justifyContent: 'center' },
   previewButtonsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, width: '100%' },
   cropPanel: {
@@ -500,20 +512,39 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10,11,16,0.55)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 20,
-    padding: 14,
-    gap: 8,
+    borderRadius: 18,
+    padding: 12,
+    gap: 6,
   },
-  cropTitle: { fontSize: 14.5, fontWeight: '900' },
-  cropHint: { fontSize: 12.5, fontWeight: '700' },
-  cropSlider: { width: '100%', height: 34 },
+  cropPanelCompact: { padding: 10, gap: 4, borderRadius: 16 },
+  cropTitle: { fontSize: 14, fontWeight: '900' },
+  cropTitleCompact: { fontSize: 13.5 },
+  cropHint: { fontSize: 12, fontWeight: '700', lineHeight: 16 },
+  cropHintCompact: { fontSize: 11.5, lineHeight: 15 },
+  cropSlider: { width: '100%', height: 28 },
+  cropSliderCompact: { height: 24 },
+  exampleCaption: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: '750',
+    textAlign: 'center',
+    color: 'rgba(243,245,255,0.82)',
+  },
+  exampleCaptionCompact: { fontSize: 11.5, marginTop: 0 },
   exampleFrame: {
-    marginTop: 4,
+    width: '68%',
+    aspectRatio: 4 / 3,
+    alignSelf: 'center',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 14,
     overflow: 'hidden',
   },
-  exampleImage: { width: '100%', height: 118, backgroundColor: 'rgba(0,0,0,0.12)' },
+  exampleFrameCompact: { width: '62%', borderRadius: 12 },
+  exampleImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.12)',
+  },
   cropRect: {
     position: 'absolute',
     borderWidth: 2,
@@ -538,14 +569,14 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 56 / 2,
   },
-  primaryBtn: { flex: 1, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
-  primaryText: { color: '#FFFFFF', fontSize: 15.5, fontWeight: '800' },
+  primaryBtn: { flex: 1, borderRadius: 16, paddingVertical: 12, alignItems: 'center' },
+  primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
   secondaryBtn: {
     flex: 1,
     borderRadius: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     borderWidth: StyleSheet.hairlineWidth,
   },
-  secondaryText: { fontSize: 15.5, fontWeight: '750' },
+  secondaryText: { fontSize: 15, fontWeight: '750' },
 });

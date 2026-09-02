@@ -3,7 +3,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { Buffer } from 'buffer';
 import jpeg from 'jpeg-js';
 import UPNG from 'upng-js';
-import type { ImageSourcePropType } from 'react-native';
+import { Platform, type ImageSourcePropType } from 'react-native';
 
 import * as FileSystem from '@/lib/platformFileSystem';
 
@@ -26,9 +26,49 @@ export async function resolveImageUrl(source: string | ImageSourcePropType): Pro
   throw new Error('Unsupported image source.');
 }
 
+function normalizeInputUri(uri: string): string {
+  let out = uri.trim();
+  if (out.includes('%')) {
+    try {
+      out = decodeURIComponent(out);
+    } catch {
+      // keep original when not valid URI encoding
+    }
+  }
+  return out;
+}
+
+function isRemoteUri(uri: string): boolean {
+  return /^https?:\/\//i.test(uri);
+}
+
+function isDataUri(uri: string): boolean {
+  return uri.startsWith('data:');
+}
+
+/** RN `<Image>` on iOS often needs an explicit file:// prefix for cache paths. */
+export function toImageDisplayUri(uri: string): string {
+  if (Platform.OS === 'ios' && uri.startsWith('/') && !uri.startsWith('file://')) {
+    return `file://${uri}`;
+  }
+  return uri;
+}
+
 async function readUriBytes(uri: string): Promise<Uint8Array> {
   const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
   return new Uint8Array(Buffer.from(base64, 'base64'));
+}
+
+async function ensureLocalUri(uri: string): Promise<string> {
+  const normalized = normalizeInputUri(uri);
+  if (isDataUri(normalized)) return normalized;
+  if (isRemoteUri(normalized)) {
+    const ext = normalized.toLowerCase().includes('.png') ? 'png' : 'jpg';
+    const dest = `${FileSystem.cacheDirectory}irisart_dl_${Date.now()}.${ext}`;
+    const dl = await FileSystem.downloadAsync(normalized, dest);
+    return dl.uri;
+  }
+  return normalized;
 }
 
 function isPngBytes(bytes: Uint8Array): boolean {
@@ -82,34 +122,56 @@ function resizeRgbaNearest(src: RgbaImage, width: number, height: number): RgbaI
   return { width, height, data };
 }
 
+async function loadRgbaViaManipulator(
+  uri: string,
+  targetWidth?: number,
+  targetHeight?: number
+): Promise<RgbaImage> {
+  const localUri = await ensureLocalUri(uri);
+  const actions =
+    targetWidth && targetHeight
+      ? [{ resize: { width: targetWidth, height: targetHeight } }]
+      : [{ resize: { width: 1536 } }];
+  const prepared = await ImageManipulator.manipulateAsync(localUri, actions, {
+    format: ImageManipulator.SaveFormat.JPEG,
+    compress: 0.92,
+    base64: true,
+  });
+  if (!prepared.base64) throw new Error(`Could not read image: ${uri.slice(0, 100)}`);
+  return decodeJpegRgba(new Uint8Array(Buffer.from(prepared.base64, 'base64')));
+}
+
 /** Load RGBA from a local file URI. PNG alpha is preserved via upng-js. */
 export async function loadRgbaFromUri(
   uri: string,
   targetWidth?: number,
   targetHeight?: number
 ): Promise<RgbaImage> {
-  const lower = uri.split('?')[0]?.toLowerCase() ?? '';
-  const looksPng = lower.endsWith('.png');
+  const normalized = normalizeInputUri(uri);
 
-  if (looksPng) {
-    const bytes = await readUriBytes(uri);
-    let img = decodePngRgba(bytes);
+  if (isDataUri(normalized)) {
+    const bytes = new Uint8Array(Buffer.from(dataUriToBase64(normalized), 'base64'));
+    let img = decodeImageBytes(bytes);
     if (targetWidth && targetHeight) img = resizeRgbaNearest(img, targetWidth, targetHeight);
     return img;
   }
 
-  if (targetWidth && targetHeight) {
-    const prepared = await ImageManipulator.manipulateAsync(
-      uri,
-      [{ resize: { width: targetWidth, height: targetHeight } }],
-      { format: ImageManipulator.SaveFormat.JPEG, compress: 0.92, base64: true }
-    );
-    if (!prepared.base64) throw new Error(`Could not read image: ${uri.slice(0, 80)}`);
-    return decodeJpegRgba(new Uint8Array(Buffer.from(prepared.base64, 'base64')));
+  const localUri = await ensureLocalUri(normalized);
+  const lower = localUri.split('?')[0]?.toLowerCase() ?? '';
+  const looksPng = lower.endsWith('.png');
+
+  if (looksPng) {
+    try {
+      const bytes = await readUriBytes(localUri);
+      let img = decodePngRgba(bytes);
+      if (targetWidth && targetHeight) img = resizeRgbaNearest(img, targetWidth, targetHeight);
+      return img;
+    } catch {
+      // Fall back to ImageManipulator for odd PNG paths on iOS.
+    }
   }
 
-  const bytes = await readUriBytes(uri);
-  return decodeImageBytes(bytes);
+  return loadRgbaViaManipulator(localUri, targetWidth, targetHeight);
 }
 
 /** Load RGBA from a URI string or bundled `require()` asset. */
@@ -149,5 +211,5 @@ export async function persistJpegDataUri(dataUri: string, cacheKey: string): Pro
   const safeKey = cacheKey.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 80);
   const fileUri = `${FileSystem.cacheDirectory}art_${safeKey}.jpg`;
   await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-  return fileUri;
+  return toImageDisplayUri(fileUri);
 }

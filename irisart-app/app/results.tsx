@@ -294,7 +294,7 @@ export default function ResultsScreen() {
             </>
           )}
         </ScrollView>
-        <AppBottomBar active="shop" shopTextureUri={uri} />
+        <AppBottomBar active="shop" shopTextureUri={uri} shopIrisFingerprint={irisFingerprint} />
       </SafeAreaView>
     </View>
   );

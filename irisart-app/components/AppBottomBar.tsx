@@ -9,9 +9,11 @@ import { useT } from '@/lib/i18n';
 export function AppBottomBar({
   active,
   shopTextureUri,
+  shopIrisFingerprint,
 }: {
   active: 'library' | 'scan' | 'shop';
   shopTextureUri?: string;
+  shopIrisFingerprint?: string;
 }) {
   const c = useAppColors();
   const insets = useSafeAreaInsets();
@@ -39,7 +41,15 @@ export function AppBottomBar({
       <BarBtn
         label={t('nav.shop')}
         active={active === 'shop'}
-        onPress={() => router.replace({ pathname: '/shop', params: shopTextureUri ? { textureUri: shopTextureUri } : {} })}
+        onPress={() =>
+          router.replace({
+            pathname: '/shop',
+            params: {
+              ...(shopTextureUri ? { textureUri: shopTextureUri } : {}),
+              ...(shopIrisFingerprint ? { irisFingerprint: shopIrisFingerprint } : {}),
+            },
+          })
+        }
         tint={c.tint}
         text={c.text}
       />

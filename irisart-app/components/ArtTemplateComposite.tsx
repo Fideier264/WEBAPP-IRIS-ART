@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, PixelRatio, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, PixelRatio, StyleSheet, Text, View } from 'react-native';
 
 import type { ArtTemplate } from '@/lib/artTemplates';
 import { getTemplateCanvasBackground } from '@/lib/artTemplates';
 import { paintArtComposite } from '@/lib/artCompositeTint.native';
-import { persistJpegDataUri } from '@/lib/artRgba.native';
+import { persistJpegDataUri, toImageDisplayUri } from '@/lib/artRgba.native';
 
 type Props = {
   textureUri: string;
@@ -27,9 +27,14 @@ export function ArtTemplateComposite({
 }: Props) {
   const height = width / template.aspectRatio;
   const canvasBg = getTemplateCanvasBackground(template);
-  const [dataUri, setDataUri] = useState<string | null>(null);
+  const [displayUri, setDisplayUri] = useState<string | null>(null);
   const [busy, setBusy] = useState(true);
   const [failed, setFailed] = useState(false);
+
+  const textureKey = useMemo(
+    () => textureUri.replace(/[^a-zA-Z0-9]/g, '').slice(-28),
+    [textureUri]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +47,7 @@ export function ArtTemplateComposite({
     const run = async () => {
       setBusy(true);
       setFailed(false);
-      setDataUri(null);
+      setDisplayUri(null);
       try {
         const { dataUri: painted } = await paintArtComposite({
           textureUri,
@@ -52,10 +57,10 @@ export function ArtTemplateComposite({
           height: ph,
           secondaryColorTint,
         });
-        const cacheKey = `${template.id}_${pw}x${ph}_${secondaryColorTint ? '1' : '0'}`;
+        const cacheKey = `${template.id}_${textureKey}_${pw}x${ph}_${secondaryColorTint ? '1' : '0'}`;
         const fileUri = await persistJpegDataUri(painted, cacheKey);
         if (!cancelled) {
-          setDataUri(fileUri);
+          setDisplayUri(fileUri);
           setBusy(false);
         }
       } catch (e) {
@@ -74,19 +79,34 @@ export function ArtTemplateComposite({
     return () => {
       cancelled = true;
     };
-  }, [textureUri, textureUri2, template, template.id, width, height, secondaryColorTint]);
+  }, [textureUri, textureUri2, template, template.id, textureKey, width, height, secondaryColorTint]);
 
   return (
     <View style={[styles.root, { width, height, backgroundColor: canvasBg }]}>
-      {dataUri ? (
-        <Image source={{ uri: dataUri }} style={{ width, height, borderRadius: 14 }} resizeMode="stretch" />
+      {displayUri ? (
+        <Image
+          source={{ uri: displayUri }}
+          style={{ width, height, borderRadius: 14 }}
+          resizeMode="stretch"
+          onError={() => {
+            setDisplayUri((cur) => {
+              if (!cur) return cur;
+              if (cur.startsWith('file://')) return cur.slice(7);
+              return toImageDisplayUri(cur);
+            });
+          }}
+        />
       ) : null}
       {busy ? (
         <View style={styles.loading}>
           <ActivityIndicator color="#7c5cff" />
         </View>
       ) : null}
-      {failed && !busy ? <View style={styles.failed} /> : null}
+      {failed && !busy ? (
+        <View style={styles.failed}>
+          <Text style={styles.failedText}>!</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -105,6 +125,9 @@ const styles = StyleSheet.create({
   },
   failed: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(220,80,80,0.12)',
+    backgroundColor: 'rgba(220,80,80,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  failedText: { color: '#ffb4b4', fontSize: 18, fontWeight: '900' },
 });

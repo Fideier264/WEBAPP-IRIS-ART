@@ -112,6 +112,7 @@ const de = {
   'capture.zoom': 'Zoom',
   'capture.cropTitle': 'Augenbereich zuschneiden',
   'capture.cropHint': 'Rahmen so setzen, dass Lid und Braue mit erfasst sind.',
+  'capture.exampleCaption': 'So sollte das Foto aussehen',
   'capture.retake': 'Erneut',
   'capture.usePhoto': 'Foto verwenden',
   'capture.cameraError': 'Kamerafehler',
@@ -146,6 +147,8 @@ const de = {
   'iris.retake': 'Foto erneut aufnehmen',
   'iris.missingPhoto': 'Kein Foto vorhanden.',
   'iris.enhanceFailed': 'Iris-Veredelung fehlgeschlagen.',
+  'iris.configKeyError':
+    'App-Konfiguration ungültig. In EAS muss EXPO_PUBLIC_SUPABASE_ANON_KEY der legacy anon JWT (beginnt mit eyJ…) sein — danach neu bauen und zu TestFlight hochladen.',
 
   // Review (legacy)
   'review.back': 'Zurück',
