@@ -45,17 +45,26 @@ export default function CaptureScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [state, setState] = useState<CaptureState>({ kind: 'camera' });
   const [torchOn, setTorchOn] = useState(false);
+  const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [isCapturing, setIsCapturing] = useState(false);
   const [isPicking, setIsPicking] = useState(false);
   const [zoom, setZoom] = useState(0.3); // 0..1, ~1.5–2x default
   const { width: windowW, height: windowH } = useWindowDimensions();
-  const compact = windowH < 760;
-  const cameraStageSize = Math.min(Math.max(compact ? 220 : 240, windowW - 36), compact ? 400 : 520);
+  const compact = windowH < 780 || Platform.OS === 'android';
+  // Reserve space for header/tools/zoom/shutter/bottom bar so camera never covers controls.
+  const reservedChrome = Platform.OS === 'android' ? 340 : 300;
+  const maxByHeight = Math.max(180, windowH - reservedChrome);
+  const maxByWidth = Math.max(180, windowW - 36);
+  const cameraStageSize = Math.min(
+    compact ? 280 : 360,
+    maxByWidth,
+    maxByHeight
+  );
   const isPreview = state.kind === 'preview';
   const stageSize = isPreview
-    ? Math.min(Math.round(cameraStageSize * (compact ? 0.5 : 0.56)), compact ? 250 : 290)
+    ? Math.min(Math.round(cameraStageSize * (compact ? 0.72 : 0.78)), compact ? 240 : 280)
     : cameraStageSize;
-  const exampleMaxHeight = compact ? 84 : 108;
+  const exampleMaxHeight = compact ? 72 : 100;
   const [cropRect, setCropRect] = useState<{ cx: number; cy: number; scale: number }>({
     cx: 0.5,
     cy: 0.5,
@@ -215,31 +224,54 @@ export default function CaptureScreen() {
         <View style={styles.toolRow}>
           {!isPreview ? (
             <>
-          <Pressable
-            accessibilityRole="button"
-            onPress={pickFromGallery}
-            disabled={isPicking}
-            style={({ pressed }) => [
-              styles.chip,
-              { borderColor: c.border, backgroundColor: c.surface },
-              pressed && { opacity: 0.85 },
-            ]}>
-            <Text style={[styles.chipText, { color: c.text }]}>
-              {isPicking ? t('capture.uploading') : t('capture.upload')}
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setTorchOn((v) => !v)}
-            style={({ pressed }) => [
-              styles.chip,
-              { borderColor: c.border, backgroundColor: c.surface },
-              pressed && { opacity: 0.85 },
-            ]}>
-            <Text style={[styles.chipText, { color: c.text }]}>
-              {torchOn ? t('capture.torchOn') : t('capture.torchOff')}
-            </Text>
-          </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={pickFromGallery}
+                disabled={isPicking}
+                style={({ pressed }) => [
+                  styles.chip,
+                  { borderColor: c.border, backgroundColor: c.surface },
+                  pressed && { opacity: 0.85 },
+                ]}>
+                <Text style={[styles.chipText, { color: c.text }]}>
+                  {isPicking ? t('capture.uploading') : t('capture.upload')}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setFacing((v) => {
+                    const next = v === 'back' ? 'front' : 'back';
+                    if (next === 'front') setTorchOn(false);
+                    return next;
+                  });
+                }}
+                style={({ pressed }) => [
+                  styles.chip,
+                  { borderColor: c.border, backgroundColor: c.surface },
+                  pressed && { opacity: 0.85 },
+                ]}>
+                <Text style={[styles.chipText, { color: c.text }]}>{t('capture.flipCamera')}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  if (facing === 'front') return;
+                  setTorchOn((v) => !v);
+                }}
+                disabled={facing === 'front'}
+                style={({ pressed }) => [
+                  styles.chip,
+                  {
+                    borderColor: c.border,
+                    backgroundColor: c.surface,
+                    opacity: facing === 'front' ? 0.45 : pressed ? 0.85 : 1,
+                  },
+                ]}>
+                <Text style={[styles.chipText, { color: c.text }]}>
+                  {torchOn ? t('capture.torchOn') : t('capture.torchOff')}
+                </Text>
+              </Pressable>
             </>
           ) : null}
         </View>
@@ -287,8 +319,8 @@ export default function CaptureScreen() {
               <CameraView
                 ref={cameraRef}
                 style={StyleSheet.absoluteFill}
-                facing="back"
-                enableTorch={torchOn}
+                facing={facing}
+                enableTorch={facing === 'back' && torchOn}
                 // expo-camera zoom is 0..1; keep within safe bounds
                 zoom={Math.max(0, Math.min(1, zoom))}
               />
@@ -433,7 +465,7 @@ export default function CaptureScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 0 },
-  content: { flex: 1, justifyContent: 'space-between', gap: 8 },
+  content: { flex: 1, justifyContent: 'flex-start', gap: 6 },
   disclaimerWrap: { width: '100%', alignSelf: 'stretch' },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   toolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingRight: 4 },
@@ -447,7 +479,7 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 13.5, fontWeight: '650' },
 
-  stage: { flexShrink: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 4 },
+  stage: { flexGrow: 0, flexShrink: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 2 },
   cameraWrap: {
     borderRadius: 26,
     overflow: 'hidden',
@@ -504,7 +536,14 @@ const styles = StyleSheet.create({
   zoomLabel: { fontSize: 12.5, marginBottom: 2 },
   slider: { width: '100%', height: 28 },
 
-  controls: { paddingTop: 8, flexDirection: 'column', justifyContent: 'flex-end', gap: 10, alignItems: 'stretch' },
+  controls: {
+    paddingTop: 4,
+    marginTop: 'auto' as const,
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    gap: 8,
+    alignItems: 'stretch',
+  },
   shutterRow: { width: '100%', alignItems: 'center', justifyContent: 'center' },
   previewButtonsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, width: '100%' },
   cropPanel: {

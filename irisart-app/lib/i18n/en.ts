@@ -101,6 +101,7 @@ const en: Record<TranslationKey, string> = {
   'capture.uploading': 'Uploading…',
   'capture.torchOn': 'Torch On',
   'capture.torchOff': 'Torch Off',
+  'capture.flipCamera': 'Flip Camera',
   'capture.permissionTitle': 'Camera access required',
   'capture.permissionBody': 'Allow camera access to capture your iris.',
   'capture.allowCamera': 'Allow Camera',

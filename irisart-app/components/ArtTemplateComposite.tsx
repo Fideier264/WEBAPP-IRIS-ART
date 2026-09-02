@@ -5,6 +5,7 @@ import type { ArtTemplate } from '@/lib/artTemplates';
 import { getTemplateCanvasBackground } from '@/lib/artTemplates';
 import { paintArtComposite } from '@/lib/artCompositeTint.native';
 import { persistJpegDataUri, toImageDisplayUri } from '@/lib/artRgba.native';
+import { enqueuePaint } from '@/lib/paintQueue';
 
 type Props = {
   textureUri: string;
@@ -13,7 +14,11 @@ type Props = {
   /** Layout-Breite; Höhe = width / aspectRatio */
   width: number;
   secondaryColorTint?: boolean;
+  /** thumb = fast low-res grid cell; preview = selected large view */
+  quality?: 'thumb' | 'preview';
 };
+
+const memoryCache = new Map<string, string>();
 
 /**
  * Native preview: same dynamic iris-color tinting as web preview and print export.
@@ -24,6 +29,7 @@ export function ArtTemplateComposite({
   template,
   width,
   secondaryColorTint = true,
+  quality = 'preview',
 }: Props) {
   const height = width / template.aspectRatio;
   const canvasBg = getTemplateCanvasBackground(template);
@@ -40,25 +46,41 @@ export function ArtTemplateComposite({
     let cancelled = false;
     if (width <= 0) return;
 
-    const dpr = Math.min(2, PixelRatio.get());
-    const pw = Math.max(1, Math.round(width * dpr));
-    const ph = Math.max(1, Math.round(height * dpr));
+    const dprCap = quality === 'thumb' ? 1 : Math.min(2, PixelRatio.get());
+    const maxEdge = quality === 'thumb' ? 168 : 720;
+    const layoutLong = Math.max(width, height);
+    const scale = Math.min(dprCap, maxEdge / Math.max(1, layoutLong));
+    const pw = Math.max(1, Math.round(width * scale));
+    const ph = Math.max(1, Math.round(height * scale));
+    const cacheKey = `${template.id}_${textureKey}_${pw}x${ph}_${secondaryColorTint ? '1' : '0'}_${quality}`;
+
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      setDisplayUri(cached);
+      setBusy(false);
+      setFailed(false);
+      return;
+    }
 
     const run = async () => {
       setBusy(true);
       setFailed(false);
-      setDisplayUri(null);
       try {
-        const { dataUri: painted } = await paintArtComposite({
-          textureUri,
-          textureUri2,
-          template,
-          width: pw,
-          height: ph,
-          secondaryColorTint,
-        });
-        const cacheKey = `${template.id}_${textureKey}_${pw}x${ph}_${secondaryColorTint ? '1' : '0'}`;
+        const { dataUri: painted } = await enqueuePaint(
+          () =>
+            paintArtComposite({
+              textureUri,
+              textureUri2,
+              template,
+              width: pw,
+              height: ph,
+              secondaryColorTint,
+            }),
+          quality === 'preview' ? 'high' : 'normal'
+        );
+        if (cancelled) return;
         const fileUri = await persistJpegDataUri(painted, cacheKey);
+        memoryCache.set(cacheKey, fileUri);
         if (!cancelled) {
           setDisplayUri(fileUri);
           setBusy(false);
@@ -79,14 +101,14 @@ export function ArtTemplateComposite({
     return () => {
       cancelled = true;
     };
-  }, [textureUri, textureUri2, template, template.id, textureKey, width, height, secondaryColorTint]);
+  }, [textureUri, textureUri2, template, template.id, textureKey, width, height, secondaryColorTint, quality]);
 
   return (
     <View style={[styles.root, { width, height, backgroundColor: canvasBg }]}>
       {displayUri ? (
         <Image
           source={{ uri: displayUri }}
-          style={{ width, height, borderRadius: 14 }}
+          style={{ width, height, borderRadius: quality === 'thumb' ? 10 : 14 }}
           resizeMode="stretch"
           onError={() => {
             setDisplayUri((cur) => {
@@ -99,7 +121,7 @@ export function ArtTemplateComposite({
       ) : null}
       {busy ? (
         <View style={styles.loading}>
-          <ActivityIndicator color="#7c5cff" />
+          <ActivityIndicator color="#7c5cff" size={quality === 'thumb' ? 'small' : 'large'} />
         </View>
       ) : null}
       {failed && !busy ? (

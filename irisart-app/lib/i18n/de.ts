@@ -104,6 +104,7 @@ const de = {
   'capture.uploading': 'Lädt…',
   'capture.torchOn': 'Blitz an',
   'capture.torchOff': 'Blitz aus',
+  'capture.flipCamera': 'Kamera drehen',
   'capture.permissionTitle': 'Kamerazugriff erforderlich',
   'capture.permissionBody': 'Erlaube die Kamera, um deine Iris aufzunehmen.',
   'capture.allowCamera': 'Kamera erlauben',

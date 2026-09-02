@@ -13,6 +13,7 @@ type Props = {
   width: number;
   /** When false, overlay tint omits secondary iris hue. */
   secondaryColorTint?: boolean;
+  quality?: 'thumb' | 'preview';
 };
 
 /**
@@ -25,6 +26,7 @@ export function ArtTemplateComposite({
   template,
   width,
   secondaryColorTint = true,
+  quality = 'preview',
 }: Props) {
   const height = width / template.aspectRatio;
   const canvasBg = getTemplateCanvasBackground(template);
@@ -38,9 +40,17 @@ export function ArtTemplateComposite({
     if (!canvas || width <= 0) return;
 
     // Clear immediately so a slower previous paint can't leave a stale frame visible
-    const dpr = typeof window !== 'undefined' ? Math.min(2, window.devicePixelRatio || 1) : 1;
-    const pw = Math.max(1, Math.round(width * dpr));
-    const ph = Math.max(1, Math.round(height * dpr));
+    const dpr =
+      quality === 'thumb'
+        ? 1
+        : typeof window !== 'undefined'
+          ? Math.min(2, window.devicePixelRatio || 1)
+          : 1;
+    const maxEdge = quality === 'thumb' ? 168 : 720;
+    const layoutLong = Math.max(width, height);
+    const scale = Math.min(dpr, maxEdge / Math.max(1, layoutLong));
+    const pw = Math.max(1, Math.round(width * scale));
+    const ph = Math.max(1, Math.round(height * scale));
     canvas.width = pw;
     canvas.height = ph;
     const clearCtx = canvas.getContext('2d');
@@ -96,7 +106,7 @@ export function ArtTemplateComposite({
     return () => {
       cancelled = true;
     };
-  }, [textureUri, textureUri2, template, template.id, width, height, secondaryColorTint]);
+  }, [textureUri, textureUri2, template, template.id, width, height, secondaryColorTint, quality]);
 
   return (
     <View style={[styles.root, { width, height, backgroundColor: canvasBg }]}>

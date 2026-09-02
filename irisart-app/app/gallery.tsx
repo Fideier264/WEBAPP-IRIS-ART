@@ -2,7 +2,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   Pressable,
   ScrollView,
@@ -16,19 +15,9 @@ import { ArtTemplateComposite } from '@/components/ArtTemplateComposite';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { useAppColors } from '@/lib/appTheme';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE, HEADER_BACK_CHIP_MIN_WIDTH } from '@/constants/Layout';
-import { ART_TEMPLATES, filterTemplatesByEyeFamilies, getArtTemplateHoles, isDualEyeTemplate } from '@/lib/artTemplates';
-import {
-  analyzeIris,
-  peekIrisAnalysisByStableKey,
-  peekIrisAnalysisCache,
-  seedIrisAnalysisCache,
-  withIrisPaletteFromImage,
-  type IrisAnalysis,
-} from '@/lib/analyzeIris';
+import { ART_TEMPLATES, getArtTemplateHoles, isDualEyeTemplate } from '@/lib/artTemplates';
 import { useT } from '@/lib/i18n';
-import { inferEyeColorFamilies } from '@/lib/irisColorFamily';
 import { resolveEnhancedIrisUri } from '@/lib/aiIrisInpaint';
-import { saveUserIrisAnalysis } from '@/lib/userIrisLibrary';
 
 export default function ArtGalleryScreen() {
   const c = useAppColors();
@@ -48,7 +37,6 @@ export default function ArtGalleryScreen() {
   const effectiveTextureUri = resolvedTextureUri ?? textureUri;
   const effectiveTextureUri2 = resolvedTextureUri2 ?? textureUri2;
   const analysisUri = sourceUri ?? effectiveTextureUri;
-  const paletteUri = effectiveTextureUri ?? sourceUri;
 
   useEffect(() => {
     let cancelled = false;
@@ -66,86 +54,16 @@ export default function ArtGalleryScreen() {
     };
   }, [textureUri, textureUri2, irisFingerprint]);
 
-  const [analysis, setAnalysis] = useState<IrisAnalysis | null>(null);
-  const [analysisStatus, setAnalysisStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
-  const [showAll, setShowAll] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [secondaryColorTint, setSecondaryColorTint] = useState(true);
 
   const screenW = Dimensions.get('window').width;
-  const cardWidth = Math.min(360, screenW - 36);
+  const cardWidth = Math.min(280, screenW - 48);
   const templateCols = 3;
   const gridGap = 8;
   const thumbWidth = Math.floor((screenW - 36 - gridGap * (templateCols - 1)) / templateCols);
 
-  useEffect(() => {
-    let cancelled = false;
-    const persistAccount = async (result: IrisAnalysis) => {
-      if (!irisFingerprint) return;
-      try {
-        await saveUserIrisAnalysis({ fingerprint: irisFingerprint }, result);
-      } catch (e) {
-        console.warn('save analysis to account failed', e instanceof Error ? e.message : String(e));
-      }
-    };
-
-    const finish = async (result: IrisAnalysis) => {
-      const ready = await withIrisPaletteFromImage(result, paletteUri);
-      await persistAccount(ready);
-      if (!cancelled) {
-        setAnalysis(ready);
-        setAnalysisStatus('ready');
-      }
-    };
-
-    const run = async () => {
-      if (!analysisUri) return;
-      if (irisFingerprint) {
-        const byKey = peekIrisAnalysisByStableKey(irisFingerprint);
-        if (byKey) {
-          seedIrisAnalysisCache(analysisUri, byKey, irisFingerprint);
-          await finish(byKey);
-          return;
-        }
-      }
-      const cached = peekIrisAnalysisCache(analysisUri);
-      if (cached) {
-        if (irisFingerprint) seedIrisAnalysisCache(analysisUri, cached, irisFingerprint);
-        await finish(cached);
-        return;
-      }
-      try {
-        setAnalysisStatus('loading');
-        const res = await analyzeIris(analysisUri, { stableKey: irisFingerprint, paletteUri });
-        if (irisFingerprint) seedIrisAnalysisCache(analysisUri, res, irisFingerprint);
-        await finish(res);
-      } catch {
-        if (cancelled) return;
-        setAnalysisStatus('error');
-      }
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [analysisUri, paletteUri, irisFingerprint]);
-
-  const userFamilies = useMemo(() => {
-    if (!analysis) return inferEyeColorFamilies('#8B7355', []);
-    return inferEyeColorFamilies(
-      analysis.primaryHex,
-      analysis.palette.map((p) => p.hex)
-    );
-  }, [analysis]);
-
-  const filteredTemplates = useMemo(
-    () => filterTemplatesByEyeFamilies(userFamilies, ART_TEMPLATES),
-    [userFamilies]
-  );
-
-  const visibleTemplates = showAll ? ART_TEMPLATES : filteredTemplates;
-
-  const familyLabel = userFamilies.slice(0, 4).join(', ');
+  const visibleTemplates = ART_TEMPLATES;
 
   const selected = useMemo(
     () => visibleTemplates.find((tmpl) => tmpl.id === selectedId) ?? visibleTemplates[0] ?? null,
@@ -200,84 +118,41 @@ export default function ArtGalleryScreen() {
             style={{ flex: 1 }}
             contentContainerStyle={styles.scroll}
             showsVerticalScrollIndicator={false}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={!canOrder}
-              onPress={() =>
-                router.push({
-                  pathname: '/checkout',
-                  params: {
-                    textureUri: effectiveTextureUri,
-                    ...(effectiveTextureUri2 ? { textureUri2: effectiveTextureUri2 } : {}),
-                    templateId: selected?.id ?? visibleTemplates[0]?.id ?? '',
-                    secondaryColorTint: secondaryColorTint ? '1' : '0',
-                  },
-                })
-              }
-              style={({ pressed }) => [
-                styles.primaryCta,
-                {
-                  backgroundColor: c.tint,
-                  opacity: !canOrder ? 0.45 : pressed ? 0.9 : 1,
-                },
-              ]}>
-              <Text style={styles.primaryCtaText}>{t('shop.orderCanvas')}</Text>
-              <Text style={styles.primaryCtaSub}>
-                {!selected
-                  ? t('shop.orderSubPick')
-                  : selectedIsDual && !effectiveTextureUri2
-                    ? t('shop.orderSubNeedSecond')
-                    : t('shop.orderSub', { title: selected.title })}
-              </Text>
-            </Pressable>
-
-            <Text style={[styles.sub, { color: c.pageMuted }]}>{t('shop.intro')}</Text>
-
-            <View style={styles.filterRow}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setShowAll(false)}
-                style={({ pressed }) => [
-                  styles.filterPill,
-                  {
-                    borderColor: !showAll ? c.chipBorderActive : c.chipBorder,
-                    backgroundColor: !showAll ? c.chipBgActive : c.chipBg,
-                    opacity: pressed ? 0.9 : 1,
-                  },
-                ]}>
-                <Text style={[styles.filterText, { color: !showAll ? c.chipTextActive : c.chipText }]}>
-                  {t('shop.filterMatch')}
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setShowAll(true)}
-                style={({ pressed }) => [
-                  styles.filterPill,
-                  {
-                    borderColor: showAll ? c.chipBorderActive : c.chipBorder,
-                    backgroundColor: showAll ? c.chipBgActive : c.chipBg,
-                    opacity: pressed ? 0.9 : 1,
-                  },
-                ]}>
-                <Text style={[styles.filterText, { color: showAll ? c.chipTextActive : c.chipText }]}>
-                  {t('shop.filterAll')}
-                </Text>
-              </Pressable>
-            </View>
-
-            <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-              <Text style={[styles.cardTitle, { color: c.text }]}>{t('shop.families')}</Text>
-              {analysisStatus === 'loading' ? (
-                <View style={styles.rowCenter}>
-                  <ActivityIndicator color={c.tint} />
-                  <Text style={[styles.cardBody, { color: c.muted }]}> {t('shop.familiesLoading')}</Text>
-                </View>
-              ) : analysisStatus === 'error' ? (
-                <Text style={[styles.cardBody, { color: c.muted }]}>{t('shop.familiesError')}</Text>
-              ) : (
-                <Text style={[styles.cardBody, { color: c.muted }]}>{familyLabel}</Text>
-              )}
+            <Text style={[styles.sectionLabel, { color: c.pageText }]}>{t('shop.templates')}</Text>
+            <View style={[styles.grid, { justifyContent: 'flex-start', gap: gridGap }]}>
+              {visibleTemplates.map((tmpl) => {
+                const active = tmpl.id === (selectedId ?? selected?.id);
+                const dual = isDualEyeTemplate(tmpl);
+                return (
+                  <Pressable
+                    key={tmpl.id}
+                    accessibilityRole="button"
+                    onPress={() => setSelectedId(tmpl.id)}
+                    style={({ pressed }) => [
+                      styles.thumbWrap,
+                      {
+                        width: thumbWidth,
+                        borderColor: active ? c.tint : c.border,
+                        backgroundColor: c.surfaceAlt,
+                        opacity: pressed ? 0.92 : 1,
+                      },
+                    ]}>
+                    <ArtTemplateComposite
+                      key={`${tmpl.id}:${effectiveTextureUri}:${secondaryColorTint ? '1' : '0'}`}
+                      textureUri={effectiveTextureUri}
+                      textureUri2={effectiveTextureUri2}
+                      template={tmpl}
+                      width={thumbWidth - 2}
+                      secondaryColorTint={secondaryColorTint}
+                      quality="thumb"
+                    />
+                    <Text style={[styles.thumbTitle, { color: c.text }]} numberOfLines={1}>
+                      {tmpl.title}
+                      {dual ? ` · ${t('shop.dualBadge')}` : ''}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
             {selected && effectiveTextureUri ? (
@@ -331,6 +206,7 @@ export default function ArtGalleryScreen() {
                     template={selected}
                     width={cardWidth}
                     secondaryColorTint={secondaryColorTint}
+                    quality="preview"
                   />
                 </View>
                 {selectedIsDual && !effectiveTextureUri2 ? (
@@ -373,49 +249,36 @@ export default function ArtGalleryScreen() {
               </View>
             ) : null}
 
-            <Text style={[styles.sectionLabel, { color: c.pageText }]}>{t('shop.templates')}</Text>
-            <View style={[styles.grid, { justifyContent: 'flex-start', gap: gridGap }]}>
-              {visibleTemplates.map((tmpl) => {
-                const active = tmpl.id === (selectedId ?? selected?.id);
-                const dual = isDualEyeTemplate(tmpl);
-                return (
-                  <Pressable
-                    key={tmpl.id}
-                    accessibilityRole="button"
-                    onPress={() => setSelectedId(tmpl.id)}
-                    style={({ pressed }) => [
-                      styles.thumbWrap,
-                      {
-                        width: thumbWidth,
-                        borderColor: active ? c.tint : c.border,
-                        backgroundColor: c.surfaceAlt,
-                        opacity: pressed ? 0.92 : 1,
-                      },
-                    ]}>
-                    {effectiveTextureUri ? (
-                      <ArtTemplateComposite
-                        key={`${tmpl.id}:${effectiveTextureUri}:${secondaryColorTint ? '1' : '0'}`}
-                        textureUri={effectiveTextureUri}
-                        textureUri2={effectiveTextureUri2}
-                        template={tmpl}
-                        width={thumbWidth - 2}
-                        secondaryColorTint={secondaryColorTint}
-                      />
-                    ) : null}
-                    <Text style={[styles.thumbTitle, { color: c.text }]} numberOfLines={1}>
-                      {tmpl.title}
-                      {dual ? ` · ${t('shop.dualBadge')}` : ''}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {visibleTemplates.length === 0 ? (
-              <Text style={[styles.cardBody, { color: c.pageMuted, textAlign: 'center', paddingVertical: 20 }]}>
-                {t('shop.noTemplates')}
+            <Pressable
+              accessibilityRole="button"
+              disabled={!canOrder}
+              onPress={() =>
+                router.push({
+                  pathname: '/checkout',
+                  params: {
+                    textureUri: effectiveTextureUri,
+                    ...(effectiveTextureUri2 ? { textureUri2: effectiveTextureUri2 } : {}),
+                    templateId: selected?.id ?? visibleTemplates[0]?.id ?? '',
+                    secondaryColorTint: secondaryColorTint ? '1' : '0',
+                  },
+                })
+              }
+              style={({ pressed }) => [
+                styles.primaryCta,
+                {
+                  backgroundColor: c.tint,
+                  opacity: !canOrder ? 0.45 : pressed ? 0.9 : 1,
+                },
+              ]}>
+              <Text style={styles.primaryCtaText}>{t('shop.orderCanvas')}</Text>
+              <Text style={styles.primaryCtaSub}>
+                {!selected
+                  ? t('shop.orderSubPick')
+                  : selectedIsDual && !effectiveTextureUri2
+                    ? t('shop.orderSubNeedSecond')
+                    : t('shop.orderSub', { title: selected.title })}
               </Text>
-            ) : null}
+            </Pressable>
 
             <Pressable
               accessibilityRole="button"
@@ -470,16 +333,6 @@ const styles = StyleSheet.create({
   },
   primaryCtaText: { color: '#fff', fontSize: 17, fontWeight: '800', textAlign: 'center' },
   primaryCtaSub: { color: 'rgba(255,255,255,0.88)', fontSize: 12.5, textAlign: 'center' },
-  sub: { fontSize: 13, lineHeight: 18.5 },
-  filterRow: { flexDirection: 'row', gap: 10 },
-  filterPill: {
-    flex: 1,
-    paddingVertical: 11,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-  },
-  filterText: { fontSize: 13.5, fontWeight: '750' },
   card: {
     borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
@@ -488,7 +341,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 15, fontWeight: '850' },
   cardBody: { fontSize: 13.5, lineHeight: 19 },
-  rowCenter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   sectionLabel: { fontSize: 15, fontWeight: '850', marginTop: 4 },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   thumbWrap: {
