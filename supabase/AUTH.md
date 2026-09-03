@@ -7,7 +7,7 @@ Generated iris images are saved to the user’s **Supabase account** (table `use
 Already wired in the Expo app:
 
 - Session persistence via `@react-native-async-storage/async-storage`
-- Email/password + Google OAuth on screen `/account`
+- Email/password + Google OAuth + **Sign in with Apple** (iOS native) on screen `/account`
 - Galerie header **Login / Account** button
 
 Deep-link scheme (from `app.json`): `irisartapp`  
@@ -56,11 +56,36 @@ Run the SQL in:
    - If using Expo Go / tunnel redirects, also add the exact URL printed by `Linking.createURL('auth/callback')` on device.
 4. In Google Cloud OAuth client, add the **Supabase callback** URL shown in the Google provider settings (typically `https://<project-ref>.supabase.co/auth/v1/callback`).
 
-### 4) Verify Storage
+### 4) Apple provider (required for App Store when Google login is offered)
+
+**Apple Developer**
+
+1. [developer.apple.com](https://developer.apple.com) → **Certificates, Identifiers & Profiles** → **Identifiers** → App ID `app.irisart.mobile`.
+2. Enable capability **Sign In with Apple** → Save.
+3. Create a **Services ID** (for web/OAuth fallback): Identifier e.g. `app.irisart.mobile.auth`, enable Sign In with Apple, configure domain `irisart.app` and return URL `https://<project-ref>.supabase.co/auth/v1/callback`.
+4. Create a **Sign In with Apple** key (.p8), note Key ID and Team ID.
+
+**Supabase**
+
+1. **Authentication → Providers → Apple**: enable.
+2. **Client IDs**: `app.irisart.mobile` (native iOS bundle ID) and your Services ID if using web OAuth.
+3. **Secret Key**: paste the `.p8` contents; set Key ID + Team ID (Secret expires every 6 months — set a calendar reminder).
+4. Redirect URLs (same as Google): `irisartapp://auth/callback`.
+
+**Native iOS (TestFlight / App Store)**
+
+The app uses `expo-apple-authentication` + `supabase.auth.signInWithIdToken({ provider: 'apple' })` — no browser redirect on device. Rebuild after enabling the capability:
+
+```bash
+cd irisart-app
+npm run eas:build:ios
+```
+
+### 5) Verify Storage
 
 Bucket `user-irises` should exist (private). Policies restrict objects to folder `{auth.uid()}/…`.
 
-### 5) Account deletion (App Store 5.1.1(v))
+### 6) Account deletion (App Store 5.1.1(v))
 
 In-app delete lives on `/account` (two-step confirm). It calls Edge Function **`delete-account`**, which:
 

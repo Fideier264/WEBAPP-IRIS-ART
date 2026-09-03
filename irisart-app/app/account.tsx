@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LegalDisclaimer } from '@/components/LegalDisclaimer';
+import { SocialSignInButtons } from '@/components/SocialSignInButtons';
 import { BACKGROUND_THEMES, useAppColors, useAppTheme } from '@/lib/appTheme';
 import { useAuth } from '@/lib/auth';
 import { authErrorMessageKey } from '@/lib/authErrors';
@@ -54,6 +55,7 @@ export default function AccountScreen() {
     signInEmail,
     signUpEmail,
     signInGoogle,
+    signInApple,
     signOut,
     resetPasswordForEmail,
   } = useAuth();
@@ -364,16 +366,21 @@ export default function AccountScreen() {
                 <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.createAccount')}</Text>
               </Pressable>
 
-              <Pressable
-                accessibilityRole="button"
+              <SocialSignInButtons
                 disabled={busy}
-                onPress={() => run(async () => signInGoogle())}
-                style={({ pressed }) => [
-                  styles.secondaryBtn,
-                  { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
-                ]}>
-                <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.continueGoogle')}</Text>
-              </Pressable>
+                onApple={() =>
+                  run(async () => {
+                    await signInApple();
+                    setInfoKey('account.signedInInfo');
+                  })
+                }
+                onGoogle={() =>
+                  run(async () => {
+                    await signInGoogle();
+                    setInfoKey('account.signedInInfo');
+                  })
+                }
+              />
 
               <Pressable
                 accessibilityRole="button"

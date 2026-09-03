@@ -9,6 +9,7 @@ type AuthMessageKey =
   | 'account.error.rateLimit'
   | 'account.error.network'
   | 'account.error.googleCancelled'
+  | 'account.error.appleCancelled'
   | 'account.error.passwordMismatch'
   | 'account.error.generic';
 
@@ -52,6 +53,7 @@ export function authErrorMessageKey(error: unknown): AuthMessageKey {
     return 'account.error.network';
   }
   if (code.includes('cancel')) {
+    if (code.includes('apple')) return 'account.error.appleCancelled';
     return 'account.error.googleCancelled';
   }
 

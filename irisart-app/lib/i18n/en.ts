@@ -33,12 +33,13 @@ const en: Record<TranslationKey, string> = {
   'account.deleteFailed': 'Could not delete account',
   'account.saveGalleryTitle': 'Save your iris gallery',
   'account.saveGalleryBody':
-    'Sign in with email or Google to save generated iris images to your account. You can delete the account anytime on this screen.',
+    'Sign in with email, Apple, or Google to save generated iris images to your account. You can delete the account anytime on this screen.',
   'account.email': 'Email',
   'account.password': 'Password (min. 6 characters)',
   'account.signIn': 'Sign in',
   'account.createAccount': 'Create account',
   'account.continueGoogle': 'Continue with Google',
+  'account.continueApple': 'Sign in with Apple',
   'account.signedInInfo': 'Signed in.',
   'account.createdInfo':
     'Account created. You can sign in now (confirm email if required by your project).',
@@ -66,6 +67,7 @@ const en: Record<TranslationKey, string> = {
   'account.error.rateLimit': 'Too many attempts. Please wait and try again.',
   'account.error.network': 'Network error. Check your connection.',
   'account.error.googleCancelled': 'Google sign-in was cancelled.',
+  'account.error.appleCancelled': 'Apple sign-in was cancelled.',
   'account.error.passwordMismatch': 'Passwords do not match.',
   'account.error.generic': 'Sign-in failed. Please check your details.',
   'account.language': 'Language',

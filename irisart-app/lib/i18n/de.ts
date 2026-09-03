@@ -34,12 +34,13 @@ const de = {
   'account.deleteFailed': 'Löschen fehlgeschlagen',
   'account.saveGalleryTitle': 'Iris-Galerie speichern',
   'account.saveGalleryBody':
-    'Melde dich mit E-Mail oder Google an, um generierte Iris-Bilder in deinem Konto zu speichern. Du kannst das Konto jederzeit in diesem Bildschirm löschen.',
+    'Melde dich mit E-Mail, Apple oder Google an, um generierte Iris-Bilder in deinem Konto zu speichern. Du kannst das Konto jederzeit in diesem Bildschirm löschen.',
   'account.email': 'E-Mail',
   'account.password': 'Passwort (min. 6 Zeichen)',
   'account.signIn': 'Anmelden',
   'account.createAccount': 'Konto erstellen',
   'account.continueGoogle': 'Weiter mit Google',
+  'account.continueApple': 'Mit Apple anmelden',
   'account.signedInInfo': 'Angemeldet.',
   'account.createdInfo':
     'Konto erstellt. Du kannst dich jetzt anmelden (E-Mail ggf. im Projekt bestätigen).',
@@ -67,6 +68,7 @@ const de = {
   'account.error.rateLimit': 'Zu viele Versuche. Bitte warte kurz und versuche es erneut.',
   'account.error.network': 'Netzwerkfehler. Bitte Internetverbindung prüfen.',
   'account.error.googleCancelled': 'Google-Anmeldung abgebrochen.',
+  'account.error.appleCancelled': 'Apple-Anmeldung abgebrochen.',
   'account.error.passwordMismatch': 'Die Passwörter stimmen nicht überein.',
   'account.error.generic': 'Anmeldung fehlgeschlagen. Bitte Eingaben prüfen.',
   'account.language': 'Sprache',

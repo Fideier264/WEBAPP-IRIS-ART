@@ -1,6 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
+import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import type { Session, User } from '@supabase/supabase-js';
 
@@ -17,6 +20,7 @@ type AuthContextValue = {
   signInEmail: (email: string, password: string) => Promise<void>;
   signUpEmail: (email: string, password: string) => Promise<SignUpResult>;
   signInGoogle: () => Promise<void>;
+  signInApple: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPasswordForEmail: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
@@ -155,6 +159,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await createSessionFromUrl(result.url);
   }, []);
 
+  const signInAppleOAuth = useCallback(async () => {
+    const redirectTo = getAuthRedirectTo('auth/callback');
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true,
+      },
+    });
+    if (error) throw error;
+    if (!data.url) throw new Error('Apple sign-in URL missing.');
+
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (result.type !== 'success' || !('url' in result) || !result.url) {
+      throw new Error('Apple sign-in was cancelled.');
+    }
+    await createSessionFromUrl(result.url);
+  }, []);
+
+  const signInAppleNative = useCallback(async () => {
+    const rawNonce = Crypto.randomUUID();
+    const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
+
+    let credential: AppleAuthentication.AppleAuthenticationCredential;
+    try {
+      credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+    } catch (e: unknown) {
+      const code =
+        e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
+      if (code === 'ERR_REQUEST_CANCELED') {
+        throw new Error('Apple sign-in was cancelled.');
+      }
+      throw e;
+    }
+
+    if (!credential.identityToken) {
+      throw new Error('Apple sign-in failed — no identity token.');
+    }
+
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'apple',
+      token: credential.identityToken,
+      nonce: rawNonce,
+    });
+    if (error) throw error;
+
+    if (credential.fullName) {
+      const given = credential.fullName.givenName ?? '';
+      const family = credential.fullName.familyName ?? '';
+      const fullName = [given, family].filter(Boolean).join(' ');
+      if (fullName && data.user && !data.user.user_metadata?.full_name) {
+        await supabase.auth.updateUser({
+          data: { full_name: fullName, given_name: given, family_name: family },
+        });
+      }
+    }
+  }, []);
+
+  const signInApple = useCallback(async () => {
+    if (Platform.OS === 'ios') {
+      const available = await AppleAuthentication.isAvailableAsync();
+      if (available) {
+        await signInAppleNative();
+        return;
+      }
+    }
+    await signInAppleOAuth();
+  }, [signInAppleNative, signInAppleOAuth]);
+
   const resetPasswordForEmail = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: getAuthRedirectTo('auth/reset-password'),
@@ -186,6 +265,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInEmail,
       signUpEmail,
       signInGoogle,
+      signInApple,
       signOut,
       resetPasswordForEmail,
       updatePassword,
@@ -198,6 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInEmail,
       signUpEmail,
       signInGoogle,
+      signInApple,
       signOut,
       resetPasswordForEmail,
       updatePassword,
