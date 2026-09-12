@@ -84,6 +84,15 @@ const de = {
     'Datenschutz (inkl. Iris-/Biometrie-Hinweise) und AGB — in der App und unter /privacy bzw. /terms im Web.',
   'account.privacy': 'Datenschutz',
   'account.terms': 'AGB',
+  'account.support': 'Support / Kontakt',
+
+  'support.title': 'Support',
+  'support.heading': 'Hilfe & Kontakt',
+  'support.body':
+    'Fragen zu IrisArt, Konto, Bestellungen oder Datenschutz? Schreib uns eine E-Mail — wir antworten so schnell wie möglich.',
+  'support.emailLabel': 'E-Mail',
+  'support.operatorLabel': 'Anbieter',
+  'support.emailCta': 'E-Mail schreiben',
 
   // Home / scan
   'home.tagline': 'Die Wissenschaft deines Auges',

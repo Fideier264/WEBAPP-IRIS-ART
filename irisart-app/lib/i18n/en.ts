@@ -83,6 +83,15 @@ const en: Record<TranslationKey, string> = {
     'Privacy (including iris/biometric notes) and Terms — in the app and at /privacy or /terms on the web.',
   'account.privacy': 'Privacy Policy',
   'account.terms': 'Terms of Service',
+  'account.support': 'Support / Contact',
+
+  'support.title': 'Support',
+  'support.heading': 'Help & contact',
+  'support.body':
+    'Questions about IrisArt, your account, orders, or privacy? Email us — we reply as soon as we can.',
+  'support.emailLabel': 'Email',
+  'support.operatorLabel': 'Operator',
+  'support.emailCta': 'Send email',
 
   'home.tagline': 'Science of Your Eye',
   'home.sub':

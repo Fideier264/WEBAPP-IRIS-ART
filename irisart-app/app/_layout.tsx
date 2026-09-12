@@ -76,6 +76,7 @@ function RootLayoutNavInner() {
           <Stack.Screen name="account" options={{ headerShown: false }} />
           <Stack.Screen name="privacy" options={{ headerShown: false }} />
           <Stack.Screen name="terms" options={{ headerShown: false }} />
+          <Stack.Screen name="support" options={{ headerShown: false }} />
           <Stack.Screen name="capture" options={{ headerShown: false }} />
           <Stack.Screen name="iris" options={{ headerShown: false }} />
           <Stack.Screen name="review" options={{ headerShown: false }} />

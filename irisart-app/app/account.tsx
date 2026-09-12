@@ -401,6 +401,15 @@ export default function AccountScreen() {
             <Text style={[styles.body, { color: c.muted }]}>{t('account.legalBody')}</Text>
             <Pressable
               accessibilityRole="button"
+              onPress={() => router.push('/support')}
+              style={({ pressed }) => [
+                styles.secondaryBtn,
+                { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed ? 0.85 : 1 },
+              ]}>
+              <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.support')}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
               onPress={() => router.push('/privacy')}
               style={({ pressed }) => [
                 styles.secondaryBtn,
