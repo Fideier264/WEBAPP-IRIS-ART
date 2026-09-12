@@ -49,7 +49,7 @@ const en: Record<TranslationKey, string> = {
     'We’ll email you a link. Open it on this device to choose a new password.',
   'account.forgotPasswordCta': 'Send link',
   'account.forgotPasswordSent':
-    'Email sent. Check your inbox (and spam), then tap the link to reset your password.',
+    'Email sent. Check your inbox (and spam) and open the link — it opens the website to set a new password.',
   'account.resetPasswordTitle': 'New password',
   'account.resetPasswordBody': 'Choose a new password for your IrisArt account (min. 6 characters).',
   'account.resetPasswordCta': 'Save password',

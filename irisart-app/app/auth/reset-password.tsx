@@ -12,7 +12,7 @@ import { useT } from '@/lib/i18n';
 export default function ResetPasswordScreen() {
   const c = useAppColors();
   const { updatePassword, clearRecoveryMode } = useAuth();
-  const { t } = useT();
+  const t = useT();
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [busy, setBusy] = useState(false);

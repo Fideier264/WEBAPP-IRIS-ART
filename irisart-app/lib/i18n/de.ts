@@ -50,7 +50,7 @@ const de = {
     'Wir senden dir einen Link an deine E-Mail-Adresse. Öffne den Link auf diesem Gerät, um ein neues Passwort zu setzen.',
   'account.forgotPasswordCta': 'Link senden',
   'account.forgotPasswordSent':
-    'E-Mail gesendet. Prüfe dein Postfach (auch Spam) und tippe auf den Link, um dein Passwort zurückzusetzen.',
+    'E-Mail gesendet. Prüfe dein Postfach (auch Spam) und tippe auf den Link — er öffnet die Website zum Setzen eines neuen Passworts.',
   'account.resetPasswordTitle': 'Neues Passwort',
   'account.resetPasswordBody': 'Wähle ein neues Passwort für dein IrisArt-Konto (min. 6 Zeichen).',
   'account.resetPasswordCta': 'Passwort speichern',

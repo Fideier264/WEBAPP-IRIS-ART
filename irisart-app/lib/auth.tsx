@@ -8,6 +8,7 @@ import * as WebBrowser from 'expo-web-browser';
 import type { Session, User } from '@supabase/supabase-js';
 
 import type { SignUpResult } from './authErrors';
+import { configFromBuildExtra } from './appConfigCore';
 import { supabase } from './supabase';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -31,6 +32,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 function getAuthRedirectTo(path = 'auth/callback') {
   return Linking.createURL(path);
+}
+
+/** Always HTTPS so email links work in any browser (not only when the app scheme opens). */
+function getPasswordResetRedirectTo() {
+  const origin = (configFromBuildExtra().appOrigin || 'https://irisart.app').replace(/\/$/, '');
+  return `${origin}/auth/reset-password`;
 }
 
 async function createSessionFromUrl(url: string): Promise<'recovery' | 'default' | null> {
@@ -114,6 +121,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       });
     });
+
+    // Web: recovery emails land on https://irisart.app/auth/reset-password#access_token=…
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const href = window.location.href;
+      if (href.includes('access_token') || href.includes('type=recovery') || href.includes('code=')) {
+        void createSessionFromUrl(href)
+          .then((kind) => {
+            if (kind === 'recovery' || href.includes('type=recovery') || href.includes('/auth/reset-password')) {
+              setRecoveryMode(true);
+              if (!href.includes('/auth/reset-password')) {
+                router.push('/auth/reset-password');
+              }
+            }
+          })
+          .catch(() => {
+            /* ignore */
+          });
+      }
+    }
 
     return () => {
       mounted = false;
@@ -236,7 +262,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPasswordForEmail = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: getAuthRedirectTo('auth/reset-password'),
+      redirectTo: getPasswordResetRedirectTo(),
     });
     if (error) throw error;
   }, []);

@@ -12,7 +12,7 @@ Already wired in the Expo app:
 
 Deep-link scheme (from `app.json`): `irisartapp`  
 OAuth redirect used by the app: `irisartapp://auth/callback` (via `Linking.createURL('auth/callback')`).  
-Password reset redirect: `irisartapp://auth/reset-password`.
+Password reset redirect: `https://irisart.app/auth/reset-password` (HTTPS — works in any browser; do not use only the app scheme for reset emails).
 
 ## Supabase Dashboard (required)
 
@@ -34,6 +34,7 @@ Run the SQL in:
    - Redirect URLs (add all):
      - `irisartapp://auth/callback`
      - `irisartapp://auth/reset-password`
+     - `https://irisart.app/auth/reset-password`
      - `https://irisart.app/**` (optional, for web)
 4. **Authentication → Email templates**: customize Confirm signup / Reset password (sender name **IrisArt**, reply-to `contact@irisart.app`).
 5. Supabase sends mail via its built-in SMTP on free tier (rate limits apply). For production volume, configure **Project Settings → Authentication → SMTP** (e.g. Hostinger, Resend, SendGrid).
@@ -120,4 +121,5 @@ Completed print orders at Stripe / merchOne are business records and may remain 
 - **Konto löschen schlägt fehl / 404**: Function `delete-account` deployen (`supabase functions deploy delete-account`). 401: User-JWT senden, nicht den Anon-Key.
 - **Invalid login credentials / falsches Passwort**: App zeigt jetzt „E-Mail oder Passwort ist falsch“ direkt im Formular.
 - **Keine Registrierungs-/Reset-Mail**: Supabase → Authentication → Confirm email aktiv; Redirect URLs `irisartapp://…` gesetzt; Spam prüfen; ggf. eigenes SMTP unter Project Settings → Authentication.
-- **Reset-Link öffnet nicht die App**: Redirect `irisartapp://auth/reset-password` in Supabase URL configuration; TestFlight-Build neu installieren.
+- **Reset-Link öffnet leere Seite / bleibt bei supabase.co/verify**: Redirect muss `https://irisart.app/auth/reset-password` sein (in Supabase URL Configuration erlauben). App-Scheme `irisartapp://…` allein öffnet auf Desktop oft eine leere Browserseite.
+- **Reset-Link öffnet nicht die App**: Das ist ok — Passwort im Browser setzen, danach in der App mit dem neuen Passwort anmelden. Optional Universal Links später.
