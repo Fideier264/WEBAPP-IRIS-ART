@@ -78,9 +78,34 @@ type Body = {
   productSku: string;
   shipping: ShippingIn;
   appOrigin?: string;
+  /** Full success URL (may include {CHECKOUT_SESSION_ID}). Prefer https or irisartapp:// for native. */
+  successUrl?: string;
+  cancelUrl?: string;
   externalId?: string;
   productLabel?: string;
 };
+
+function isAllowedReturnUrl(urlStr: string, appOrigin: string | null): boolean {
+  try {
+    const u = new URL(urlStr);
+    if (u.protocol === "irisartapp:") return true;
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    if (appOrigin) {
+      const origin = new URL(appOrigin).origin;
+      if (u.origin === origin) return true;
+    }
+    const allow = Deno.env.get("CHECKOUT_ALLOWED_ORIGINS")?.trim();
+    if (allow) {
+      const set = new Set(allow.split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean));
+      if (set.has(u.origin)) return true;
+    }
+    const envOrigin = Deno.env.get("APP_ORIGIN")?.trim().replace(/\/$/, "");
+    if (envOrigin && u.origin === new URL(envOrigin).origin) return true;
+    return Boolean(appOrigin && u.origin === new URL(appOrigin).origin);
+  } catch {
+    return false;
+  }
+}
 
 serve(async (req) => {
   const origin = req.headers.get("origin");
@@ -163,14 +188,47 @@ serve(async (req) => {
   }
 
   const appOrigin = resolveAppOrigin(body.appOrigin, origin);
-  if (!appOrigin) {
+
+  let successUrl =
+    typeof body.successUrl === "string" && body.successUrl.trim()
+      ? body.successUrl.trim()
+      : appOrigin
+        ? `${appOrigin}/order-success?session_id={CHECKOUT_SESSION_ID}`
+        : null;
+  let cancelUrl =
+    typeof body.cancelUrl === "string" && body.cancelUrl.trim()
+      ? body.cancelUrl.trim()
+      : appOrigin
+        ? `${appOrigin}/checkout?canceled=1`
+        : null;
+
+  if (!successUrl || !cancelUrl) {
     return json(
       {
         ok: false,
-        error: "appOrigin missing or not allowed. Set APP_ORIGIN or CHECKOUT_ALLOWED_ORIGINS, or send appOrigin.",
+        error:
+          "successUrl/cancelUrl or appOrigin missing. Set APP_ORIGIN, or send appOrigin / successUrl / cancelUrl.",
       },
       { status: 200, headers: cors },
     );
+  }
+
+  if (!isAllowedReturnUrl(successUrl.replace("{CHECKOUT_SESSION_ID}", "cs_test"), appOrigin) ||
+      !isAllowedReturnUrl(cancelUrl, appOrigin)) {
+    return json(
+      {
+        ok: false,
+        error:
+          "successUrl/cancelUrl not allowed. Use https://irisart.app/… or irisartapp://… (scheme).",
+      },
+      { status: 200, headers: cors },
+    );
+  }
+
+  // Ensure Stripe placeholder is present for session id on success.
+  if (!successUrl.includes("{CHECKOUT_SESSION_ID}")) {
+    const join = successUrl.includes("?") ? "&" : "?";
+    successUrl = `${successUrl}${join}session_id={CHECKOUT_SESSION_ID}`;
   }
 
   const externalId =
@@ -192,7 +250,6 @@ serve(async (req) => {
     telephone: String(sh.telephone ?? "").trim() || undefined,
   });
 
-  // Stripe metadata values max 500 chars — shipping JSON is fine for typical addresses.
   if (shippingJson.length > 480) {
     return json({ ok: false, error: "Shipping address too long for checkout metadata." }, { status: 200, headers: cors });
   }
@@ -204,8 +261,6 @@ serve(async (req) => {
   }
 
   const currency = stripeCurrency();
-  const successUrl = `${appOrigin}/order-success?session_id={CHECKOUT_SESSION_ID}`;
-  const cancelUrl = `${appOrigin}/checkout?canceled=1`;
 
   const form = new URLSearchParams();
   form.set("mode", "payment");

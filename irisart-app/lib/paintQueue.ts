@@ -4,7 +4,8 @@ type Job = () => Promise<void>;
 const high: Job[] = [];
 const normal: Job[] = [];
 let active = 0;
-const MAX_CONCURRENT = 1;
+/** Two parallel paints keep the grid moving without freezing the UI thread as badly as 6. */
+const MAX_CONCURRENT = 2;
 
 function pump() {
   while (active < MAX_CONCURRENT && (high.length > 0 || normal.length > 0)) {

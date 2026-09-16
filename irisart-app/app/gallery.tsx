@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
+  InteractionManager,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -56,6 +57,8 @@ export default function ArtGalleryScreen() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [secondaryColorTint, setSecondaryColorTint] = useState(true);
+  /** Defer grid thumbs so the large preview paints first (serial paint queue). */
+  const [gridThumbsReady, setGridThumbsReady] = useState(false);
 
   const screenW = Dimensions.get('window').width;
   const cardWidth = Math.min(280, screenW - 48);
@@ -80,6 +83,19 @@ export default function ArtGalleryScreen() {
     const dual = effectiveTextureUri2 ? visibleTemplates.find((tmpl) => isDualEyeTemplate(tmpl)) : undefined;
     setSelectedId(dual?.id ?? visibleTemplates[0]!.id);
   }, [visibleTemplates, selectedId, effectiveTextureUri2]);
+
+  useEffect(() => {
+    setGridThumbsReady(false);
+    if (!effectiveTextureUri) return;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const handle = InteractionManager.runAfterInteractions(() => {
+      timeout = setTimeout(() => setGridThumbsReady(true), 120);
+    });
+    return () => {
+      handle.cancel();
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [effectiveTextureUri, effectiveTextureUri2, secondaryColorTint]);
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
@@ -123,6 +139,7 @@ export default function ArtGalleryScreen() {
               {visibleTemplates.map((tmpl) => {
                 const active = tmpl.id === (selectedId ?? selected?.id);
                 const dual = isDualEyeTemplate(tmpl);
+                const paintThumb = !active && gridThumbsReady;
                 return (
                   <Pressable
                     key={tmpl.id}
@@ -137,15 +154,26 @@ export default function ArtGalleryScreen() {
                         opacity: pressed ? 0.92 : 1,
                       },
                     ]}>
-                    <ArtTemplateComposite
-                      key={`${tmpl.id}:${effectiveTextureUri}:${secondaryColorTint ? '1' : '0'}`}
-                      textureUri={effectiveTextureUri}
-                      textureUri2={effectiveTextureUri2}
-                      template={tmpl}
-                      width={thumbWidth - 2}
-                      secondaryColorTint={secondaryColorTint}
-                      quality="thumb"
-                    />
+                    {paintThumb ? (
+                      <ArtTemplateComposite
+                        key={`${tmpl.id}:${effectiveTextureUri}:${secondaryColorTint ? '1' : '0'}`}
+                        textureUri={effectiveTextureUri}
+                        textureUri2={effectiveTextureUri2}
+                        template={tmpl}
+                        width={thumbWidth - 2}
+                        secondaryColorTint={secondaryColorTint}
+                        quality="thumb"
+                      />
+                    ) : (
+                      <View
+                        style={{
+                          width: thumbWidth - 2,
+                          height: (thumbWidth - 2) / tmpl.aspectRatio,
+                          backgroundColor: '#1a1a1f',
+                          borderRadius: 10,
+                        }}
+                      />
+                    )}
                     <Text style={[styles.thumbTitle, { color: c.text }]} numberOfLines={1}>
                       {tmpl.title}
                       {dual ? ` · ${t('shop.dualBadge')}` : ''}

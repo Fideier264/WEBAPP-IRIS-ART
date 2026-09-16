@@ -9,6 +9,7 @@ import {
   drawIrisInSlot,
   extractAverageIrisColor,
   tintGrayscaleTemplateDual,
+  type RgbaImage,
   type RgbColor,
 } from './artTintShared';
 
@@ -22,7 +23,11 @@ export async function paintArtComposite(opts: {
   height: number;
   background?: string;
   secondaryColorTint?: boolean;
-}): Promise<{ dataUri: string; primaryColor: RgbColor | null }> {
+  /** JPEG quality for dataUri (thumb previews can use ~78). */
+  jpegQuality?: number;
+  /** When false, skip JPEG encode (checkout print uses rgba directly). */
+  encodeJpeg?: boolean;
+}): Promise<{ dataUri: string; rgba: RgbaImage; primaryColor: RgbColor | null }> {
   const {
     textureUri,
     textureUri2,
@@ -31,6 +36,8 @@ export async function paintArtComposite(opts: {
     height,
     background: backgroundOpt,
     secondaryColorTint = true,
+    jpegQuality = 90,
+    encodeJpeg = true,
   } = opts;
 
   const background = backgroundOpt ?? getTemplateCanvasBackground(template);
@@ -39,10 +46,13 @@ export async function paintArtComposite(opts: {
     (u): u is string => typeof u === 'string' && u.length > 0
   );
 
+  // Decode iris near output size — full camera JPEGs were the main Shop stall.
+  const irisEdge = Math.max(96, Math.min(1600, Math.ceil(Math.max(width, height) * 1.15)));
+
   const irisImages = await Promise.all(
     holes.map((_, i) => {
       const uri = textureUris[Math.min(i, textureUris.length - 1)] ?? textureUri;
-      return loadRgba(uri);
+      return loadRgba(uri, irisEdge, irisEdge);
     })
   );
 
@@ -93,7 +103,8 @@ export async function paintArtComposite(opts: {
   }
 
   return {
-    dataUri: encodeRgbaToJpegDataUri(canvas),
+    dataUri: encodeJpeg ? encodeRgbaToJpegDataUri(canvas, jpegQuality) : '',
+    rgba: canvas,
     primaryColor,
   };
 }

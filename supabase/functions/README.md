@@ -91,7 +91,7 @@ Ruft `POST https://api.merchone.com/api/v1/orders` mit **Basic Auth** auf.
 | `STRIPE_AMOUNT_CENTS_<N>CM` | Legacy: z. B. `STRIPE_AMOUNT_CENTS_20CM=1999` |
 | *(Bundled default)* | Ohne Secrets: SKU aus `irisart-app/config/productCatalog.json` (20 cm / 19,99 €) |
 | `STRIPE_CURRENCY` | Standard `eur` |
-| `APP_ORIGIN` | Öffentliche Web-URL (Success/Cancel), z. B. `https://deine-domain.de` |
+| `APP_ORIGIN` | Fallback Success/Cancel für Web (`https://irisart.app`). Native App sendet `successUrl`/`cancelUrl` mit `irisartapp://…` |
 | `CHECKOUT_ALLOWED_ORIGINS` | Optional: Allowlist für `appOrigin` aus der App |
 | `SUPABASE_SERVICE_ROLE_KEY` | Für Idempotenz-Tabelle `stripe_webhook_events` |
 

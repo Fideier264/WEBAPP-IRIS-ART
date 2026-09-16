@@ -14,7 +14,7 @@ export type RenderArtCompositeInput = {
   /** Second iris for dual-eye templates */
   textureUri2?: string;
   template: ArtTemplate;
-  /** Longest edge in px (default 2048). Final size follows outputAspectRatio. */
+  /** Longest edge in px (default 1536). Final size follows outputAspectRatio. */
   outputWidth?: number;
   /**
    * Product print aspect ratio (width / height), e.g. 1 for square canvas.
@@ -46,7 +46,7 @@ function canvasToBase64(canvas: HTMLCanvasElement): Promise<string> {
         reader.readAsDataURL(blob);
       },
       'image/jpeg',
-      0.94
+      0.85
     );
   });
 }

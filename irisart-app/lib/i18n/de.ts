@@ -47,7 +47,7 @@ const de = {
   'account.forgotPassword': 'Passwort vergessen?',
   'account.forgotPasswordTitle': 'Passwort zurücksetzen',
   'account.forgotPasswordBody':
-    'Wir senden dir einen Link an deine E-Mail-Adresse. Öffne den Link auf diesem Gerät, um ein neues Passwort zu setzen.',
+    'Wir senden dir einen Link an deine E-Mail-Adresse. Öffne den Link, um ein neues Passwort zu setzen (öffnet die Website).',
   'account.forgotPasswordCta': 'Link senden',
   'account.forgotPasswordSent':
     'E-Mail gesendet. Prüfe dein Postfach (auch Spam) und tippe auf den Link — er öffnet die Website zum Setzen eines neuen Passworts.',
@@ -70,6 +70,8 @@ const de = {
   'account.error.googleCancelled': 'Google-Anmeldung abgebrochen.',
   'account.error.appleCancelled': 'Apple-Anmeldung abgebrochen.',
   'account.error.passwordMismatch': 'Die Passwörter stimmen nicht überein.',
+  'account.error.redirectNotAllowed':
+    'Passwort-Reset blockiert: In Supabase unter Authentication → URL Configuration die Redirect-URL https://irisart.app/auth/reset-password erlauben.',
   'account.error.generic': 'Anmeldung fehlgeschlagen. Bitte Eingaben prüfen.',
   'account.language': 'Sprache',
   'account.languageHint': 'App-Sprache für alle Texte.',

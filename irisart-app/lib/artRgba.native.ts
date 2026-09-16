@@ -122,23 +122,52 @@ function resizeRgbaNearest(src: RgbaImage, width: number, height: number): RgbaI
   return { width, height, data };
 }
 
+/** Soft cap so Shop/Checkout don't keep every decoded template in RAM forever. */
+const RGBA_CACHE_MAX = 16;
+const rgbaCache = new Map<string, RgbaImage>();
+
+function rgbaCacheKey(uri: string, targetWidth?: number, targetHeight?: number): string {
+  return `${uri}|${targetWidth ?? 0}x${targetHeight ?? 0}`;
+}
+
+function getCachedRgba(key: string): RgbaImage | undefined {
+  const hit = rgbaCache.get(key);
+  if (!hit) return undefined;
+  // Refresh LRU order
+  rgbaCache.delete(key);
+  rgbaCache.set(key, hit);
+  return hit;
+}
+
+function setCachedRgba(key: string, img: RgbaImage) {
+  if (rgbaCache.has(key)) rgbaCache.delete(key);
+  rgbaCache.set(key, img);
+  while (rgbaCache.size > RGBA_CACHE_MAX) {
+    const oldest = rgbaCache.keys().next().value;
+    if (oldest === undefined) break;
+    rgbaCache.delete(oldest);
+  }
+}
+
 async function loadRgbaViaManipulator(
   uri: string,
   targetWidth?: number,
-  targetHeight?: number
+  targetHeight?: number,
+  preferPng = false
 ): Promise<RgbaImage> {
   const localUri = await ensureLocalUri(uri);
   const actions =
     targetWidth && targetHeight
       ? [{ resize: { width: targetWidth, height: targetHeight } }]
-      : [{ resize: { width: 1536 } }];
+      : [{ resize: { width: Math.min(1280, 1536) } }];
   const prepared = await ImageManipulator.manipulateAsync(localUri, actions, {
-    format: ImageManipulator.SaveFormat.JPEG,
-    compress: 0.92,
+    format: preferPng ? ImageManipulator.SaveFormat.PNG : ImageManipulator.SaveFormat.JPEG,
+    compress: preferPng ? 1 : 0.88,
     base64: true,
   });
   if (!prepared.base64) throw new Error(`Could not read image: ${uri.slice(0, 100)}`);
-  return decodeJpegRgba(new Uint8Array(Buffer.from(prepared.base64, 'base64')));
+  const bytes = new Uint8Array(Buffer.from(prepared.base64, 'base64'));
+  return preferPng ? decodePngRgba(bytes) : decodeJpegRgba(bytes);
 }
 
 /** Load RGBA from a local file URI. PNG alpha is preserved via upng-js. */
@@ -148,11 +177,15 @@ export async function loadRgbaFromUri(
   targetHeight?: number
 ): Promise<RgbaImage> {
   const normalized = normalizeInputUri(uri);
+  const cacheKey = rgbaCacheKey(normalized, targetWidth, targetHeight);
+  const cached = getCachedRgba(cacheKey);
+  if (cached) return cached;
 
   if (isDataUri(normalized)) {
     const bytes = new Uint8Array(Buffer.from(dataUriToBase64(normalized), 'base64'));
     let img = decodeImageBytes(bytes);
     if (targetWidth && targetHeight) img = resizeRgbaNearest(img, targetWidth, targetHeight);
+    setCachedRgba(cacheKey, img);
     return img;
   }
 
@@ -160,18 +193,32 @@ export async function loadRgbaFromUri(
   const lower = localUri.split('?')[0]?.toLowerCase() ?? '';
   const looksPng = lower.endsWith('.png');
 
+  // Prefer native resize before JS decode — full 2k template PNGs are the Shop bottleneck.
+  if (looksPng && targetWidth && targetHeight) {
+    try {
+      const img = await loadRgbaViaManipulator(localUri, targetWidth, targetHeight, true);
+      setCachedRgba(cacheKey, img);
+      return img;
+    } catch {
+      // Fall through to full decode + nearest resize.
+    }
+  }
+
   if (looksPng) {
     try {
       const bytes = await readUriBytes(localUri);
       let img = decodePngRgba(bytes);
       if (targetWidth && targetHeight) img = resizeRgbaNearest(img, targetWidth, targetHeight);
+      setCachedRgba(cacheKey, img);
       return img;
     } catch {
       // Fall back to ImageManipulator for odd PNG paths on iOS.
     }
   }
 
-  return loadRgbaViaManipulator(localUri, targetWidth, targetHeight);
+  const img = await loadRgbaViaManipulator(localUri, targetWidth, targetHeight, false);
+  setCachedRgba(cacheKey, img);
+  return img;
 }
 
 /** Load RGBA from a URI string or bundled `require()` asset. */

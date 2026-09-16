@@ -1,6 +1,7 @@
 import * as ImageManipulator from 'expo-image-manipulator';
-
 import { Buffer } from 'buffer';
+import { Platform } from 'react-native';
+import * as ExpoFS from 'expo-file-system/legacy';
 
 import * as FileSystem from '@/lib/platformFileSystem';
 import { invokeEdgeFunction } from './invokeEdgeFunction';
@@ -118,8 +119,32 @@ export async function uploadTempImage(
   const ext = contentType === 'image/png' ? 'png' : 'jpg';
   const prefix = (opts?.storagePrefix ?? 'temp').replace(/^\/+|\/+$/g, '') || 'temp';
   const fullPath = `${prefix}/${randomKey()}.${ext}`;
+  const ttl = opts?.signedUrlExpiresSec ?? 60 * 10;
 
-  const base64Encoding = (FileSystem as any).EncodingType?.Base64 ?? (FileSystem as any).EncodingType?.base64 ?? 'base64';
+  // Native: stream file bytes via signed upload URL (skips base64 round-trip in JS).
+  if (Platform.OS !== 'web') {
+    try {
+      const signedUpload = await supabase.storage.from(TEMP_BUCKET).createSignedUploadUrl(fullPath);
+      if (!signedUpload.error && signedUpload.data?.signedUrl) {
+        const uploaded = await ExpoFS.uploadAsync(signedUpload.data.signedUrl, localUri, {
+          httpMethod: 'PUT',
+          uploadType: ExpoFS.FileSystemUploadType.BINARY_CONTENT,
+          headers: { 'Content-Type': contentType },
+        });
+        if (uploaded.status >= 200 && uploaded.status < 300) {
+          const signed = await supabase.storage.from(TEMP_BUCKET).createSignedUrl(fullPath, ttl);
+          if (signed.error) throw new Error(signed.error.message);
+          if (!signed.data?.signedUrl) throw new Error('Failed to create signed URL.');
+          return { path: fullPath, signedUrl: signed.data.signedUrl };
+        }
+      }
+    } catch {
+      // Fall through to classic base64 upload.
+    }
+  }
+
+  const base64Encoding =
+    (FileSystem as any).EncodingType?.Base64 ?? (FileSystem as any).EncodingType?.base64 ?? 'base64';
   const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: base64Encoding as any });
   if (!base64 || typeof base64 !== 'string' || base64.length < 200) {
     throw new Error(`Local file appears empty (base64 length=${base64?.length ?? 0}).`);
@@ -138,7 +163,6 @@ export async function uploadTempImage(
   if (upload.error) throw new Error(upload.error.message);
 
   // Signed URL so Replicate / externe Dienste (z. B. merchOne) die Datei per HTTPS laden können.
-  const ttl = opts?.signedUrlExpiresSec ?? 60 * 10;
   const signed = await supabase.storage.from(TEMP_BUCKET).createSignedUrl(fullPath, ttl);
   if (signed.error) throw new Error(signed.error.message);
   if (!signed.data?.signedUrl) throw new Error('Failed to create signed URL.');

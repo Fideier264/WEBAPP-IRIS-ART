@@ -46,7 +46,7 @@ const en: Record<TranslationKey, string> = {
   'account.forgotPassword': 'Forgot password?',
   'account.forgotPasswordTitle': 'Reset password',
   'account.forgotPasswordBody':
-    'We’ll email you a link. Open it on this device to choose a new password.',
+    'We’ll email you a link. Open it to choose a new password (opens the website).',
   'account.forgotPasswordCta': 'Send link',
   'account.forgotPasswordSent':
     'Email sent. Check your inbox (and spam) and open the link — it opens the website to set a new password.',
@@ -69,6 +69,8 @@ const en: Record<TranslationKey, string> = {
   'account.error.googleCancelled': 'Google sign-in was cancelled.',
   'account.error.appleCancelled': 'Apple sign-in was cancelled.',
   'account.error.passwordMismatch': 'Passwords do not match.',
+  'account.error.redirectNotAllowed':
+    'Password reset blocked: in Supabase Authentication → URL Configuration allow https://irisart.app/auth/reset-password.',
   'account.error.generic': 'Sign-in failed. Please check your details.',
   'account.language': 'Language',
   'account.languageHint': 'App language for all screens.',

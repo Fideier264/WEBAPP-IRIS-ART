@@ -11,6 +11,7 @@ type AuthMessageKey =
   | 'account.error.googleCancelled'
   | 'account.error.appleCancelled'
   | 'account.error.passwordMismatch'
+  | 'account.error.redirectNotAllowed'
   | 'account.error.generic';
 
 function codeOf(error: unknown): string {
@@ -48,6 +49,14 @@ export function authErrorMessageKey(error: unknown): AuthMessageKey {
   }
   if (code.includes('rate limit') || code.includes('too many') || code === 'over_email_send_rate_limit') {
     return 'account.error.rateLimit';
+  }
+  if (
+    code.includes('redirect') ||
+    code.includes('redirect_uri') ||
+    code.includes('redirect_to') ||
+    code.includes('not allowed')
+  ) {
+    return 'account.error.redirectNotAllowed';
   }
   if (code.includes('fetch') || code.includes('network')) {
     return 'account.error.network';

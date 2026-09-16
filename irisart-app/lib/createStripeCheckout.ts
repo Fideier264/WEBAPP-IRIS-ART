@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 
+import { configFromBuildExtra } from './appConfigCore';
 import { extractStatus, invokeEdgeFunction } from './invokeEdgeFunction';
 import type { OrderShippingInput } from './createMerchOneOrder';
 
@@ -25,12 +27,31 @@ export type CreateCheckoutSessionResult =
     }
   | { ok: false; error: string };
 
-function getAppOrigin(): string | undefined {
+function getWebAppOrigin(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin) {
-    return window.location.origin;
+    return window.location.origin.replace(/\/$/, '');
   }
-  const fromEnv = process.env.EXPO_PUBLIC_APP_ORIGIN?.trim();
-  return fromEnv || undefined;
+  return (configFromBuildExtra().appOrigin || process.env.EXPO_PUBLIC_APP_ORIGIN || 'https://irisart.app')
+    .trim()
+    .replace(/\/$/, '');
+}
+
+/** Stripe return URLs: HTTPS on web, app scheme on native so payment returns into the app. */
+export function getCheckoutReturnUrls(): { successUrl: string; cancelUrl: string; appOrigin: string } {
+  const appOrigin = getWebAppOrigin();
+  if (Platform.OS === 'web') {
+    return {
+      appOrigin,
+      successUrl: `${appOrigin}/order-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${appOrigin}/checkout?canceled=1`,
+    };
+  }
+  // Custom scheme (must match app.json "scheme"). Stripe supports this for mobile return.
+  return {
+    appOrigin,
+    successUrl: 'irisartapp://order-success?session_id={CHECKOUT_SESSION_ID}',
+    cancelUrl: 'irisartapp://checkout?canceled=1',
+  };
 }
 
 async function messageFromInvokeError(error: unknown, data: unknown): Promise<string> {
@@ -74,14 +95,7 @@ async function messageFromInvokeError(error: unknown, data: unknown): Promise<st
 export async function requestCreateCheckoutSession(
   input: CreateCheckoutSessionInput
 ): Promise<CreateCheckoutSessionResult> {
-  const appOrigin = getAppOrigin();
-  if (!appOrigin) {
-    return {
-      ok: false,
-      error:
-        'App-URL fehlt (appOrigin). Setze EXPO_PUBLIC_APP_ORIGIN oder öffne die Web-App über https://…',
-    };
-  }
+  const { appOrigin, successUrl, cancelUrl } = getCheckoutReturnUrls();
 
   const invoke = await invokeEdgeFunction<{
     ok?: boolean;
@@ -98,6 +112,8 @@ export async function requestCreateCheckoutSession(
     shipping: input.shipping,
     externalId: input.externalId,
     appOrigin,
+    successUrl,
+    cancelUrl,
     productLabel: input.productLabel,
   });
 
@@ -120,16 +136,61 @@ export async function requestCreateCheckoutSession(
   };
 }
 
-/** Open Stripe Checkout (web redirect or native browser). */
-export async function openCheckoutUrl(url: string): Promise<void> {
+/**
+ * Open Stripe Checkout.
+ * Native: in-app auth browser that closes when Stripe redirects to irisartapp://…
+ * Web: full-page redirect.
+ */
+export async function openCheckoutUrl(url: string): Promise<{ type: string; url?: string }> {
   if (!url.startsWith('https://')) {
     throw new Error('Ungültige Stripe-URL.');
   }
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     window.location.assign(url);
-    return;
+    return { type: 'redirect' };
   }
+
+  // Must match Stripe success/cancel scheme (irisartapp://…), not Expo Go exp:// from createURL.
+  const returnUrl = 'irisartapp://';
+  try {
+    await WebBrowser.warmUpAsync();
+  } catch {
+    /* ignore */
+  }
+
+  const result = await WebBrowser.openAuthSessionAsync(url, returnUrl);
+
+  if (result.type === 'success' && 'url' in result && typeof result.url === 'string') {
+    const returned = result.url;
+    try {
+      const parsed = Linking.parse(returned);
+      const path = (parsed.path ?? '').replace(/^\//, '');
+      const q = (parsed.queryParams ?? {}) as Record<string, string | string[] | undefined>;
+      const sessionId = typeof q.session_id === 'string' ? q.session_id : undefined;
+      const { router } = await import('expo-router');
+      if (path.includes('order-success') || returned.includes('order-success')) {
+        router.replace({
+          pathname: '/order-success',
+          params: sessionId ? { session_id: sessionId } : {},
+        });
+        return { type: 'success', url: returned };
+      }
+      if (path.includes('checkout') || returned.includes('canceled')) {
+        router.replace({ pathname: '/checkout', params: { canceled: '1' } });
+        return { type: 'cancel', url: returned };
+      }
+    } catch {
+      await Linking.openURL(returned);
+    }
+    return { type: 'success', url: returned };
+  }
+
+  if (result.type === 'dismiss' || result.type === 'cancel') {
+    return { type: result.type };
+  }
+
   await Linking.openURL(url);
+  return { type: 'opened' };
 }
 
 const TEXTURE_STORAGE_KEY = 'irisart_checkout_texture_uri';

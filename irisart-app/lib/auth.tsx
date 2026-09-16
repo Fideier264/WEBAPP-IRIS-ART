@@ -261,9 +261,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [signInAppleNative, signInAppleOAuth]);
 
   const resetPasswordForEmail = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: getPasswordResetRedirectTo(),
+    const trimmed = email.trim();
+    if (!trimmed) throw new Error('invalid email');
+
+    const webRedirect = getPasswordResetRedirectTo();
+    let { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+      redirectTo: webRedirect,
     });
+
+    // Fallback if HTTPS redirect is not yet allowlisted in Supabase.
+    if (error) {
+      const msg = (error.message ?? '').toLowerCase();
+      if (msg.includes('redirect') || msg.includes('not allowed')) {
+        const appRedirect = getAuthRedirectTo('auth/reset-password');
+        const retry = await supabase.auth.resetPasswordForEmail(trimmed, {
+          redirectTo: appRedirect,
+        });
+        error = retry.error;
+      }
+    }
+
     if (error) throw error;
   }, []);
 

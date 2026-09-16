@@ -5,6 +5,8 @@ import { getArtTemplateById } from './artTemplates';
 import { renderArtCompositeToLocalUri } from './renderArtComposite';
 
 const ORDER_PRINT_TTL_SEC = 60 * 60 * 24 * 14;
+/** Print-ready long edge for MerchOne (high quality, prefetched during checkout form). */
+export const CHECKOUT_PRINT_OUTPUT_WIDTH = 2048;
 
 async function ensureLocalFile(localOrRemoteUri: string): Promise<string> {
   if (!localOrRemoteUri.startsWith('http://') && !localOrRemoteUri.startsWith('https://')) {
@@ -49,6 +51,24 @@ export type UploadCheckoutArtworkResult = {
   storagePath: string;
 };
 
+function artworkCacheKey(input: UploadCheckoutArtworkInput): string {
+  return [
+    input.textureUri,
+    input.textureUri2 ?? '',
+    input.templateId,
+    String(input.printAspectRatio ?? 1),
+    input.secondaryColorTint === false ? '0' : '1',
+    String(input.outputWidth ?? CHECKOUT_PRINT_OUTPUT_WIDTH),
+  ].join('\0');
+}
+
+type PrefetchEntry = {
+  key: string;
+  promise: Promise<UploadCheckoutArtworkResult>;
+};
+
+let activePrefetch: PrefetchEntry | null = null;
+
 /**
  * Renders the final iris + template artwork, uploads to Supabase Storage, returns a signed URL.
  * Output dimensions match the MerchOne SKU aspect ratio (e.g. 1:1 for square canvas).
@@ -70,7 +90,7 @@ export async function uploadCheckoutArtwork(
     textureUri: input.textureUri,
     textureUri2: input.textureUri2,
     template,
-    outputWidth: input.outputWidth ?? 2048,
+    outputWidth: input.outputWidth ?? CHECKOUT_PRINT_OUTPUT_WIDTH,
     outputAspectRatio: printAspectRatio,
     secondaryColorTint: input.secondaryColorTint,
   });
@@ -82,4 +102,26 @@ export async function uploadCheckoutArtwork(
   });
 
   return { printFileUrl: signedUrl, storagePath: path };
+}
+
+/**
+ * Start or reuse an in-flight print render+upload while the user fills shipping fields.
+ * Pay joins the same promise so the wait is usually already done.
+ */
+export function prefetchCheckoutArtwork(
+  input: UploadCheckoutArtworkInput
+): Promise<UploadCheckoutArtworkResult> {
+  const normalized: UploadCheckoutArtworkInput = {
+    ...input,
+    outputWidth: input.outputWidth ?? CHECKOUT_PRINT_OUTPUT_WIDTH,
+  };
+  const key = artworkCacheKey(normalized);
+  if (activePrefetch?.key === key) return activePrefetch.promise;
+
+  const promise = uploadCheckoutArtwork(normalized).catch((err) => {
+    if (activePrefetch?.key === key) activePrefetch = null;
+    throw err;
+  });
+  activePrefetch = { key, promise };
+  return promise;
 }

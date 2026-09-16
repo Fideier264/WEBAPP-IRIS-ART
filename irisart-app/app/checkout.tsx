@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  InteractionManager,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -39,7 +40,10 @@ import {
   uniqueCategories,
   type CatalogProduct,
 } from '@/lib/merchOneCatalog';
-import { uploadCheckoutArtwork } from '@/lib/orderPrintUpload';
+import {
+  CHECKOUT_PRINT_OUTPUT_WIDTH,
+  prefetchCheckoutArtwork,
+} from '@/lib/orderPrintUpload';
 
 type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => string;
 
@@ -168,7 +172,6 @@ export default function CheckoutScreen() {
   const [postcode, setPostcode] = useState('');
   const [country, setCountry] = useState('DE');
   const [region, setRegion] = useState('');
-  const [telephone, setTelephone] = useState('');
 
   const [status, setStatus] = useState<'idle' | 'uploading' | 'redirecting' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -179,6 +182,36 @@ export default function CheckoutScreen() {
     ? translateCategoryLabel(selected.category, selected.categoryLabel, t)
     : '';
   const selectedDesc = selected ? translateDescription(selected.description, t) : undefined;
+
+  // While the user fills the form, render+upload the print file at full quality.
+  useEffect(() => {
+    if (!textureUri || !templateId || !template || !selected) return;
+    if (isDualEyeTemplate(template) && !textureUri2) return;
+
+    const input = {
+      textureUri,
+      textureUri2,
+      templateId,
+      printAspectRatio: selected.printAspectRatio,
+      secondaryColorTint,
+      outputWidth: CHECKOUT_PRINT_OUTPUT_WIDTH,
+    };
+
+    const handle = InteractionManager.runAfterInteractions(() => {
+      void prefetchCheckoutArtwork(input).catch(() => {
+        /* Pay will retry / surface the error. */
+      });
+    });
+    return () => handle.cancel();
+  }, [
+    textureUri,
+    textureUri2,
+    templateId,
+    template,
+    selected?.id,
+    selected?.printAspectRatio,
+    secondaryColorTint,
+  ]);
 
   async function onPay() {
     setErrorMsg(null);
@@ -232,12 +265,13 @@ export default function CheckoutScreen() {
       rememberCheckoutTexture2(textureUri2);
       rememberCheckoutTemplate(templateId);
       rememberCheckoutSecondaryColor(secondaryColorTint);
-      const { printFileUrl } = await uploadCheckoutArtwork({
+      const { printFileUrl } = await prefetchCheckoutArtwork({
         textureUri,
         textureUri2,
         templateId,
         printAspectRatio: selected.printAspectRatio,
         secondaryColorTint,
+        outputWidth: CHECKOUT_PRINT_OUTPUT_WIDTH,
       });
 
       setStatus('redirecting');
@@ -259,7 +293,6 @@ export default function CheckoutScreen() {
           postcode: postcode.trim(),
           country: cc,
           region: region.trim() || undefined,
-          telephone: telephone.trim() || undefined,
         },
         externalId: `irisart_${Date.now()}`,
       });
@@ -271,6 +304,7 @@ export default function CheckoutScreen() {
       }
 
       await openCheckoutUrl(res.url);
+      setStatus('idle');
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : String(e));
       setStatus('error');
@@ -341,8 +375,9 @@ export default function CheckoutScreen() {
                   textureUri={textureUri}
                   textureUri2={textureUri2}
                   template={template}
-                  width={Math.min(width - 36, 320)}
+                  width={Math.min(width - 72, 220)}
                   secondaryColorTint={secondaryColorTint}
+                  quality="thumb"
                 />
               </View>
               <Text style={[styles.cardBody, { color: c.muted }]}>{t('checkout.printHint')}</Text>
@@ -458,7 +493,6 @@ export default function CheckoutScreen() {
                 labelColor={c.text}
                 placeholderColor={c.inputPlaceholder}
               />
-              <LabeledInput label={t('checkout.telephone')} value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" style={inputSurface} labelColor={c.text} placeholderColor={c.inputPlaceholder} />
             </View>
             </View>
 
