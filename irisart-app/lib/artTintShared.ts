@@ -924,13 +924,10 @@ export function drawIrisInSlot(
   if (!iw || !ih) return;
 
   const circular = hole.circular ?? false;
-  // Circular: sit between contain and cover — fill the cutout without clipping the iris rim.
-  const containS = Math.min(slotW / iw, slotH / ih);
-  const coverS = Math.max(slotW / iw, slotH / ih);
-  const base = circular ? containS + (coverS - containS) * 0.35 : resizeMode === 'cover' ? coverS : containS;
-  // Soften template irisScale on circular holes so the outer iris rim stays visible.
-  const zoom = circular ? 1 + (irisScale - 1) * 0.55 : irisScale;
-  let scale = base * zoom;
+  // Honor template resizeMode (classic uses contain+scale; overlays often cover).
+  let scale =
+    resizeMode === 'cover' ? Math.max(slotW / iw, slotH / ih) : Math.min(slotW / iw, slotH / ih);
+  scale *= irisScale;
 
   const dw = iw * scale;
   const dh = ih * scale;
@@ -942,7 +939,6 @@ export function drawIrisInSlot(
   const y0 = Math.max(0, Math.floor(top));
   const x1 = Math.min(canvasW, Math.ceil(left + slotW));
   const y1 = Math.min(canvasH, Math.ceil(top + slotH));
-  // Keep template-authored hole geometry (w/h may differ so the cutout stays round on non-square canvases).
   const rx = slotW / 2;
   const ry = slotH / 2;
 

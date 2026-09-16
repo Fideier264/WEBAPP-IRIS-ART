@@ -152,7 +152,7 @@ export function ArtTemplateComposite({
         <Image
           source={{ uri: displayUri }}
           style={{ width, height, borderRadius: quality === 'thumb' ? 10 : 14 }}
-          resizeMode="cover"
+          resizeMode="stretch"
           onError={() => {
             setDisplayUri((cur) => {
               if (!cur) return cur;
