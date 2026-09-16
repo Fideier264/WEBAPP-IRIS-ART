@@ -46,7 +46,7 @@ export function ArtTemplateComposite({
         : typeof window !== 'undefined'
           ? Math.min(1.5, window.devicePixelRatio || 1)
           : 1;
-    const maxEdge = quality === 'thumb' ? 112 : 360;
+    const maxEdge = quality === 'thumb' ? 140 : 480;
     const layoutLong = Math.max(width, height);
     const scale = Math.min(dpr, maxEdge / Math.max(1, layoutLong));
     const pw = Math.max(1, Math.round(width * scale));

@@ -924,12 +924,11 @@ export function drawIrisInSlot(
   if (!iw || !ih) return;
 
   const circular = hole.circular ?? false;
-  // Circular holes: cover the slot (aspect-preserving) so the iris fills the template cutout.
-  // Contain left black margins after we stopped forcing a stretched square decode.
-  const mode = circular ? 'cover' : resizeMode;
-  let scale =
-    mode === 'cover' ? Math.max(slotW / iw, slotH / ih) : Math.min(slotW / iw, slotH / ih);
-  scale *= irisScale;
+  // Circular: sit between contain and cover — fill the cutout without clipping the iris rim.
+  const containS = Math.min(slotW / iw, slotH / ih);
+  const coverS = Math.max(slotW / iw, slotH / ih);
+  const base = circular ? containS + (coverS - containS) * 0.55 : resizeMode === 'cover' ? coverS : containS;
+  let scale = base * irisScale;
 
   const dw = iw * scale;
   const dh = ih * scale;
