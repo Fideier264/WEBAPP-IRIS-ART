@@ -796,8 +796,9 @@ export function drawIrisInSlot(
   // Circular: between contain and cover — fill without clipping the iris rim.
   const containS = Math.min(slotW / iw, slotH / ih);
   const coverS = Math.max(slotW / iw, slotH / ih);
-  const base = circular ? containS + (coverS - containS) * 0.55 : resizeMode === 'cover' ? coverS : containS;
-  let scale = base * irisScale;
+  const base = circular ? containS + (coverS - containS) * 0.35 : resizeMode === 'cover' ? coverS : containS;
+  const zoom = circular ? 1 + (irisScale - 1) * 0.55 : irisScale;
+  let scale = base * zoom;
 
   const dw = iw * scale;
   const dh = ih * scale;
