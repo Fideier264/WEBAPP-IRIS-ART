@@ -46,13 +46,13 @@ export async function paintArtComposite(opts: {
     (u): u is string => typeof u === 'string' && u.length > 0
   );
 
-  // Decode iris near output size — full camera JPEGs were the main Shop stall.
+  // Decode iris near output size — preserve aspect (do not force a square).
   const irisEdge = Math.max(96, Math.min(1600, Math.ceil(Math.max(width, height) * 1.15)));
 
   const irisImages = await Promise.all(
     holes.map((_, i) => {
       const uri = textureUris[Math.min(i, textureUris.length - 1)] ?? textureUri;
-      return loadRgba(uri, irisEdge, irisEdge);
+      return loadRgba(uri, irisEdge);
     })
   );
 

@@ -282,7 +282,7 @@ const de = {
     'Es läuft der Demo-Katalog (Quelle: {{source}}). Bearbeite productCatalog.json oder setze EXPO_PUBLIC_MERCHONE_CATALOG und starte einen neuen Deploy.',
   'checkout.printMotif': 'Druckmotiv',
   'checkout.printHint':
-    'Beim Bezahlen wird dieses Motiv als Druckdatei hochgeladen und an merchOne übergeben.',
+    'Beim Bezahlen wird das Motiv in höherer Qualität hochgeladen, gedruckt und an dich verschickt.',
   'checkout.pickProduct': 'Produkt wählen',
   'checkout.selection': 'Auswahl',
   'checkout.shipping': 'Lieferadresse',

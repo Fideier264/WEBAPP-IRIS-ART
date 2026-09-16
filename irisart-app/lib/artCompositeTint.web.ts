@@ -792,7 +792,11 @@ export function drawIrisInSlot(
   const ih = iris.naturalHeight || iris.height;
   if (!iw || !ih) return;
 
-  let scale = resizeMode === 'cover' ? Math.max(slotW / iw, slotH / ih) : Math.min(slotW / iw, slotH / ih);
+  const circular = Boolean(hole.circular);
+  const fit = circular ? Math.min(slotW, slotH) : 0;
+  const fitW = circular ? fit : slotW;
+  const fitH = circular ? fit : slotH;
+  let scale = resizeMode === 'cover' ? Math.max(fitW / iw, fitH / ih) : Math.min(fitW / iw, fitH / ih);
   scale *= irisScale;
 
   const dw = iw * scale;
@@ -809,8 +813,9 @@ export function drawIrisInSlot(
 
   lctx.save();
   lctx.beginPath();
-  if (hole.circular) {
-    lctx.ellipse(cx, cy, slotW / 2, slotH / 2, 0, 0, Math.PI * 2);
+  if (circular) {
+    const r = fit / 2;
+    lctx.ellipse(cx, cy, r, r, 0, 0, Math.PI * 2);
   } else {
     lctx.rect(left, top, slotW, slotH);
   }

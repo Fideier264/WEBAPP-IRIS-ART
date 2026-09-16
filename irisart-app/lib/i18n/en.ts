@@ -267,7 +267,7 @@ const en: Record<TranslationKey, string> = {
     'Demo catalog is active (source: {{source}}). Edit productCatalog.json or set EXPO_PUBLIC_MERCHONE_CATALOG and redeploy.',
   'checkout.printMotif': 'Print artwork',
   'checkout.printHint':
-    'On payment this artwork is uploaded as the print file and sent to merchOne.',
+    'On payment the artwork is uploaded (in higher quality) printed and sent to you',
   'checkout.pickProduct': 'Choose product',
   'checkout.selection': 'Selection',
   'checkout.shipping': 'Shipping address',

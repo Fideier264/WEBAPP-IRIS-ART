@@ -24,7 +24,7 @@ function textureCacheKey(uri: string): string {
   return uri.replace(/[^a-zA-Z0-9]/g, '').slice(-28);
 }
 
-/** Prefer exact paint size; otherwise reuse the largest already-rendered preview for this motif. */
+/** Prefer exact paint size; otherwise reuse a same-aspect preview already rendered for this motif. */
 function lookupCachedUri(
   templateId: string,
   textureKey: string,
@@ -38,9 +38,10 @@ function lookupCachedUri(
   const hit = memoryCache.get(exact);
   if (hit) return hit;
 
-  // Checkout should reuse the shop preview without re-painting at a slightly different layout size.
-  if (quality !== 'preview') return null;
+  // Soft reuse only for preview, and only when aspect matches — otherwise stretch makes irises oval.
+  if (quality !== 'preview' || pw < 1 || ph < 1) return null;
 
+  const targetAspect = pw / ph;
   const prefix = `${templateId}_${textureKey}_`;
   const suffix = `_${tint}_preview`;
   let bestUri: string | null = null;
@@ -50,7 +51,11 @@ function lookupCachedUri(
     const dims = key.slice(prefix.length, key.length - suffix.length);
     const m = /^(\d+)x(\d+)$/.exec(dims);
     if (!m) continue;
-    const area = Number(m[1]) * Number(m[2]);
+    const cw = Number(m[1]);
+    const ch = Number(m[2]);
+    if (cw < 1 || ch < 1) continue;
+    if (Math.abs(cw / ch - targetAspect) > 0.02) continue;
+    const area = cw * ch;
     if (area > bestArea) {
       bestArea = area;
       bestUri = uri;
@@ -147,7 +152,7 @@ export function ArtTemplateComposite({
         <Image
           source={{ uri: displayUri }}
           style={{ width, height, borderRadius: quality === 'thumb' ? 10 : 14 }}
-          resizeMode="stretch"
+          resizeMode="cover"
           onError={() => {
             setDisplayUri((cur) => {
               if (!cur) return cur;

@@ -156,10 +156,16 @@ async function loadRgbaViaManipulator(
   preferPng = false
 ): Promise<RgbaImage> {
   const localUri = await ensureLocalUri(uri);
-  const actions =
-    targetWidth && targetHeight
-      ? [{ resize: { width: targetWidth, height: targetHeight } }]
-      : [{ resize: { width: Math.min(1280, 1536) } }];
+  // Only set ONE dimension when possible so ImageManipulator keeps aspect ratio.
+  // Setting width+height forces a stretch (that made irises look oval).
+  let actions: ImageManipulator.Action[] = [{ resize: { width: Math.min(1280, 1536) } }];
+  if (targetWidth && targetHeight) {
+    actions = [{ resize: { width: targetWidth, height: targetHeight } }];
+  } else if (targetWidth) {
+    actions = [{ resize: { width: targetWidth } }];
+  } else if (targetHeight) {
+    actions = [{ resize: { height: targetHeight } }];
+  }
   const prepared = await ImageManipulator.manipulateAsync(localUri, actions, {
     format: preferPng ? ImageManipulator.SaveFormat.PNG : ImageManipulator.SaveFormat.JPEG,
     compress: preferPng ? 1 : 0.88,
