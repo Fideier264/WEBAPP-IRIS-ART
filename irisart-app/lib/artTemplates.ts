@@ -122,14 +122,15 @@ export const ART_TEMPLATES: ArtTemplate[] = [
   canvasBackground: '#FFFFFF',
   irisSlotBackground: '#FFFFFF',
   irisHole: {
-    x: 0.08,
-    y: 0.08,
-    w: 0.84,
-    h: 0.84,
+    x: 0.1,
+    y: 0.1,
+    w: 0.8,
+    h: 0.8,
     circular: true,
   },
   irisResizeMode: 'contain',
-  irisScale: 1.16,
+  // Lower than classic.black — white crops the outer ring more visibly.
+  irisScale: 1.06,
 },
 
 /*
@@ -183,7 +184,7 @@ export const ART_TEMPLATES: ArtTemplate[] = [
     h: 0.4688,
     circular: true,
   },
-  irisScale: 1.34,
+  irisScale: 1.28,
   overlayImage: require('@/assets/art-templates/galaxygrau.png'),
 },
 {

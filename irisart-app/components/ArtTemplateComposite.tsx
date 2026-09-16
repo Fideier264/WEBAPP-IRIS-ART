@@ -26,15 +26,12 @@ function textureCacheKey(uri: string): string {
 
 /** Prefer exact paint size; otherwise reuse a same-aspect preview already rendered for this motif. */
 function lookupCachedUri(
-  templateId: string,
-  textureKey: string,
-  secondaryColorTint: boolean,
+  cachePrefix: string,
   quality: 'thumb' | 'preview',
   pw: number,
   ph: number
 ): string | null {
-  const tint = secondaryColorTint ? '1' : '0';
-  const exact = `${templateId}_${textureKey}_${pw}x${ph}_${tint}_${quality}`;
+  const exact = `${cachePrefix}_${pw}x${ph}_${quality}`;
   const hit = memoryCache.get(exact);
   if (hit) return hit;
 
@@ -42,8 +39,8 @@ function lookupCachedUri(
   if (quality !== 'preview' || pw < 1 || ph < 1) return null;
 
   const targetAspect = pw / ph;
-  const prefix = `${templateId}_${textureKey}_`;
-  const suffix = `_${tint}_preview`;
+  const prefix = `${cachePrefix}_`;
+  const suffix = `_${quality}`;
   let bestUri: string | null = null;
   let bestArea = 0;
   for (const [key, uri] of memoryCache) {
@@ -93,9 +90,12 @@ export function ArtTemplateComposite({
     const scale = Math.min(dprCap, maxEdge / Math.max(1, layoutLong));
     const pw = Math.max(1, Math.round(width * scale));
     const ph = Math.max(1, Math.round(height * scale));
-    const cacheKey = `${template.id}_${textureKey}_${pw}x${ph}_${secondaryColorTint ? '1' : '0'}_${quality}`;
+    const hole = template.irisHole;
+    const fitKey = `s${template.irisScale ?? 1}_m${template.irisResizeMode ?? 'contain'}_h${hole?.w ?? 0}x${hole?.h ?? 0}`;
+    const cachePrefix = `${template.id}_${textureKey}_${secondaryColorTint ? '1' : '0'}_${fitKey}`;
+    const cacheKey = `${cachePrefix}_${pw}x${ph}_${quality}`;
 
-    const cached = lookupCachedUri(template.id, textureKey, secondaryColorTint, quality, pw, ph);
+    const cached = lookupCachedUri(cachePrefix, quality, pw, ph);
     if (cached) {
       memoryCache.set(cacheKey, cached);
       setDisplayUri(cached);
