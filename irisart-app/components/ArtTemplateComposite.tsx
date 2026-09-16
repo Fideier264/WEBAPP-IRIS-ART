@@ -20,6 +20,45 @@ type Props = {
 
 const memoryCache = new Map<string, string>();
 
+function textureCacheKey(uri: string): string {
+  return uri.replace(/[^a-zA-Z0-9]/g, '').slice(-28);
+}
+
+/** Prefer exact paint size; otherwise reuse the largest already-rendered preview for this motif. */
+function lookupCachedUri(
+  templateId: string,
+  textureKey: string,
+  secondaryColorTint: boolean,
+  quality: 'thumb' | 'preview',
+  pw: number,
+  ph: number
+): string | null {
+  const tint = secondaryColorTint ? '1' : '0';
+  const exact = `${templateId}_${textureKey}_${pw}x${ph}_${tint}_${quality}`;
+  const hit = memoryCache.get(exact);
+  if (hit) return hit;
+
+  // Checkout should reuse the shop preview without re-painting at a slightly different layout size.
+  if (quality !== 'preview') return null;
+
+  const prefix = `${templateId}_${textureKey}_`;
+  const suffix = `_${tint}_preview`;
+  let bestUri: string | null = null;
+  let bestArea = 0;
+  for (const [key, uri] of memoryCache) {
+    if (!key.startsWith(prefix) || !key.endsWith(suffix)) continue;
+    const dims = key.slice(prefix.length, key.length - suffix.length);
+    const m = /^(\d+)x(\d+)$/.exec(dims);
+    if (!m) continue;
+    const area = Number(m[1]) * Number(m[2]);
+    if (area > bestArea) {
+      bestArea = area;
+      bestUri = uri;
+    }
+  }
+  return bestUri;
+}
+
 /**
  * Native preview: same dynamic iris-color tinting as web preview and print export.
  */
@@ -37,10 +76,7 @@ export function ArtTemplateComposite({
   const [busy, setBusy] = useState(true);
   const [failed, setFailed] = useState(false);
 
-  const textureKey = useMemo(
-    () => textureUri.replace(/[^a-zA-Z0-9]/g, '').slice(-28),
-    [textureUri]
-  );
+  const textureKey = useMemo(() => textureCacheKey(textureUri), [textureUri]);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,8 +90,9 @@ export function ArtTemplateComposite({
     const ph = Math.max(1, Math.round(height * scale));
     const cacheKey = `${template.id}_${textureKey}_${pw}x${ph}_${secondaryColorTint ? '1' : '0'}_${quality}`;
 
-    const cached = memoryCache.get(cacheKey);
+    const cached = lookupCachedUri(template.id, textureKey, secondaryColorTint, quality, pw, ph);
     if (cached) {
+      memoryCache.set(cacheKey, cached);
       setDisplayUri(cached);
       setBusy(false);
       setFailed(false);

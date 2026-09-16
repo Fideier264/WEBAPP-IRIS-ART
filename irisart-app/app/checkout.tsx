@@ -375,9 +375,9 @@ export default function CheckoutScreen() {
                   textureUri={textureUri}
                   textureUri2={textureUri2}
                   template={template}
-                  width={Math.min(width - 72, 220)}
+                  width={Math.min(280, width - 48)}
                   secondaryColorTint={secondaryColorTint}
-                  quality="thumb"
+                  quality="preview"
                 />
               </View>
               <Text style={[styles.cardBody, { color: c.muted }]}>{t('checkout.printHint')}</Text>
