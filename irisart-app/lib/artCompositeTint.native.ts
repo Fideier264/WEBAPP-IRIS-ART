@@ -46,8 +46,8 @@ export async function paintArtComposite(opts: {
     (u): u is string => typeof u === 'string' && u.length > 0
   );
 
-  // Decode iris near output size — preserve aspect (do not force a square).
-  const irisEdge = Math.max(96, Math.min(1600, Math.ceil(Math.max(width, height) * 1.15)));
+  // Decode iris large enough to cover the slot without upscaling blur; keep aspect ratio.
+  const irisEdge = Math.max(256, Math.min(1600, Math.ceil(Math.max(width, height) * 1.5)));
 
   const irisImages = await Promise.all(
     holes.map((_, i) => {

@@ -924,12 +924,11 @@ export function drawIrisInSlot(
   if (!iw || !ih) return;
 
   const circular = hole.circular ?? false;
-  // `circular` means a true circle in pixel space (not an ellipse from unequal hole.w/h).
-  const fit = circular ? Math.min(slotW, slotH) : 0;
-  const fitW = circular ? fit : slotW;
-  const fitH = circular ? fit : slotH;
+  // Circular holes: cover the slot (aspect-preserving) so the iris fills the template cutout.
+  // Contain left black margins after we stopped forcing a stretched square decode.
+  const mode = circular ? 'cover' : resizeMode;
   let scale =
-    resizeMode === 'cover' ? Math.max(fitW / iw, fitH / ih) : Math.min(fitW / iw, fitH / ih);
+    mode === 'cover' ? Math.max(slotW / iw, slotH / ih) : Math.min(slotW / iw, slotH / ih);
   scale *= irisScale;
 
   const dw = iw * scale;
@@ -942,8 +941,9 @@ export function drawIrisInSlot(
   const y0 = Math.max(0, Math.floor(top));
   const x1 = Math.min(canvasW, Math.ceil(left + slotW));
   const y1 = Math.min(canvasH, Math.ceil(top + slotH));
-  const rx = (circular ? fit : slotW) / 2;
-  const ry = (circular ? fit : slotH) / 2;
+  // Keep template-authored hole geometry (w/h may differ so the cutout stays round on non-square canvases).
+  const rx = slotW / 2;
+  const ry = slotH / 2;
 
   for (let py = y0; py < y1; py++) {
     for (let px = x0; px < x1; px++) {
