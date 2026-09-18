@@ -58,7 +58,16 @@ const de = {
   'account.newPassword': 'Neues Passwort (min. 6 Zeichen)',
   'account.newPasswordConfirm': 'Passwort wiederholen',
   'account.confirmEmailSent':
-    'Bestätigungs-E-Mail gesendet. Bitte tippe auf den Link in der E-Mail, bevor du dich anmeldest.',
+    'Bestätigungs-E-Mail gesendet. Öffne den Link in der E-Mail (beliebiges Gerät/Browser), danach kannst du dich anmelden.',
+  'account.authCallbackWorking': 'Anmeldung wird bestätigt…',
+  'account.authCallbackTitle': 'E-Mail bestätigt',
+  'account.authCallbackSignedIn': 'Dein Konto ist aktiv. Du kannst fortfahren.',
+  'account.authCallbackConfirmed':
+    'Deine E-Mail ist bestätigt. Melde dich jetzt in der App oder hier mit E-Mail und Passwort an.',
+  'account.authCallbackErrorTitle': 'Bestätigung fehlgeschlagen',
+  'account.authCallbackErrorBody':
+    'Der Link ist ungültig oder abgelaufen. Bitte erneut registrieren oder Support kontaktieren.',
+  'account.openAccount': 'Zum Konto',
   'account.error.invalidCredentials': 'E-Mail oder Passwort ist falsch.',
   'account.error.emailNotConfirmed':
     'Bitte bestätige zuerst deine E-Mail-Adresse (Link in der Registrierungs-Mail).',

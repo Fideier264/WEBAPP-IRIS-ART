@@ -57,7 +57,16 @@ const en: Record<TranslationKey, string> = {
   'account.newPassword': 'New password (min. 6 characters)',
   'account.newPasswordConfirm': 'Repeat password',
   'account.confirmEmailSent':
-    'Confirmation email sent. Please tap the link in the email before signing in.',
+    'Confirmation email sent. Open the link in the email (any device/browser), then sign in.',
+  'account.authCallbackWorking': 'Confirming your account…',
+  'account.authCallbackTitle': 'Email confirmed',
+  'account.authCallbackSignedIn': 'Your account is active. You can continue.',
+  'account.authCallbackConfirmed':
+    'Your email is confirmed. Sign in now in the app or here with email and password.',
+  'account.authCallbackErrorTitle': 'Confirmation failed',
+  'account.authCallbackErrorBody':
+    'This link is invalid or expired. Please sign up again or contact support.',
+  'account.openAccount': 'Open account',
   'account.error.invalidCredentials': 'Incorrect email or password.',
   'account.error.emailNotConfirmed':
     'Please confirm your email first (link in your registration email).',

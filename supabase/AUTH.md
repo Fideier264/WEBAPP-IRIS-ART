@@ -32,12 +32,15 @@ Run the SQL in:
 3. **Authentication → URL configuration**:
    - Site URL: `https://irisart.app`
    - Redirect URLs (add all):
-     - `irisartapp://auth/callback`
-     - `irisartapp://auth/reset-password`
+     - `https://irisart.app/auth/callback` (**signup confirmation** — works on any device)
      - `https://irisart.app/auth/reset-password`
+     - `irisartapp://auth/callback` (OAuth / in-app)
+     - `irisartapp://auth/reset-password`
      - `https://irisart.app/**` (optional, for web)
 4. **Authentication → Email templates**: customize Confirm signup / Reset password (sender name **IrisArt**, reply-to `contact@irisart.app`).
 5. Supabase sends mail via its built-in SMTP on free tier (rate limits apply). For production volume, configure **Project Settings → Authentication → SMTP** (e.g. Hostinger, Resend, SendGrid).
+
+**Email confirmation:** Links use `https://irisart.app/auth/callback`. You do **not** need to open the email on the same phone as the app — any browser works, then sign in in the app.
 
 **In-app flows**
 

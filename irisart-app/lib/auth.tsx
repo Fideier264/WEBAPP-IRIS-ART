@@ -34,17 +34,37 @@ function getAuthRedirectTo(path = 'auth/callback') {
   return Linking.createURL(path);
 }
 
-/** Always HTTPS so email links work in any browser (not only when the app scheme opens). */
-function getPasswordResetRedirectTo() {
+/** Always HTTPS so email links work in any browser / on any device. */
+function getWebAuthRedirectTo(path: string) {
   const origin = (configFromBuildExtra().appOrigin || 'https://irisart.app').replace(/\/$/, '');
-  return `${origin}/auth/reset-password`;
+  return `${origin}/${path.replace(/^\//, '')}`;
 }
 
-async function createSessionFromUrl(url: string): Promise<'recovery' | 'default' | null> {
+/** Always HTTPS so email links work in any browser (not only when the app scheme opens). */
+function getPasswordResetRedirectTo() {
+  return getWebAuthRedirectTo('auth/reset-password');
+}
+
+function getEmailConfirmRedirectTo() {
+  return getWebAuthRedirectTo('auth/callback');
+}
+
+export type AuthCallbackKind = 'recovery' | 'signup' | 'default' | null;
+
+export async function createSessionFromUrl(url: string): Promise<AuthCallbackKind> {
   const parsed = Linking.parse(url);
   const query = (parsed.queryParams ?? {}) as Record<string, string | string[] | undefined>;
   const hash = url.includes('#') ? url.split('#')[1] : '';
   const hashParams = new URLSearchParams(hash);
+
+  const errorDescription =
+    (typeof query.error_description === 'string' ? query.error_description : undefined) ??
+    hashParams.get('error_description') ??
+    (typeof query.error === 'string' ? query.error : undefined) ??
+    hashParams.get('error');
+  if (errorDescription) {
+    throw new Error(errorDescription);
+  }
 
   const type =
     (typeof query.type === 'string' ? query.type : undefined) ??
@@ -65,14 +85,21 @@ async function createSessionFromUrl(url: string): Promise<'recovery' | 'default'
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) throw error;
-    return type === 'recovery' ? 'recovery' : 'default';
+    if (type === 'recovery') return 'recovery';
+    if (type === 'signup' || type === 'email' || type === 'invite') return 'signup';
+    return 'default';
   }
 
   if (access_token && refresh_token) {
     const { error } = await supabase.auth.setSession({ access_token, refresh_token });
     if (error) throw error;
-    return type === 'recovery' ? 'recovery' : 'default';
+    if (type === 'recovery') return 'recovery';
+    if (type === 'signup' || type === 'email' || type === 'invite') return 'signup';
+    return 'default';
   }
+
+  // Link may only confirm email server-side without returning tokens.
+  if (type === 'signup' || type === 'email') return 'signup';
 
   return null;
 }
@@ -122,10 +149,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     });
 
-    // Web: recovery emails land on https://irisart.app/auth/reset-password#access_token=…
+    // Web: auth emails land on https://irisart.app/auth/…#access_token=… or ?code=
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const href = window.location.href;
-      if (href.includes('access_token') || href.includes('type=recovery') || href.includes('code=')) {
+      if (
+        href.includes('access_token') ||
+        href.includes('type=recovery') ||
+        href.includes('type=signup') ||
+        href.includes('code=')
+      ) {
         void createSessionFromUrl(href)
           .then((kind) => {
             if (kind === 'recovery' || href.includes('type=recovery') || href.includes('/auth/reset-password')) {
@@ -133,6 +165,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (!href.includes('/auth/reset-password')) {
                 router.push('/auth/reset-password');
               }
+            } else if (kind === 'signup' || href.includes('/auth/callback')) {
+              router.replace('/account');
             }
           })
           .catch(() => {
@@ -158,7 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: email.trim(),
       password,
       options: {
-        emailRedirectTo: getAuthRedirectTo('auth/callback'),
+        emailRedirectTo: getEmailConfirmRedirectTo(),
       },
     });
     if (error) throw error;
