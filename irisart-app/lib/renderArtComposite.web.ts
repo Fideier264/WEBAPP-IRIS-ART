@@ -68,7 +68,7 @@ function resolveOutputSize(outputWidth: number, aspectRatio: number): { width: n
  * sized for the MerchOne product aspect ratio. Same tint pipeline as shop preview.
  */
 export async function renderArtCompositeToLocalUri(input: RenderArtCompositeInput): Promise<string> {
-  const longEdge = input.outputWidth ?? 2048;
+  const longEdge = input.outputWidth ?? 1536;
   const productAspect =
     typeof input.outputAspectRatio === 'number' && input.outputAspectRatio > 0
       ? input.outputAspectRatio

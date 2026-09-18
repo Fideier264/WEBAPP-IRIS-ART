@@ -9,6 +9,7 @@ import {
 } from './artTintShared';
 import { dataUriToBase64, encodeRgbaToJpegDataUri } from './artRgba.native';
 import { getTemplateCanvasBackground } from './artTemplates';
+import { enqueuePaint, yieldToUi } from './paintQueue';
 
 export type RenderArtCompositeInput = {
   textureUri: string;
@@ -36,7 +37,7 @@ function resolveOutputSize(outputWidth: number, aspectRatio: number): { width: n
  * sized for the MerchOne product aspect ratio.
  */
 export async function renderArtCompositeToLocalUri(input: RenderArtCompositeInput): Promise<string> {
-  const longEdge = input.outputWidth ?? 2048;
+  const longEdge = input.outputWidth ?? 1536;
   const productAspect =
     typeof input.outputAspectRatio === 'number' && input.outputAspectRatio > 0
       ? input.outputAspectRatio
@@ -48,15 +49,23 @@ export async function renderArtCompositeToLocalUri(input: RenderArtCompositeInpu
   const designLong = Math.max(outW, outH);
   const { width: designW, height: designH } = resolveOutputSize(designLong, templateAr);
 
-  const { rgba: design } = await paintArtComposite({
-    textureUri: input.textureUri,
-    textureUri2: input.textureUri2,
-    template: input.template,
-    width: designW,
-    height: designH,
-    secondaryColorTint: input.secondaryColorTint,
-    encodeJpeg: false,
-  });
+  // Yield so checkout can show the spinner; run through the paint queue (exclusive).
+  await yieldToUi(48);
+  const { rgba: design } = await enqueuePaint(
+    () =>
+      paintArtComposite({
+        textureUri: input.textureUri,
+        textureUri2: input.textureUri2,
+        template: input.template,
+        width: designW,
+        height: designH,
+        secondaryColorTint: input.secondaryColorTint,
+        encodeJpeg: false,
+      }),
+    'high'
+  );
+
+  await yieldToUi(32);
 
   const product = createRgba(outW, outH);
   fillRgbaRect(product, 0, 0, outW, outH, getTemplateCanvasBackground(input.template));
@@ -68,7 +77,9 @@ export async function renderArtCompositeToLocalUri(input: RenderArtCompositeInpu
   const dy = (outH - dh) / 2;
   blitRgbaOver(product, design, dx, dy, dw, dh);
 
-  const productDataUri = encodeRgbaToJpegDataUri(product, 85);
+  await yieldToUi(32);
+
+  const productDataUri = encodeRgbaToJpegDataUri(product, 82);
   const base64 = dataUriToBase64(productDataUri);
   const localUri = `${FileSystem.cacheDirectory}checkout_print_${outW}x${outH}_${Date.now()}.jpg`;
   await FileSystem.writeAsStringAsync(localUri, base64, { encoding: FileSystem.EncodingType.Base64 });

@@ -183,7 +183,7 @@ export default function CheckoutScreen() {
     : '';
   const selectedDesc = selected ? translateDescription(selected.description, t) : undefined;
 
-  // While the user fills the form, render+upload the print file at full quality.
+  // Keep / restart prefetch when product aspect changes (gallery may already have started it).
   useEffect(() => {
     if (!textureUri || !templateId || !template || !selected) return;
     if (isDualEyeTemplate(template) && !textureUri2) return;
@@ -261,6 +261,10 @@ export default function CheckoutScreen() {
 
     try {
       setStatus('uploading');
+      // Let the uploading spinner paint before the heavy native composite blocks JS.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => setTimeout(resolve, 64));
+      });
       rememberCheckoutTexture(textureUri);
       rememberCheckoutTexture2(textureUri2);
       rememberCheckoutTemplate(templateId);
@@ -275,6 +279,9 @@ export default function CheckoutScreen() {
       });
 
       setStatus('redirecting');
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => setTimeout(resolve, 32));
+      });
       const catLabel = translateCategoryLabel(selected.category, selected.categoryLabel, t);
       const stripeTitle = `${catLabel} ${selected.title}`.trim();
       const res = await requestCreateCheckoutSession({

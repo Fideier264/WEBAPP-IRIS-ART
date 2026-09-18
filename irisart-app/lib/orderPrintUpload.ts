@@ -1,12 +1,15 @@
+import { InteractionManager, Platform } from 'react-native';
+
 import * as FileSystem from '@/lib/platformFileSystem';
 
 import { uploadTempImage } from './aiEnhance';
 import { getArtTemplateById } from './artTemplates';
 import { renderArtCompositeToLocalUri } from './renderArtComposite';
+import { yieldToUi } from './paintQueue';
 
 const ORDER_PRINT_TTL_SEC = 60 * 60 * 24 * 14;
-/** Print-ready long edge for MerchOne (high quality, prefetched during checkout form). */
-export const CHECKOUT_PRINT_OUTPUT_WIDTH = 2048;
+/** Print-ready long edge for MerchOne (prefetched during checkout; keep ≤1600 on device JS). */
+export const CHECKOUT_PRINT_OUTPUT_WIDTH = 1536;
 
 async function ensureLocalFile(localOrRemoteUri: string): Promise<string> {
   if (!localOrRemoteUri.startsWith('http://') && !localOrRemoteUri.startsWith('https://')) {
@@ -124,4 +127,25 @@ export function prefetchCheckoutArtwork(
   });
   activePrefetch = { key, promise };
   return promise;
+}
+
+/**
+ * Kick off print render right when the user leaves the shop for address entry.
+ * Deferred slightly so navigation stays smooth; cooperative yields keep typing usable.
+ */
+export function scheduleCheckoutArtworkPrefetch(input: UploadCheckoutArtworkInput): void {
+  if (Platform.OS === 'web') {
+    void prefetchCheckoutArtwork(input).catch(() => {});
+    return;
+  }
+  InteractionManager.runAfterInteractions(() => {
+    void (async () => {
+      await yieldToUi(120);
+      try {
+        await prefetchCheckoutArtwork(input);
+      } catch {
+        /* Pay retries / surfaces errors. */
+      }
+    })();
+  });
 }

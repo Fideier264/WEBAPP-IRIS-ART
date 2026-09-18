@@ -1,5 +1,6 @@
 import type { ArtTemplate } from './artTemplates';
 import type { IrisHoleNorm } from './artTemplates';
+import { yieldToUi } from './paintQueue';
 
 export type RgbColor = { r: number; g: number; b: number };
 export type RgbaImage = { width: number; height: number; data: Uint8ClampedArray };
@@ -762,6 +763,74 @@ export function tintGrayscaleTemplateMulti(
   return { width, height, data };
 }
 
+export async function tintGrayscaleTemplateAsync(
+  grayscale: RgbaImage,
+  color: RgbColor,
+  width: number,
+  height: number
+): Promise<RgbaImage> {
+  const gray = resizeRgba(grayscale, width, height);
+  const tint = vividTintColor(color);
+  const data = new Uint8ClampedArray(width * height * 4);
+  const total = width * height;
+  const chunk = Math.max(2048, Math.floor(total / 48));
+
+  for (let i = 0; i < total; i++) {
+    const oi = i * 4;
+    const gr = gray.data[oi]!;
+    const gg = gray.data[oi + 1]!;
+    const gb = gray.data[oi + 2]!;
+    const ga = gray.data[oi + 3]!;
+    const blended = applyColorBlend(gr, gg, gb, tint);
+    const [r, g, b, a] = applyDestinationIn(blended.r, blended.g, blended.b, 255, ga);
+    data[oi] = r;
+    data[oi + 1] = g;
+    data[oi + 2] = b;
+    data[oi + 3] = a;
+    if (i > 0 && i % chunk === 0) await yieldToUi(0);
+  }
+
+  return { width, height, data };
+}
+
+export async function tintGrayscaleTemplateMultiAsync(
+  grayscale: RgbaImage,
+  iris: RgbaImage,
+  hole: IrisHoleNorm,
+  width: number,
+  height: number,
+  cacheKey?: string,
+  includeSecondary = true
+): Promise<RgbaImage> {
+  const gray = resizeRgba(grayscale, width, height);
+  const polar = extractIrisPolarHsMap(iris, cacheKey);
+  const cx = (hole.x + hole.w / 2) * width;
+  const cy = (hole.y + hole.h / 2) * height;
+  const data = new Uint8ClampedArray(width * height * 4);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const angle = Math.atan2(y - cy, x - cx);
+      const hs = samplePolarHsMixed(polar, angle, x, y, includeSecondary);
+      const rgb = hsToTintRgb(hs);
+      const gr = gray.data[i]!;
+      const gg = gray.data[i + 1]!;
+      const gb = gray.data[i + 2]!;
+      const ga = gray.data[i + 3]!;
+      const blended = applyColorBlend(gr, gg, gb, rgb);
+      const [r, g, b, a] = applyDestinationIn(blended.r, blended.g, blended.b, 255, ga);
+      data[i] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+      data[i + 3] = a;
+    }
+    if (y > 0 && y % 24 === 0) await yieldToUi(0);
+  }
+
+  return { width, height, data };
+}
+
 type DualTintSlot = {
   iris: RgbaImage;
   hole: IrisHoleNorm;
@@ -769,6 +838,7 @@ type DualTintSlot = {
   color: RgbColor;
 };
 
+/** Sync tint for small previews. Prefer DualAsync for print-sized canvases. */
 export function tintGrayscaleTemplateDual(
   grayscale: RgbaImage,
   slots: DualTintSlot[],
@@ -890,6 +960,145 @@ export function tintGrayscaleTemplateDual(
       data[i + 2] = ob;
       data[i + 3] = oa;
     }
+  }
+
+  return { width, height, data };
+}
+
+/** Cooperative tint so checkout print can run in the background without freezing the UI. */
+export async function tintGrayscaleTemplateDualAsync(
+  grayscale: RgbaImage,
+  slots: DualTintSlot[],
+  width: number,
+  height: number,
+  multiColor: boolean,
+  includeSecondary = true
+): Promise<RgbaImage> {
+  if (width * height <= 480 * 480) {
+    return tintGrayscaleTemplateDual(grayscale, slots, width, height, multiColor, includeSecondary);
+  }
+
+  const gray = resizeRgba(grayscale, width, height);
+  if (slots.length === 0) return gray;
+  if (slots.length === 1) {
+    const s = slots[0]!;
+    if (multiColor) {
+      return tintGrayscaleTemplateMultiAsync(
+        grayscale,
+        s.iris,
+        s.hole,
+        width,
+        height,
+        s.cacheKey,
+        includeSecondary
+      );
+    }
+    return tintGrayscaleTemplateAsync(grayscale, s.color, width, height);
+  }
+
+  const centers = slots.map((s) => {
+    const cx = (s.hole.x + s.hole.w / 2) * width;
+    const cy = (s.hole.y + s.hole.h / 2) * height;
+    return { cx, cy, slot: s };
+  });
+
+  const blend = Math.hypot(width, height) * 0.04;
+  const polarMaps = multiColor
+    ? slots.map((s) => extractIrisPolarHsMap(s.iris, s.cacheKey))
+    : null;
+  const data = new Uint8ClampedArray(width * height * 4);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+
+      let w0 = 1;
+      let w1 = 0;
+      if (centers.length === 2) {
+        const d0 = Math.hypot(x - centers[0]!.cx, y - centers[0]!.cy);
+        const d1 = Math.hypot(x - centers[1]!.cx, y - centers[1]!.cy);
+        const edge = smoothstep(0.5 + (d0 - d1) / (2 * Math.max(1, blend)));
+        w0 = 1 - edge;
+        w1 = edge;
+      } else {
+        const dists = centers.map((c) => Math.hypot(x - c.cx, y - c.cy));
+        const nearest = dists.indexOf(Math.min(...dists));
+        w0 = nearest === 0 ? 1 : 0;
+        w1 = nearest === 1 ? 1 : 0;
+      }
+
+      const weights = centers.length === 2 ? [w0, w1] : centers.map((_, si) => (si === 0 ? w0 : w1));
+      if (centers.length > 2) {
+        const dists = centers.map((c) => Math.hypot(x - c.cx, y - c.cy));
+        const nearest = dists.indexOf(Math.min(...dists));
+        for (let si = 0; si < centers.length; si++) weights[si] = si === nearest ? 1 : 0;
+      }
+
+      let hs: Hs | null = null;
+      if (polarMaps) {
+        const hsList: Hs[] = [];
+        const wList: number[] = [];
+        for (let si = 0; si < slots.length; si++) {
+          const wt = weights[si] ?? 0;
+          if (wt < 1e-6) continue;
+          const c = centers[si]!;
+          const angle = Math.atan2(y - c.cy, x - c.cx);
+          hsList.push(samplePolarHsMixed(polarMaps[si]!, angle, x, y, includeSecondary));
+          wList.push(wt);
+        }
+        if (hsList.length === 1) hs = hsList[0]!;
+        else if (hsList.length === 2) {
+          const wSum = wList[0]! + wList[1]!;
+          hs = blendHsForTint(hsList[0]!, hsList[1]!, wList[1]! / Math.max(1e-6, wSum));
+        } else if (hsList.length > 2) {
+          let merged = hsList[0]!;
+          let acc = wList[0]!;
+          for (let k = 1; k < hsList.length; k++) {
+            const t = acc / (acc + wList[k]!);
+            merged = blendHsForTint(merged, hsList[k]!, t);
+            acc += wList[k]!;
+          }
+          hs = merged;
+        }
+      }
+
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      if (hs) {
+        const rgb = hsToTintRgb(hs);
+        r = rgb.r;
+        g = rgb.g;
+        b = rgb.b;
+      } else {
+        let wSum = 0;
+        for (let si = 0; si < slots.length; si++) {
+          const wt = weights[si] ?? 0;
+          if (wt < 1e-6) continue;
+          wSum += wt;
+          const rgb = vividTintColor(slots[si]!.color);
+          r += rgb.r * wt;
+          g += rgb.g * wt;
+          b += rgb.b * wt;
+        }
+        const inv = wSum > 0 ? 1 / wSum : 1;
+        r = Math.round(r * inv);
+        g = Math.round(g * inv);
+        b = Math.round(b * inv);
+      }
+
+      const gr = gray.data[i]!;
+      const gg = gray.data[i + 1]!;
+      const gb = gray.data[i + 2]!;
+      const ga = gray.data[i + 3]!;
+      const blended = applyColorBlend(gr, gg, gb, { r: Math.round(r), g: Math.round(g), b: Math.round(b) });
+      const [or, og, ob, oa] = applyDestinationIn(blended.r, blended.g, blended.b, 255, ga);
+      data[i] = or;
+      data[i + 1] = og;
+      data[i + 2] = ob;
+      data[i + 3] = oa;
+    }
+    if (y > 0 && y % 16 === 0) await yieldToUi(0);
   }
 
   return { width, height, data };

@@ -9,9 +9,11 @@ import {
   drawIrisInSlot,
   extractAverageIrisColor,
   tintGrayscaleTemplateDual,
+  tintGrayscaleTemplateDualAsync,
   type RgbaImage,
   type RgbColor,
 } from './artTintShared';
+import { yieldToUi } from './paintQueue';
 
 export type { RgbColor };
 
@@ -47,7 +49,7 @@ export async function paintArtComposite(opts: {
   );
 
   // Decode iris large enough to cover the slot without upscaling blur; keep aspect ratio.
-  const irisEdge = Math.max(256, Math.min(1600, Math.ceil(Math.max(width, height) * 1.5)));
+  const irisEdge = Math.max(256, Math.min(1280, Math.ceil(Math.max(width, height) * 1.25)));
 
   const irisImages = await Promise.all(
     holes.map((_, i) => {
@@ -55,6 +57,8 @@ export async function paintArtComposite(opts: {
       return loadRgba(uri, irisEdge);
     })
   );
+
+  await yieldToUi(width * height > 700_000 ? 48 : 0);
 
   const canvas = createRgba(width, height, background);
 
@@ -74,10 +78,12 @@ export async function paintArtComposite(opts: {
   let primaryColor: RgbColor | null = null;
 
   if (template.overlayImage) {
+    await yieldToUi(width * height > 700_000 ? 48 : 0);
     const overlayUri = await resolveImageUrl(template.overlayImage as string | ImageSourcePropType);
     const overlay = await loadRgba(overlayUri, width, height);
 
     if (template.tintWithIrisColor) {
+      await yieldToUi(24);
       const slots = holes.map((hole, i) => {
         const key = textureUris[Math.min(i, textureUris.length - 1)] ?? textureUri;
         return {
@@ -87,14 +93,24 @@ export async function paintArtComposite(opts: {
           color: extractAverageIrisColor(irisImages[i]!, key),
         };
       });
-      const tinted = tintGrayscaleTemplateDual(
-        overlay,
-        slots,
-        width,
-        height,
-        Boolean(template.multiColorTint),
-        secondaryColorTint
-      );
+      const tinted =
+        width * height > 480 * 480
+          ? await tintGrayscaleTemplateDualAsync(
+              overlay,
+              slots,
+              width,
+              height,
+              Boolean(template.multiColorTint),
+              secondaryColorTint
+            )
+          : tintGrayscaleTemplateDual(
+              overlay,
+              slots,
+              width,
+              height,
+              Boolean(template.multiColorTint),
+              secondaryColorTint
+            );
       blitRgbaOver(canvas, tinted, 0, 0, width, height);
       primaryColor = slots[0]?.color ?? null;
     } else {

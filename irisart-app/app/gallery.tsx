@@ -19,6 +19,17 @@ import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE, HEADER_BACK_CHIP_MIN_WI
 import { ART_TEMPLATES, getArtTemplateHoles, isDualEyeTemplate } from '@/lib/artTemplates';
 import { useT } from '@/lib/i18n';
 import { resolveEnhancedIrisUri } from '@/lib/aiIrisInpaint';
+import { getCatalogProducts } from '@/lib/merchOneCatalog';
+import {
+  CHECKOUT_PRINT_OUTPUT_WIDTH,
+  scheduleCheckoutArtworkPrefetch,
+} from '@/lib/orderPrintUpload';
+import {
+  rememberCheckoutSecondaryColor,
+  rememberCheckoutTemplate,
+  rememberCheckoutTexture,
+  rememberCheckoutTexture2,
+} from '@/lib/createStripeCheckout';
 
 export default function ArtGalleryScreen() {
   const c = useAppColors();
@@ -280,17 +291,33 @@ export default function ArtGalleryScreen() {
             <Pressable
               accessibilityRole="button"
               disabled={!canOrder}
-              onPress={() =>
+              onPress={() => {
+                if (!effectiveTextureUri || !selected) return;
+                const templateId = selected.id;
+                rememberCheckoutTexture(effectiveTextureUri);
+                rememberCheckoutTexture2(effectiveTextureUri2);
+                rememberCheckoutTemplate(templateId);
+                rememberCheckoutSecondaryColor(secondaryColorTint);
+                const products = getCatalogProducts();
+                const defaultProduct = products.find((p) => Boolean(p.sku)) ?? products[0];
+                scheduleCheckoutArtworkPrefetch({
+                  textureUri: effectiveTextureUri,
+                  textureUri2: effectiveTextureUri2,
+                  templateId,
+                  printAspectRatio: defaultProduct?.printAspectRatio ?? 1,
+                  secondaryColorTint,
+                  outputWidth: CHECKOUT_PRINT_OUTPUT_WIDTH,
+                });
                 router.push({
                   pathname: '/checkout',
                   params: {
                     textureUri: effectiveTextureUri,
                     ...(effectiveTextureUri2 ? { textureUri2: effectiveTextureUri2 } : {}),
-                    templateId: selected?.id ?? visibleTemplates[0]?.id ?? '',
+                    templateId,
                     secondaryColorTint: secondaryColorTint ? '1' : '0',
                   },
-                })
-              }
+                });
+              }}
               style={({ pressed }) => [
                 styles.primaryCta,
                 {

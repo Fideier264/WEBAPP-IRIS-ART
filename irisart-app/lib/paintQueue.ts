@@ -1,11 +1,11 @@
-/** Serialize heavy native composite paints so Shop doesn't freeze with 6 concurrent jobs. */
+/** Serialize heavy native composite paints so Shop/Checkout don't freeze the JS thread. */
 type Job = () => Promise<void>;
 
 const high: Job[] = [];
 const normal: Job[] = [];
 let active = 0;
-/** Two parallel paints keep the grid moving without freezing the UI thread as badly as 6. */
-const MAX_CONCURRENT = 2;
+/** One at a time — print render + grid thumbs must not run in parallel on JS. */
+const MAX_CONCURRENT = 1;
 
 function pump() {
   while (active < MAX_CONCURRENT && (high.length > 0 || normal.length > 0)) {
@@ -30,5 +30,12 @@ export function enqueuePaint<T>(fn: () => Promise<T>, priority: 'high' | 'normal
     if (priority === 'high') high.push(job);
     else normal.push(job);
     pump();
+  });
+}
+
+/** Let React paint the uploading spinner before a heavy sync job. */
+export function yieldToUi(ms = 32): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
   });
 }
