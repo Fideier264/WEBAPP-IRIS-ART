@@ -7,7 +7,10 @@ import { extractStatus, invokeEdgeFunction } from './invokeEdgeFunction';
 import type { OrderShippingInput } from './createMerchOneOrder';
 
 export type CreateCheckoutSessionInput = {
-  printFileUrl: string;
+  /** Ready print URL; omit when pendingPrint is true. */
+  printFileUrl?: string;
+  /** Open Stripe before artwork upload finishes. */
+  pendingPrint?: boolean;
   templateId: string;
   productSku: string;
   shipping: OrderShippingInput;
@@ -107,6 +110,7 @@ export async function requestCreateCheckoutSession(
     error?: string;
   }>('create-checkout-session', {
     printFileUrl: input.printFileUrl,
+    pendingPrint: input.pendingPrint === true,
     templateId: input.templateId,
     productSku: input.productSku,
     shipping: input.shipping,
@@ -134,6 +138,24 @@ export async function requestCreateCheckoutSession(
     currency: data.currency ?? 'eur',
     label: data.label ?? 'IrisArt Leinwand',
   };
+}
+
+/** Attach print URL after Stripe session was created with pendingPrint. */
+export async function registerCheckoutPrint(
+  sessionId: string,
+  printFileUrl: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const invoke = await invokeEdgeFunction<{ ok?: boolean; error?: string }>('register-checkout-print', {
+    sessionId,
+    printFileUrl,
+  });
+  if (invoke.error) {
+    return { ok: false, error: await messageFromInvokeError(invoke.error, invoke.data) };
+  }
+  if (!invoke.data?.ok) {
+    return { ok: false, error: invoke.data?.error ?? 'register-checkout-print failed.' };
+  }
+  return { ok: true };
 }
 
 /**

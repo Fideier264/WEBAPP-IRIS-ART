@@ -122,7 +122,18 @@ const analysisCacheByFingerprint = new Map<string, IrisAnalysis>();
 const analysisInflightByFingerprint = new Map<string, Promise<IrisAnalysis>>();
 const persistedAnalysisMap = new Map<string, IrisAnalysis>();
 let persistedLoaded = false;
-const ANALYSIS_CACHE_FILE = `${FileSystem.documentDirectory ?? FileSystem.cacheDirectory}irisart_analysis_cache_v1.json`;
+const ANALYSIS_CACHE_FILE = `${FileSystem.documentDirectory ?? FileSystem.cacheDirectory}irisart_analysis_cache_v2.json`;
+
+type AnalysisLocale = 'de' | 'en';
+
+function normalizeAnalysisLocale(raw?: string): AnalysisLocale {
+  const s = (raw ?? '').trim().toLowerCase();
+  return s.startsWith('en') ? 'en' : 'de';
+}
+
+function localeCacheSuffix(locale: AnalysisLocale): string {
+  return locale === 'en' ? ':en' : ':de';
+}
 
 async function fileFingerprint(uri: string): Promise<string | null> {
   try {
@@ -174,32 +185,52 @@ export function clearIrisAnalysisCache() {
 }
 
 /** Sofortiges Ergebnis wenn Review dieselbe `textureUri` schon analysiert hat (kein Lade-Flash). */
-export function peekIrisAnalysisCache(uri: string): IrisAnalysis | undefined {
-  return analysisCache.get(uri);
+export function peekIrisAnalysisCache(uri: string, locale?: string): IrisAnalysis | undefined {
+  const loc = normalizeAnalysisLocale(locale);
+  const suffix = localeCacheSuffix(loc);
+  const hit = analysisCache.get(`${uri}${suffix}`);
+  if (hit) return hit;
+  // Legacy unscoped entries were German-only.
+  if (loc === 'de') return analysisCache.get(uri);
+  return undefined;
 }
 
 /** Seed URI / stable-key caches (e.g. gallery irisId or enhance fingerprint) without re-running Gemini. */
 export function seedIrisAnalysisCache(
   uri: string | undefined,
   analysis: IrisAnalysis,
-  stableKey?: string
+  stableKey?: string,
+  locale?: string
 ) {
-  if (uri) analysisCache.set(uri, analysis);
+  const suffix = localeCacheSuffix(normalizeAnalysisLocale(locale));
+  if (uri) analysisCache.set(`${uri}${suffix}`, analysis);
   if (stableKey) {
-    analysisCacheByFingerprint.set(stableKey, analysis);
-    persistedAnalysisMap.set(stableKey, analysis);
+    const key = `${stableKey}${suffix}`;
+    analysisCacheByFingerprint.set(key, analysis);
+    persistedAnalysisMap.set(key, analysis);
     void flushPersistedAnalysis();
   }
   if (analysis.imageFingerprint) {
-    analysisCacheByFingerprint.set(analysis.imageFingerprint, analysis);
+    analysisCacheByFingerprint.set(`${analysis.imageFingerprint}${suffix}`, analysis);
   }
 }
 
-export function peekIrisAnalysisByStableKey(stableKey: string): IrisAnalysis | undefined {
-  return analysisCacheByFingerprint.get(stableKey) ?? persistedAnalysisMap.get(stableKey);
+export function peekIrisAnalysisByStableKey(stableKey: string, locale?: string): IrisAnalysis | undefined {
+  const loc = normalizeAnalysisLocale(locale);
+  const suffix = localeCacheSuffix(loc);
+  const hit =
+    analysisCacheByFingerprint.get(`${stableKey}${suffix}`) ?? persistedAnalysisMap.get(`${stableKey}${suffix}`);
+  if (hit) return hit;
+  if (loc === 'de') {
+    return analysisCacheByFingerprint.get(stableKey) ?? persistedAnalysisMap.get(stableKey);
+  }
+  return undefined;
 }
 
-async function requestIrisAnalyze(imageUrl: string): Promise<{
+async function requestIrisAnalyze(
+  imageUrl: string,
+  locale: AnalysisLocale
+): Promise<{
   analysis: EdgeAnalysis;
   fingerprint?: string;
   provenance?: 'cache' | 'model';
@@ -209,7 +240,7 @@ async function requestIrisAnalyze(imageUrl: string): Promise<{
     if (attempt > 0) {
       await new Promise((r) => setTimeout(r, 400 * attempt));
     }
-    const invoke = await invokeEdgeFunction('iris-analyze', { imageUrl });
+    const invoke = await invokeEdgeFunction('iris-analyze', { imageUrl, locale });
 
     if (invoke.error) {
       const anyErr = invoke.error as any;
@@ -265,7 +296,7 @@ async function requestIrisAnalyze(imageUrl: string): Promise<{
   throw lastError ?? new Error('Iris analysis failed.');
 }
 
-async function analyzeIrisUncached(uri: string): Promise<IrisAnalysis> {
+async function analyzeIrisUncached(uri: string, locale: AnalysisLocale): Promise<IrisAnalysis> {
   const workingUri =
     uri.startsWith('http://') || uri.startsWith('https://')
       ? (
@@ -294,7 +325,7 @@ async function analyzeIrisUncached(uri: string): Promise<IrisAnalysis> {
   );
 
   const uploaded = await uploadTempImage(prepared.uri);
-  const { analysis: edge, fingerprint, provenance } = await requestIrisAnalyze(uploaded.signedUrl);
+  const { analysis: edge, fingerprint, provenance } = await requestIrisAnalyze(uploaded.signedUrl, locale);
 
   const hexCodes = edge.hexCodes?.length ? edge.hexCodes : ['#6B5CFF', '#00D4FF'];
   const palette = paletteFromHexCodes(hexCodes);
@@ -320,24 +351,28 @@ async function analyzeIrisUncached(uri: string): Promise<IrisAnalysis> {
  * Gemini-Analyse (Edge `iris-analyze`). Gleiche URI = gecacht; parallele Aufrufe teilen eine Request.
  * Optional `stableKey` (enhance fingerprint / iris id) pins the result across signed-URL changes.
  * Optional `paletteUri` — enhanced iris image used to extract the displayed color palette.
+ * Optional `locale` — narrative language (`de` | `en`).
  */
 export async function analyzeIris(
   uri: string,
-  opts?: { stableKey?: string; paletteUri?: string }
+  opts?: { stableKey?: string; paletteUri?: string; locale?: string }
 ): Promise<IrisAnalysis> {
   await ensurePersistedAnalysisLoaded();
-  const stableKey = opts?.stableKey;
+  const locale = normalizeAnalysisLocale(opts?.locale);
+  const localeSuffix = localeCacheSuffix(locale);
+  const stableKey = opts?.stableKey ? `${opts.stableKey}${localeSuffix}` : undefined;
   const paletteUri = opts?.paletteUri;
+  const uriKey = `${uri}${localeSuffix}`;
 
   if (stableKey) {
     const byKey = analysisCacheByFingerprint.get(stableKey) ?? persistedAnalysisMap.get(stableKey);
     if (byKey) {
-      analysisCache.set(uri, byKey);
+      analysisCache.set(uriKey, byKey);
       return applyExtractedPalette(byKey, paletteUri);
     }
   }
 
-  const hit = analysisCache.get(uri);
+  const hit = analysisCache.get(uriKey);
   if (hit) return applyExtractedPalette(hit, paletteUri);
 
   const localUri =
@@ -350,11 +385,12 @@ export async function analyzeIris(
         ).uri
       : uri;
 
-  const fp = await fileFingerprint(localUri);
+  const fpRaw = await fileFingerprint(localUri);
+  const fp = fpRaw ? `${fpRaw}${localeSuffix}` : null;
   if (fp) {
     const fpHit = analysisCacheByFingerprint.get(fp);
     if (fpHit) {
-      analysisCache.set(uri, fpHit);
+      analysisCache.set(uriKey, fpHit);
       if (stableKey) {
         analysisCacheByFingerprint.set(stableKey, fpHit);
         persistedAnalysisMap.set(stableKey, fpHit);
@@ -365,7 +401,7 @@ export async function analyzeIris(
     const persisted = persistedAnalysisMap.get(fp);
     if (persisted) {
       analysisCacheByFingerprint.set(fp, persisted);
-      analysisCache.set(uri, persisted);
+      analysisCache.set(uriKey, persisted);
       if (stableKey) {
         analysisCacheByFingerprint.set(stableKey, persisted);
         persistedAnalysisMap.set(stableKey, persisted);
@@ -378,13 +414,13 @@ export async function analyzeIris(
   let inflight =
     (stableKey ? analysisInflightByFingerprint.get(stableKey) : undefined) ??
     (fp ? analysisInflightByFingerprint.get(fp) : undefined) ??
-    analysisInflight.get(uri);
+    analysisInflight.get(uriKey);
 
   if (!inflight) {
     inflight = (async () => {
       try {
-        const result = await analyzeIrisUncached(localUri);
-        analysisCache.set(uri, result);
+        const result = await analyzeIrisUncached(localUri, locale);
+        analysisCache.set(uriKey, result);
         if (fp) {
           analysisCacheByFingerprint.set(fp, result);
           persistedAnalysisMap.set(fp, result);
@@ -396,12 +432,12 @@ export async function analyzeIris(
         await flushPersistedAnalysis();
         return result;
       } finally {
-        analysisInflight.delete(uri);
+        analysisInflight.delete(uriKey);
         if (fp) analysisInflightByFingerprint.delete(fp);
         if (stableKey) analysisInflightByFingerprint.delete(stableKey);
       }
     })();
-    analysisInflight.set(uri, inflight);
+    analysisInflight.set(uriKey, inflight);
     if (fp) analysisInflightByFingerprint.set(fp, inflight);
     if (stableKey) analysisInflightByFingerprint.set(stableKey, inflight);
   }

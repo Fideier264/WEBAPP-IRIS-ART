@@ -94,6 +94,77 @@ async function markProcessed(
   });
 }
 
+function isHttpsUrl(s: string) {
+  try {
+    const u = new URL(s);
+    return u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+async function lookupPendingPrint(sessionId: string): Promise<string | null> {
+  const url = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key || !sessionId) return null;
+
+  const resp = await fetch(
+    `${url}/rest/v1/checkout_pending_prints?session_id=eq.${encodeURIComponent(sessionId)}&select=print_file_url&limit=1`,
+    {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+      },
+    },
+  );
+  if (!resp.ok) {
+    console.warn("stripe-webhook: pending print lookup failed", resp.status);
+    return null;
+  }
+  const rows = (await resp.json()) as Array<{ print_file_url?: string }>;
+  const u = rows?.[0]?.print_file_url?.trim();
+  return u && isHttpsUrl(u) ? u : null;
+}
+
+async function resolvePrintFileUrl(
+  sessionId: string | null,
+  metaUrl: string,
+  printPending: string,
+): Promise<string | null> {
+  if (metaUrl && isHttpsUrl(metaUrl)) return metaUrl;
+  if (!sessionId) return null;
+
+  // Brief poll: client may still be uploading when payment completes.
+  for (let i = 0; i < 6; i++) {
+    const pending = await lookupPendingPrint(sessionId);
+    if (pending) return pending;
+    if (i < 5) await new Promise((r) => setTimeout(r, 1500));
+  }
+
+  // Re-fetch Stripe session metadata in case register-checkout-print patched it.
+  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY")?.trim();
+  if (stripeKey) {
+    try {
+      const resp = await fetch(
+        `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,
+        { headers: { Authorization: `Bearer ${stripeKey}` } },
+      );
+      if (resp.ok) {
+        const session = (await resp.json()) as { metadata?: Record<string, string> };
+        const fresh = session.metadata?.printFileUrl?.trim() ?? "";
+        if (fresh && isHttpsUrl(fresh)) return fresh;
+      }
+    } catch (e) {
+      console.warn("stripe-webhook: stripe session refresh failed", e);
+    }
+  }
+
+  if (printPending === "1" || !metaUrl) {
+    return null;
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204 });
@@ -151,14 +222,16 @@ serve(async (req) => {
   const sessionId = typeof session.id === "string" ? session.id : null;
   const meta = (session.metadata ?? {}) as Record<string, string>;
   const productSku = meta.productSku ?? "";
-  const printFileUrl = meta.printFileUrl ?? "";
+  const metaPrintUrl = (meta.printFileUrl ?? "").trim();
+  const printPending = (meta.printPending ?? "").trim();
   const templateId = meta.templateId ?? "";
   const externalId = meta.externalId ?? sessionId ?? `stripe_${Date.now()}`;
 
   console.log("stripe-webhook: checkout.session.completed — print fulfillment metadata", {
     sessionId,
     templateId: templateId || "(missing)",
-    printFileUrl: printFileUrl || "(missing)",
+    printFileUrl: metaPrintUrl || "(missing)",
+    printPending: printPending || "0",
     productSku: productSku || "(missing)",
     externalId,
   });
@@ -170,14 +243,23 @@ serve(async (req) => {
     return new Response("bad shipping metadata", { status: 400 });
   }
 
-  if (!productSku || !printFileUrl) {
-    console.error("stripe-webhook: missing productSku/printFileUrl metadata", {
-      sessionId,
-      templateId: templateId || "(missing)",
-      printFileUrl: printFileUrl || "(missing)",
-      productSku: productSku || "(missing)",
-    });
+  if (!productSku) {
+    console.error("stripe-webhook: missing productSku metadata", { sessionId });
     return new Response("missing metadata", { status: 400 });
+  }
+
+  const printFileUrl = await resolvePrintFileUrl(sessionId, metaPrintUrl, printPending);
+  if (!printFileUrl) {
+    console.error("stripe-webhook: printFileUrl not ready yet — Stripe will retry", {
+      sessionId,
+      printPending,
+      metaPrintUrl: metaPrintUrl || "(empty)",
+    });
+    // 500 so Stripe retries until register-checkout-print finishes.
+    return new Response(JSON.stringify({ ok: false, error: "printFileUrl pending" }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
   }
 
   if (!templateId) {

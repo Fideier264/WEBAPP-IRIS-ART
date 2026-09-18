@@ -20,6 +20,7 @@ type AuthContextValue = {
   recoveryMode: boolean;
   signInEmail: (email: string, password: string) => Promise<void>;
   signUpEmail: (email: string, password: string) => Promise<SignUpResult>;
+  resendSignupConfirmation: (email: string) => Promise<void>;
   signInGoogle: () => Promise<void>;
   signInApple: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -200,6 +201,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { kind: 'confirmEmail' };
   }, []);
 
+  /** New confirm link with HTTPS redirect (fixes blank supabase.co/verify after old irisartapp:// links). */
+  const resendSignupConfirmation = useCallback(async (email: string) => {
+    const trimmed = email.trim();
+    if (!trimmed) throw new Error('invalid email');
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: trimmed,
+      options: {
+        emailRedirectTo: getEmailConfirmRedirectTo(),
+      },
+    });
+    if (error) throw error;
+  }, []);
+
   const signInGoogle = useCallback(async () => {
     const redirectTo = getAuthRedirectTo('auth/callback');
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -341,6 +356,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       recoveryMode,
       signInEmail,
       signUpEmail,
+      resendSignupConfirmation,
       signInGoogle,
       signInApple,
       signOut,
@@ -354,6 +370,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       recoveryMode,
       signInEmail,
       signUpEmail,
+      resendSignupConfirmation,
       signInGoogle,
       signInApple,
       signOut,

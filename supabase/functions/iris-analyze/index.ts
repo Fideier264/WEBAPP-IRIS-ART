@@ -123,6 +123,8 @@ function corsHeaders(origin: string | null) {
 
 type Body = {
   imageUrl: string;
+  /** App UI language: "de" | "en". Defaults to German for backward compatibility. */
+  locale?: string;
 };
 
 function looksLikeJpeg(bytes: Uint8Array) {
@@ -162,7 +164,12 @@ async function fetchImageAsBase64(url: string) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
   const b64 = btoa(binary);
-  return { base64: b64, mimeType: ct.startsWith("image/") ? ct : "image/jpeg", bytes: bytes.length };
+  return {
+    base64: b64,
+    mimeType: ct.startsWith("image/") ? ct : "image/jpeg",
+    bytes: bytes.length,
+    rawBytes: bytes,
+  };
 }
 
 function isHttpOrHttpsUrl(value: string) {
@@ -243,7 +250,7 @@ const IRIS_ANALYSIS_JSON_SCHEMA = {
   ],
 };
 
-const ANALYSIS_SYSTEM_PROMPT = [
+const ANALYSIS_SYSTEM_PROMPT_DE = [
   "Du analysierst ein Bild einer isolierten Iris (Augenfarbe, Muster, Ringe, Flecken).",
   "Keine medizinische Diagnose. Prozentangaben sind fiktive App-Schätzungen.",
   "",
@@ -256,8 +263,116 @@ const ANALYSIS_SYSTEM_PROMPT = [
   "combinedRarity: keine detaillierte Textur; nur Farb- und Gesamt-Seltenheit.",
   "uniqueStructureNote: separater Kurzsatz zur Struktur-Einzigartigkeit — nicht in Vererbung wiederholen.",
   "hexCodes: 6–12 Werte als #RRGGBB.",
+  "Schreibe ALLE Sätze auf Deutsch.",
   "In allen Sätzen: keine unescaped \" im String — nutze keine Anführungszeichen im Fließtext oder ersetze durch Gedankenstriche.",
 ].join("\n");
+
+const ANALYSIS_SYSTEM_PROMPT_EN = [
+  "You analyze an image of an isolated iris (eye color, patterns, rings, freckles).",
+  "No medical diagnosis. Percentages are fictional app-style estimates.",
+  "",
+  "IMPORTANT: Be lighting-robust; do not act like a raw color pipette.",
+  "Infer the likely base iris pigmentation even under hard highlights, shadows, camera white-balance, or underexposure.",
+  "Ignore specular reflections, black pupil, lashes, eyelid shadows, and background when they distort color.",
+  "hexCodes must represent perceived iris pigmentation (dominant + secondary tones), not only brightest/darkest pixels.",
+  "Do not arbitrarily shift eye color: derived tones must stay visually plausible for the photo.",
+  "If lighting desaturates the color, give the plausible underlying pigment tones (conservative, do not over-correct).",
+  "combinedRarity: no detailed texture; only color and overall rarity.",
+  "uniqueStructureNote: a short separate sentence about structural uniqueness — do not repeat in inheritance.",
+  "hexCodes: 6–12 values as #RRGGBB.",
+  "Write ALL narrative sentences in English.",
+  "In all sentences: no unescaped \" in strings — avoid quotation marks in prose or replace with dashes.",
+].join("\n");
+
+const IRIS_ANALYSIS_JSON_SCHEMA_EN = {
+  type: "object",
+  properties: {
+    baseColorRarity: {
+      type: "object",
+      properties: {
+        sentence: {
+          type: "string",
+          description: "1–2 English sentences about the base eye color and how common it is.",
+        },
+        percent: {
+          type: "string",
+          description: "Fictional rarity percentage, e.g. ~15% or 8–12%.",
+        },
+      },
+      required: ["sentence", "percent"],
+    },
+    specialFeatures: {
+      type: "object",
+      properties: {
+        sentence: {
+          type: "string",
+          description: "1–2 English sentences about special features (rings, freckles, sectoral patterns).",
+        },
+      },
+      required: ["sentence"],
+    },
+    combinedRarity: {
+      type: "object",
+      properties: {
+        sentences: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 2,
+          maxItems: 2,
+          description: "Exactly 2 short English sentences on overall color rarity (no texture detail).",
+        },
+        percent: {
+          type: "string",
+          description: "Fictional combined rarity percentage.",
+        },
+      },
+      required: ["sentences", "percent"],
+    },
+    uniqueStructureNote: {
+      type: "string",
+      description: "One short English sentence that every iris has a unique structure.",
+    },
+    inheritance: {
+      type: "object",
+      properties: {
+        sentence: {
+          type: "string",
+          description: "1 English sentence on fictional inheritance likelihood of similar eye color.",
+        },
+        percent: {
+          type: "string",
+          description: "Fictional inheritance percentage.",
+        },
+      },
+      required: ["sentence", "percent"],
+    },
+    hexCodes: {
+      type: "array",
+      items: { type: "string", description: "Format #RRGGBB" },
+      description: "6–12 dominant iris colors, no #000000 or #FFFFFF.",
+    },
+  },
+  required: [
+    "baseColorRarity",
+    "specialFeatures",
+    "combinedRarity",
+    "uniqueStructureNote",
+    "inheritance",
+    "hexCodes",
+  ],
+};
+
+type AnalysisLocale = "de" | "en";
+
+function normalizeLocale(raw: unknown): AnalysisLocale {
+  const s = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (s.startsWith("en")) return "en";
+  return "de";
+}
+
+function cacheKeyForLocale(fingerprint: string, locale: AnalysisLocale): string {
+  return locale === "en" ? `${fingerprint}__en` : fingerprint;
+}
 
 type AnalysisJson = {
   baseColorRarity?: { sentence?: string; percent?: string };
@@ -320,6 +435,7 @@ async function callGeminiAnalyze(
   inputBase64: string,
   inputMimeType: string,
   seed: number,
+  locale: AnalysisLocale,
 ): Promise<AnalysisJson> {
   const generationConfig: Record<string, unknown> = {
     temperature: analysisTemperatureStrict(),
@@ -327,7 +443,7 @@ async function callGeminiAnalyze(
     // Genug Raum für JSON + hexCodes; sonst abgeschnitten → "unexpected end of JSON input".
     maxOutputTokens: 8192,
     responseMimeType: "application/json",
-    responseJsonSchema: IRIS_ANALYSIS_JSON_SCHEMA,
+    responseJsonSchema: locale === "en" ? IRIS_ANALYSIS_JSON_SCHEMA_EN : IRIS_ANALYSIS_JSON_SCHEMA,
     thinkingConfig: {
       thinkingBudget: 0,
     },
@@ -336,12 +452,14 @@ async function callGeminiAnalyze(
     generationConfig.seed = seed;
   }
 
+  const systemPrompt = locale === "en" ? ANALYSIS_SYSTEM_PROMPT_EN : ANALYSIS_SYSTEM_PROMPT_DE;
+
   const payload = {
     contents: [
       {
         role: "user",
         parts: [
-          { text: ANALYSIS_SYSTEM_PROMPT },
+          { text: systemPrompt },
           {
             inline_data: {
               mime_type: inputMimeType.includes("png") ? "image/png" : "image/jpeg",
@@ -437,7 +555,7 @@ async function callGeminiAnalyze(
   return parsed;
 }
 
-function sanitizeAnalysis(raw: AnalysisJson) {
+function sanitizeAnalysis(raw: AnalysisJson, locale: AnalysisLocale) {
   const hexCodes = (raw.hexCodes ?? [])
     .map((h) => normalizeHex(String(h)))
     .filter((h): h is string => Boolean(h))
@@ -448,9 +566,24 @@ function sanitizeAnalysis(raw: AnalysisJson) {
     if (!unique.includes(h)) unique.push(h);
   }
 
-  const baseSentence = (raw.baseColorRarity?.sentence ?? "").trim() || "Keine Beschreibung der Grundfarbe.";
+  const fallbacks =
+    locale === "en"
+      ? {
+          baseSentence: "No base color description.",
+          specialSentence: "No special features noted.",
+          uniqueNote: "Every iris has a unique structure.",
+          inhSentence: "No inheritance estimate.",
+        }
+      : {
+          baseSentence: "Keine Beschreibung der Grundfarbe.",
+          specialSentence: "Keine Besonderheiten genannt.",
+          uniqueNote: "Jede Iris weist einzigartige Strukturen auf.",
+          inhSentence: "Keine Vererbungs-Einschätzung.",
+        };
+
+  const baseSentence = (raw.baseColorRarity?.sentence ?? "").trim() || fallbacks.baseSentence;
   const basePercent = (raw.baseColorRarity?.percent ?? "—").trim() || "—";
-  const specialSentence = (raw.specialFeatures?.sentence ?? "").trim() || "Keine Besonderheiten genannt.";
+  const specialSentence = (raw.specialFeatures?.sentence ?? "").trim() || fallbacks.specialSentence;
   const combinedSents = Array.isArray(raw.combinedRarity?.sentences)
     ? raw.combinedRarity!.sentences!.map((s) => String(s).trim()).filter(Boolean)
     : [];
@@ -458,8 +591,8 @@ function sanitizeAnalysis(raw: AnalysisJson) {
     combinedSents.push("—");
   }
   const combinedPercent = (raw.combinedRarity?.percent ?? "—").trim() || "—";
-  const uniqueNote = (raw.uniqueStructureNote ?? "Jede Iris weist einzigartige Strukturen auf.").trim() || "Jede Iris weist einzigartige Strukturen auf.";
-  const inhSentence = (raw.inheritance?.sentence ?? "").trim() || "Keine Vererbungs-Einschätzung.";
+  const uniqueNote = (raw.uniqueStructureNote ?? fallbacks.uniqueNote).trim() || fallbacks.uniqueNote;
+  const inhSentence = (raw.inheritance?.sentence ?? "").trim() || fallbacks.inhSentence;
   const inhPercent = (raw.inheritance?.percent ?? "—").trim() || "—";
 
   const paletteHex = unique.length >= 3 ? unique : unique.length > 0 ? unique : ["#6B5CFF", "#00D4FF"];
@@ -478,6 +611,7 @@ function sanitizeAnalysis(raw: AnalysisJson) {
     primary_hex: primaryHex,
     color_category: colorCategory,
     hexCodes: paletteHex,
+    locale,
   };
 }
 
@@ -516,13 +650,16 @@ serve(async (req) => {
     return json({ ok: false, error: "imageUrl must be a valid http(s) URL." }, { status: 200, headers: cors });
   }
 
-  try {
-    console.log("iris-analyze: request", { hasImageUrl: true });
-    const input = await fetchImageAsBase64(body.imageUrl);
-    const fingerprint = input.fingerprint;
-    console.log("iris-analyze: bytes", input.bytes, "fingerprint", fingerprint.slice(0, 12) + "…");
+  const locale = normalizeLocale(body.locale);
 
-    const cached = await getCachedAnalysis(fingerprint);
+  try {
+    console.log("iris-analyze: request", { hasImageUrl: true, locale });
+    const input = await fetchImageAsBase64(body.imageUrl);
+    const fingerprint = await sha256Hex(input.rawBytes);
+    const cacheKey = cacheKeyForLocale(fingerprint, locale);
+    console.log("iris-analyze: bytes", input.bytes, "fingerprint", fingerprint.slice(0, 12) + "…", "locale", locale);
+
+    const cached = await getCachedAnalysis(cacheKey);
     if (cached) {
       console.log("iris-analyze: cache hit (eye_profiles)");
       return json(
@@ -531,22 +668,24 @@ serve(async (req) => {
           analysis: cached,
           fingerprint,
           source: "cache" as const,
+          locale,
         },
         { status: 200, headers: cors },
       );
     }
 
     const modelSeed = seedFromFingerprintHex(fingerprint);
-    const raw = await callGeminiAnalyze(input.base64, input.mimeType, modelSeed);
-    const analysis = sanitizeAnalysis(raw);
+    const raw = await callGeminiAnalyze(input.base64, input.mimeType, modelSeed, locale);
+    const analysis = sanitizeAnalysis(raw, locale);
     const analysisRecord = analysis as unknown as Record<string, unknown>;
-    await upsertCachedAnalysis(fingerprint, analysisRecord, GEMINI_MODEL);
+    await upsertCachedAnalysis(cacheKey, analysisRecord, GEMINI_MODEL);
     return json(
       {
         ok: true,
         analysis,
         fingerprint,
         source: "model" as const,
+        locale,
       },
       { status: 200, headers: cors },
     );

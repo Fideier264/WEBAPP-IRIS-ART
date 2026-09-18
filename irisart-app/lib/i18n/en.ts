@@ -58,6 +58,9 @@ const en: Record<TranslationKey, string> = {
   'account.newPasswordConfirm': 'Repeat password',
   'account.confirmEmailSent':
     'Confirmation email sent. Open the link in the email (any device/browser), then sign in.',
+  'account.confirmEmailResent':
+    'New confirmation email sent. The link opens https://irisart.app — not a blank supabase.co page.',
+  'account.resendConfirmEmail': 'Resend confirmation email',
   'account.authCallbackWorking': 'Confirming your account…',
   'account.authCallbackTitle': 'Email confirmed',
   'account.authCallbackSignedIn': 'Your account is active. You can continue.',

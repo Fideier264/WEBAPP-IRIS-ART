@@ -54,6 +54,7 @@ export default function AccountScreen() {
     loading,
     signInEmail,
     signUpEmail,
+    resendSignupConfirmation,
     signInGoogle,
     signInApple,
     signOut,
@@ -345,6 +346,25 @@ export default function AccountScreen() {
                 ]}>
                 <Text style={styles.primaryText}>{t('account.signIn')}</Text>
               </Pressable>
+
+              {errorKey === 'account.error.emailNotConfirmed' || infoKey === 'account.confirmEmailSent' ? (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={busy || !email.trim()}
+                  onPress={() =>
+                    run(async () => {
+                      await resendSignupConfirmation(email);
+                      setInfoKey('account.confirmEmailResent');
+                      setErrorKey(null);
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.secondaryBtn,
+                    { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.85 : 1 },
+                  ]}>
+                  <Text style={[styles.secondaryText, { color: c.text }]}>{t('account.resendConfirmEmail')}</Text>
+                </Pressable>
+              ) : null}
 
               <Pressable
                 accessibilityRole="button"

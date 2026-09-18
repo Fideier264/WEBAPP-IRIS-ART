@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppColors } from '@/lib/appTheme';
 import { ACCOUNT_HEADER_CLEARANCE, HEADER_BACK_CHIP_MIN_WIDTH } from '@/constants/Layout';
 import { analyzeIris, type IrisAnalysis } from '@/lib/analyzeIris';
-import { useT } from '@/lib/i18n';
+import { useLocale, useT } from '@/lib/i18n';
 
 type ArtStyleId = 'cosmic' | 'watercolor' | 'cyberpunk';
 
@@ -45,6 +45,7 @@ export default function ReviewScreen() {
   const c = useAppColors();
   const scheme = c.isDarkPage ? 'dark' : 'light';
   const t = useT();
+  const { locale, ready: localeReady } = useLocale();
   const params = useLocalSearchParams<{ textureUri?: string; sourceUri?: string; style?: string }>();
 
   const textureUri = typeof params.textureUri === 'string' ? params.textureUri : undefined;
@@ -64,12 +65,13 @@ export default function ReviewScreen() {
   const [surfaceMode, setSurfaceMode] = useState<'black' | 'white'>('black');
 
   useEffect(() => {
+    if (!localeReady) return;
     let cancelled = false;
     const run = async () => {
       if (!analysisUri) return;
       try {
         setAnalysisStatus('loading');
-        const res = await analyzeIris(analysisUri, { paletteUri });
+        const res = await analyzeIris(analysisUri, { paletteUri, locale });
         if (cancelled) return;
         setAnalysis(res);
         setAnalysisStatus('ready');
@@ -82,7 +84,7 @@ export default function ReviewScreen() {
     return () => {
       cancelled = true;
     };
-  }, [analysisUri, paletteUri]);
+  }, [analysisUri, paletteUri, locale, localeReady]);
 
   const subtitle = useMemo(() => 'Preview exactly what your enhanced iris looks like on print', []);
   const irisPaletteColors = useMemo(() => {

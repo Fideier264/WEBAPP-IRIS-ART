@@ -73,7 +73,13 @@ type ShippingIn = {
 };
 
 type Body = {
-  printFileUrl: string;
+  /** HTTPS print URL when artwork is ready; omit / empty when pendingPrint is true. */
+  printFileUrl?: string;
+  /**
+   * Open Stripe before the print upload finishes. Client must call register-checkout-print
+   * with the session id once the signed URL is ready. Webhook waits/retries until then.
+   */
+  pendingPrint?: boolean;
   templateId: string;
   productSku: string;
   shipping: ShippingIn;
@@ -134,11 +140,16 @@ serve(async (req) => {
   }
 
   const printFileUrl = typeof body.printFileUrl === "string" ? body.printFileUrl.trim() : "";
+  const pendingPrint = body.pendingPrint === true;
   const templateId = typeof body.templateId === "string" ? body.templateId.trim() : "";
   const productSku = typeof body.productSku === "string" ? body.productSku.trim() : "";
   const sh = body.shipping;
 
-  if (!printFileUrl || !isHttpsUrl(printFileUrl)) {
+  if (pendingPrint) {
+    if (printFileUrl && !isHttpsUrl(printFileUrl)) {
+      return json({ ok: false, error: "printFileUrl must be a valid https URL when provided." }, { status: 200, headers: cors });
+    }
+  } else if (!printFileUrl || !isHttpsUrl(printFileUrl)) {
     return json({ ok: false, error: "printFileUrl must be a valid https URL." }, { status: 200, headers: cors });
   }
   if (!templateId) {
@@ -261,6 +272,8 @@ serve(async (req) => {
   }
 
   const currency = stripeCurrency();
+  const metaPrintUrl = printFileUrl || "";
+  const printPendingFlag = pendingPrint && !printFileUrl ? "1" : "0";
 
   const form = new URLSearchParams();
   form.set("mode", "payment");
@@ -273,13 +286,15 @@ serve(async (req) => {
   form.set("line_items[0][price_data][unit_amount]", String(priced.amountCents));
   form.set("line_items[0][price_data][product_data][name]", productLabel);
   form.set("metadata[productSku]", productSku);
-  form.set("metadata[printFileUrl]", printFileUrl);
+  form.set("metadata[printFileUrl]", metaPrintUrl);
+  form.set("metadata[printPending]", printPendingFlag);
   form.set("metadata[templateId]", templateId);
   form.set("metadata[shipping]", shippingJson);
   form.set("metadata[externalId]", externalId);
   form.set("metadata[productLabel]", productLabel.slice(0, 450));
   form.set("payment_intent_data[metadata][productSku]", productSku);
-  form.set("payment_intent_data[metadata][printFileUrl]", printFileUrl);
+  form.set("payment_intent_data[metadata][printFileUrl]", metaPrintUrl);
+  form.set("payment_intent_data[metadata][printPending]", printPendingFlag);
   form.set("payment_intent_data[metadata][templateId]", templateId);
   form.set("payment_intent_data[metadata][externalId]", externalId);
 

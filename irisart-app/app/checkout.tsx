@@ -21,6 +21,7 @@ import { useAppColors } from '@/lib/appTheme';
 import { ACCOUNT_HEADER_CLEARANCE } from '@/constants/Layout';
 import {
   openCheckoutUrl,
+  registerCheckoutPrint,
   rememberCheckoutTemplate,
   rememberCheckoutTexture,
   rememberCheckoutTexture2,
@@ -260,16 +261,16 @@ export default function CheckoutScreen() {
     }
 
     try {
-      setStatus('uploading');
-      // Let the uploading spinner paint before the heavy native composite blocks JS.
+      setStatus('redirecting');
+      // Let the redirect spinner paint; keep print render/upload in the background.
       await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => setTimeout(resolve, 64));
+        requestAnimationFrame(() => setTimeout(resolve, 32));
       });
       rememberCheckoutTexture(textureUri);
       rememberCheckoutTexture2(textureUri2);
       rememberCheckoutTemplate(templateId);
       rememberCheckoutSecondaryColor(secondaryColorTint);
-      const { printFileUrl } = await prefetchCheckoutArtwork({
+      const artworkPromise = prefetchCheckoutArtwork({
         textureUri,
         textureUri2,
         templateId,
@@ -278,36 +279,66 @@ export default function CheckoutScreen() {
         outputWidth: CHECKOUT_PRINT_OUTPUT_WIDTH,
       });
 
-      setStatus('redirecting');
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => setTimeout(resolve, 32));
-      });
+      // If prefetch already finished (or finishes within ~150ms), attach URL immediately.
+      const ready = await Promise.race([
+        artworkPromise.then((r) => ({ kind: 'ready' as const, r })),
+        new Promise<{ kind: 'pending' }>((resolve) => setTimeout(() => resolve({ kind: 'pending' }), 150)),
+      ]);
+
       const catLabel = translateCategoryLabel(selected.category, selected.categoryLabel, t);
       const stripeTitle = `${catLabel} ${selected.title}`.trim();
-      const res = await requestCreateCheckoutSession({
-        printFileUrl,
-        templateId,
-        productSku: selected.sku,
-        productLabel: `IrisArt ${stripeTitle} · ${template.title}`,
-        shipping: {
-          email: email.trim(),
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          company: company.trim() || undefined,
-          street: street.trim(),
-          street2: street2.trim() || undefined,
-          city: city.trim(),
-          postcode: postcode.trim(),
-          country: cc,
-          region: region.trim() || undefined,
-        },
-        externalId: `irisart_${Date.now()}`,
-      });
+      const shipping = {
+        email: email.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        company: company.trim() || undefined,
+        street: street.trim(),
+        street2: street2.trim() || undefined,
+        city: city.trim(),
+        postcode: postcode.trim(),
+        country: cc,
+        region: region.trim() || undefined,
+      };
+      const productLabel = `IrisArt ${stripeTitle} · ${template.title}`;
+      const externalId = `irisart_${Date.now()}`;
+
+      const res =
+        ready.kind === 'ready'
+          ? await requestCreateCheckoutSession({
+              printFileUrl: ready.r.printFileUrl,
+              templateId,
+              productSku: selected.sku,
+              productLabel,
+              shipping,
+              externalId,
+            })
+          : await requestCreateCheckoutSession({
+              pendingPrint: true,
+              templateId,
+              productSku: selected.sku,
+              productLabel,
+              shipping,
+              externalId,
+            });
 
       if (!res.ok) {
         setErrorMsg(res.error);
         setStatus('error');
         return;
+      }
+
+      if (ready.kind === 'pending') {
+        // Finish upload while the customer pays in Stripe.
+        void artworkPromise
+          .then(async ({ printFileUrl }) => {
+            const reg = await registerCheckoutPrint(res.sessionId, printFileUrl);
+            if (!reg.ok) {
+              console.warn('register-checkout-print failed', reg.error);
+            }
+          })
+          .catch((e) => {
+            console.warn('background print upload failed', e instanceof Error ? e.message : String(e));
+          });
       }
 
       await openCheckoutUrl(res.url);

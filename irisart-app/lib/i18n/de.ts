@@ -59,6 +59,9 @@ const de = {
   'account.newPasswordConfirm': 'Passwort wiederholen',
   'account.confirmEmailSent':
     'Bestätigungs-E-Mail gesendet. Öffne den Link in der E-Mail (beliebiges Gerät/Browser), danach kannst du dich anmelden.',
+  'account.confirmEmailResent':
+    'Neue Bestätigungs-Mail gesendet. Der Link öffnet https://irisart.app — nicht die leere supabase.co-Seite.',
+  'account.resendConfirmEmail': 'Bestätigungs-Mail erneut senden',
   'account.authCallbackWorking': 'Anmeldung wird bestätigt…',
   'account.authCallbackTitle': 'E-Mail bestätigt',
   'account.authCallbackSignedIn': 'Dein Konto ist aktiv. Du kannst fortfahren.',

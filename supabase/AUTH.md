@@ -42,6 +42,12 @@ Run the SQL in:
 
 **Email confirmation:** Links use `https://irisart.app/auth/callback`. You do **not** need to open the email on the same phone as the app — any browser works, then sign in in the app.
 
+**Blank page at `….supabase.co/auth/v1/verify`:** The verify step often succeeded, but the browser cannot open an old `irisartapp://…` redirect → empty tab. Fix:
+1. Allow `https://irisart.app/auth/callback` under Redirect URLs.
+2. Deploy the web app so `/auth/callback` exists.
+3. In the app: **Bestätigungs-Mail erneut senden** (or sign up again) so the new link redirects to HTTPS.
+4. Try signing in anyway — email may already be confirmed after the blank verify page.
+
 **In-app flows**
 
 | Flow | App screen / action |

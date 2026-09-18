@@ -17,7 +17,7 @@ import {
   withIrisPaletteFromImage,
   type IrisAnalysis,
 } from '@/lib/analyzeIris';
-import { useT } from '@/lib/i18n';
+import { useLocale, useT } from '@/lib/i18n';
 import { getUserIrisAnalysis, saveUserIrisAnalysis } from '@/lib/userIrisLibrary';
 
 type Status =
@@ -28,6 +28,7 @@ type Status =
 export default function ResultsScreen() {
   const c = useAppColors();
   const t = useT();
+  const { locale, ready: localeReady } = useLocale();
   const params = useLocalSearchParams<{
     uri?: string;
     sourceUri?: string;
@@ -44,20 +45,10 @@ export default function ResultsScreen() {
   const stableKey = irisId ?? irisFingerprint;
 
   const [retryNonce, setRetryNonce] = useState(0);
-  const [status, setStatus] = useState<Status>(() => {
-    if (!analysisUri && !stableKey) return { kind: 'error', message: 'Missing photo.' };
-    if (stableKey) {
-      const byKey = peekIrisAnalysisByStableKey(stableKey);
-      if (byKey) return { kind: 'ready', result: byKey };
-    }
-    if (analysisUri) {
-      const cached = peekIrisAnalysisCache(analysisUri);
-      if (cached) return { kind: 'ready', result: cached };
-    }
-    return { kind: 'loading' };
-  });
+  const [status, setStatus] = useState<Status>({ kind: 'loading' });
 
   useEffect(() => {
+    if (!localeReady) return;
     let cancelled = false;
     const persistAccount = async (result: IrisAnalysis) => {
       if (!irisId && !irisFingerprint) return;
@@ -82,21 +73,24 @@ export default function ResultsScreen() {
 
       try {
         if (retryNonce === 0 && stableKey) {
-          const local = peekIrisAnalysisByStableKey(stableKey);
+          const local = peekIrisAnalysisByStableKey(stableKey, locale);
           if (local) {
-            if (analysisUri) seedIrisAnalysisCache(analysisUri, local, stableKey);
+            if (analysisUri) seedIrisAnalysisCache(analysisUri, local, stableKey, locale);
             await finish(local);
             return;
           }
 
-          const cloud = await getUserIrisAnalysis({
-            id: irisId,
-            fingerprint: irisId ? undefined : irisFingerprint,
-          });
-          if (cloud) {
-            seedIrisAnalysisCache(analysisUri, cloud, stableKey);
-            await finish(cloud);
-            return;
+          // Cloud rows are historically German narrative — skip for English UI.
+          if (locale !== 'en') {
+            const cloud = await getUserIrisAnalysis({
+              id: irisId,
+              fingerprint: irisId ? undefined : irisFingerprint,
+            });
+            if (cloud) {
+              seedIrisAnalysisCache(analysisUri, cloud, stableKey, locale);
+              await finish(cloud);
+              return;
+            }
           }
         }
 
@@ -106,17 +100,17 @@ export default function ResultsScreen() {
         }
 
         if (retryNonce === 0) {
-          const cached = peekIrisAnalysisCache(analysisUri);
+          const cached = peekIrisAnalysisCache(analysisUri, locale);
           if (cached) {
-            if (stableKey) seedIrisAnalysisCache(analysisUri, cached, stableKey);
+            if (stableKey) seedIrisAnalysisCache(analysisUri, cached, stableKey, locale);
             await finish(cached);
             return;
           }
         }
 
         setStatus({ kind: 'loading' });
-        const result = await analyzeIris(analysisUri, { stableKey, paletteUri });
-        if (stableKey) seedIrisAnalysisCache(analysisUri, result, stableKey);
+        const result = await analyzeIris(analysisUri, { stableKey, paletteUri, locale });
+        if (stableKey) seedIrisAnalysisCache(analysisUri, result, stableKey, locale);
         await finish(result);
       } catch (e) {
         if (cancelled) return;
@@ -127,7 +121,7 @@ export default function ResultsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [analysisUri, paletteUri, stableKey, irisId, irisFingerprint, retryNonce]);
+  }, [analysisUri, paletteUri, stableKey, irisId, irisFingerprint, retryNonce, locale, localeReady, t]);
 
   const title = useMemo(() => {
     if (status.kind !== 'ready') return t('results.titleLoading');
