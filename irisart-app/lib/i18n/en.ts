@@ -161,6 +161,10 @@ const en: Record<TranslationKey, string> = {
   'aiConsent.title': 'Allow AI processing',
   'aiConsent.lead':
     'Before we enhance or analyze your eye photo, we need your permission to send data to a third-party AI service.',
+  'aiConsent.cardSummary':
+    'Enhancement and analysis send your cropped iris region to Google Gemini. Tap “Read more” for details.',
+  'aiConsent.readDetails': 'Read more',
+  'aiConsent.hideDetails': 'Show less',
   'aiConsent.whatTitle': 'What data is sent?',
   'aiConsent.whatBody':
     'The cropped eye/iris region from your photo (a full face is not required). Optional technical metadata for processing.',
@@ -173,7 +177,7 @@ const en: Record<TranslationKey, string> = {
   'aiConsent.note':
     'Details are in the Privacy Policy. You can withdraw consent later by clearing app data or contacting us.',
   'aiConsent.accept': 'Agree and continue',
-  'aiConsent.decline': 'Decline',
+  'aiConsent.decline': 'Not now',
 
   'iris.back': 'Back',
   'iris.titleLoading': 'AI Iris Enhancement',

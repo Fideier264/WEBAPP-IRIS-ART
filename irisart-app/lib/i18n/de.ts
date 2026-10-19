@@ -165,6 +165,10 @@ const de = {
   'aiConsent.title': 'KI-Verarbeitung zustimmen',
   'aiConsent.lead':
     'Bevor wir dein Augenbild veredeln oder analysieren, brauchen wir deine Erlaubnis, Daten an einen KI-Dienst zu senden.',
+  'aiConsent.cardSummary':
+    'Für Veredelung und Analyse wird dein zugeschnittener Iris-Ausschnitt an Google Gemini gesendet. Tippe auf „Mehr lesen“ für Details.',
+  'aiConsent.readDetails': 'Mehr lesen',
+  'aiConsent.hideDetails': 'Weniger anzeigen',
   'aiConsent.whatTitle': 'Welche Daten werden gesendet?',
   'aiConsent.whatBody':
     'Der zugeschnittene Augen-/Iris-Ausschnitt deines Fotos (kein vollständiges Gesicht erforderlich). Optional Metadaten zur technischen Verarbeitung.',
@@ -177,7 +181,7 @@ const de = {
   'aiConsent.note':
     'Details stehen in der Datenschutzerklärung. Du kannst die Zustimmung später widerrufen, indem du die App-Daten löschst oder uns kontaktierst.',
   'aiConsent.accept': 'Zustimmen und fortfahren',
-  'aiConsent.decline': 'Ablehnen',
+  'aiConsent.decline': 'Später',
 
   // Iris enhance
   'iris.back': 'Zurück',

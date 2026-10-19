@@ -83,12 +83,6 @@ export default function IrisPrepScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
-      <AiDataConsentModal
-        visible={needsConsent}
-        busy={consentBusy}
-        onAccept={() => void acceptConsent()}
-        onDecline={() => router.back()}
-      />
       <LinearGradient
         colors={
           scheme === 'dark'
@@ -128,7 +122,7 @@ export default function IrisPrepScreen() {
               <Image source={{ uri: status.textureUrl }} style={styles.preview} resizeMode="contain" />
             ) : uri ? <Image source={{ uri }} style={styles.preview} resizeMode="cover" /> : null}
 
-            {needsConsent || !consentReady || status.kind === 'loading' ? (
+            {(!needsConsent && consentReady && status.kind === 'loading') ? (
               <View style={styles.center}>
                 <ActivityIndicator color={c.tint} />
                 <Text
@@ -136,7 +130,7 @@ export default function IrisPrepScreen() {
                     styles.body,
                   { color: c.muted },
                   ]}>
-                  {needsConsent ? t('aiConsent.title') : t('iris.enhancing')}
+                  {t('iris.enhancing')}
                 </Text>
               </View>
             ) : status.kind === 'error' ? (
@@ -233,6 +227,11 @@ export default function IrisPrepScreen() {
           shopIrisFingerprint={status.kind === 'ready' ? status.fingerprint : undefined}
         />
       </SafeAreaView>
+      <AiDataConsentModal
+        visible={needsConsent}
+        busy={consentBusy}
+        onAccept={() => void acceptConsent()}
+      />
     </View>
   );
 }

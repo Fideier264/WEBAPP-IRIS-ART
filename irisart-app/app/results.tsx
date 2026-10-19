@@ -151,12 +151,6 @@ export default function ResultsScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
-      <AiDataConsentModal
-        visible={needsConsent}
-        busy={consentBusy}
-        onAccept={() => void acceptConsent()}
-        onDecline={() => router.back()}
-      />
       <LinearGradient
         colors={[...c.pageGradient]}
         start={{ x: 0.15, y: 0.05 }}
@@ -317,6 +311,11 @@ export default function ResultsScreen() {
         </ScrollView>
         <AppBottomBar active="shop" shopTextureUri={uri} shopIrisFingerprint={irisFingerprint} />
       </SafeAreaView>
+      <AiDataConsentModal
+        visible={needsConsent}
+        busy={consentBusy}
+        onAccept={() => void acceptConsent()}
+      />
     </View>
   );
 }

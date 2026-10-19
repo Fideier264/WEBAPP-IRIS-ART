@@ -103,12 +103,6 @@ export default function ReviewScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
-      <AiDataConsentModal
-        visible={needsConsent}
-        busy={consentBusy}
-        onAccept={() => void acceptConsent()}
-        onDecline={() => router.back()}
-      />
       <LinearGradient
         colors={scheme === 'dark' ? style.bg : ['rgba(91,92,255,0.14)', 'rgba(0,212,255,0.04)', 'rgba(247,248,255,0)']}
         start={{ x: 0.15, y: 0.05 }}
@@ -306,6 +300,11 @@ export default function ReviewScreen() {
         </Pressable>
         </ScrollView>
       </SafeAreaView>
+      <AiDataConsentModal
+        visible={needsConsent}
+        busy={consentBusy}
+        onAccept={() => void acceptConsent()}
+      />
     </View>
   );
 }

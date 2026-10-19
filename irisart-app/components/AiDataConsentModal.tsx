@@ -1,6 +1,14 @@
-import React from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { useAppColors } from '@/lib/appTheme';
 import { useT } from '@/lib/i18n';
@@ -9,49 +17,65 @@ type Props = {
   visible: boolean;
   busy?: boolean;
   onAccept: () => void;
-  onDecline: () => void;
 };
 
 /**
- * Apple 5.1.2 / AI data sharing: disclose what is sent, to whom, and get permission
- * before iris images leave the device for third-party AI.
+ * Camera-permission-style gate: blurs the screen and shows a compact card
+ * disclosing AI data sharing before the user can continue.
+ * Declining is not a leave action — the blur + card stay until they agree.
  */
-export function AiDataConsentModal({ visible, busy, onAccept, onDecline }: Props) {
+export function AiDataConsentModal({ visible, busy, onAccept }: Props) {
   const c = useAppColors();
   const t = useT();
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!visible) setExpanded(false);
+  }, [visible]);
+
+  if (!visible) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onDecline}>
-      <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top', 'bottom']}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Text style={[styles.title, { color: c.pageText }]}>{t('aiConsent.title')}</Text>
-          <Text style={[styles.lead, { color: c.pageMuted }]}>{t('aiConsent.lead')}</Text>
+    <View style={styles.overlay} accessibilityViewIsModal>
+      {Platform.OS === 'web' ? (
+        <View style={[StyleSheet.absoluteFill, styles.webDim]} />
+      ) : (
+        <BlurView intensity={60} tint={c.isDarkPage ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+      )}
+      <View style={[StyleSheet.absoluteFill, styles.dim]} />
 
-          <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Text style={[styles.cardTitle, { color: c.text }]}>{t('aiConsent.whatTitle')}</Text>
-            <Text style={[styles.cardBody, { color: c.muted }]}>{t('aiConsent.whatBody')}</Text>
-          </View>
+      <View style={styles.center}>
+        <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+          <Text style={[styles.title, { color: c.text }]}>{t('aiConsent.title')}</Text>
+          <Text style={[styles.body, { color: c.muted }]}>{t('aiConsent.cardSummary')}</Text>
 
-          <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Text style={[styles.cardTitle, { color: c.text }]}>{t('aiConsent.whoTitle')}</Text>
-            <Text style={[styles.cardBody, { color: c.muted }]}>{t('aiConsent.whoBody')}</Text>
-          </View>
+          {expanded ? (
+            <ScrollView style={styles.details} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+              <Text style={[styles.detailTitle, { color: c.text }]}>{t('aiConsent.whatTitle')}</Text>
+              <Text style={[styles.detailBody, { color: c.muted }]}>{t('aiConsent.whatBody')}</Text>
+              <Text style={[styles.detailTitle, { color: c.text }]}>{t('aiConsent.whoTitle')}</Text>
+              <Text style={[styles.detailBody, { color: c.muted }]}>{t('aiConsent.whoBody')}</Text>
+              <Text style={[styles.detailTitle, { color: c.text }]}>{t('aiConsent.whyTitle')}</Text>
+              <Text style={[styles.detailBody, { color: c.muted }]}>{t('aiConsent.whyBody')}</Text>
+              <Text style={[styles.detailBody, { color: c.muted, marginTop: 6 }]}>{t('aiConsent.note')}</Text>
+            </ScrollView>
+          ) : null}
 
-          <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <Text style={[styles.cardTitle, { color: c.text }]}>{t('aiConsent.whyTitle')}</Text>
-            <Text style={[styles.cardBody, { color: c.muted }]}>{t('aiConsent.whyBody')}</Text>
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setExpanded((v) => !v)}
+            style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1, alignSelf: 'flex-start' }]}>
+            <Text style={[styles.link, { color: c.tint }]}>
+              {expanded ? t('aiConsent.hideDetails') : t('aiConsent.readDetails')}
+            </Text>
+          </Pressable>
 
-          <Text style={[styles.note, { color: c.pageMuted }]}>{t('aiConsent.note')}</Text>
-        </ScrollView>
-
-        <View style={styles.footer}>
           <Pressable
             accessibilityRole="button"
             disabled={busy}
             onPress={onAccept}
             style={({ pressed }) => [
-              styles.primary,
+              styles.primaryBtn,
               { backgroundColor: c.tint, opacity: pressed || busy ? 0.88 : 1 },
             ]}>
             {busy ? (
@@ -60,50 +84,44 @@ export function AiDataConsentModal({ visible, busy, onAccept, onDecline }: Props
               <Text style={styles.primaryText}>{t('aiConsent.accept')}</Text>
             )}
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={onDecline}
-            style={({ pressed }) => [
-              styles.secondary,
-              { borderColor: c.border, backgroundColor: c.surfaceAlt, opacity: pressed || busy ? 0.88 : 1 },
-            ]}>
-            <Text style={[styles.secondaryText, { color: c.text }]}>{t('aiConsent.decline')}</Text>
-          </Pressable>
         </View>
-      </SafeAreaView>
-    </Modal>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, gap: 12 },
-  title: { fontSize: 22, fontWeight: '850', letterSpacing: 0.2 },
-  lead: { fontSize: 14.5, lineHeight: 21 },
-  card: {
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 14,
-    gap: 6,
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+    elevation: 100,
   },
-  cardTitle: { fontSize: 14.5, fontWeight: '800' },
-  cardBody: { fontSize: 13.5, lineHeight: 19.5 },
-  note: { fontSize: 12.5, lineHeight: 18, marginTop: 4 },
-  footer: { paddingHorizontal: 20, paddingBottom: 12, gap: 10 },
-  primary: {
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
+  webDim: { backgroundColor: 'rgba(10,11,16,0.55)' },
+  dim: { backgroundColor: 'rgba(10,11,16,0.32)' },
+  center: {
+    flex: 1,
     justifyContent: 'center',
-    minHeight: 50,
+    paddingHorizontal: 28,
   },
-  primaryText: { color: '#fff', fontSize: 15.5, fontWeight: '850' },
-  secondary: {
-    borderRadius: 16,
+  card: {
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
+    gap: 12,
+    maxHeight: '78%',
+  },
+  title: { fontSize: 18, fontWeight: '750' },
+  body: { fontSize: 13.5, lineHeight: 19.5 },
+  details: { maxHeight: 180 },
+  detailTitle: { fontSize: 13.5, fontWeight: '800', marginTop: 8 },
+  detailBody: { fontSize: 12.5, lineHeight: 18, marginTop: 4 },
+  link: { fontSize: 13.5, fontWeight: '750', textDecorationLine: 'underline' },
+  primaryBtn: {
+    borderRadius: 14,
     paddingVertical: 13,
     alignItems: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'center',
+    minHeight: 46,
   },
-  secondaryText: { fontSize: 15, fontWeight: '750' },
+  primaryText: { color: '#fff', fontSize: 15, fontWeight: '750' },
 });
