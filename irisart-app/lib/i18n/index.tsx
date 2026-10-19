@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import { BootLoadingScreen } from '@/components/BootLoadingScreen';
+
 import de, { type TranslationKey } from './de';
 import en from './en';
-import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY, type Locale } from './types';
+import { DEFAULT_LOCALE, detectDeviceLocale, LOCALE_STORAGE_KEY, type Locale } from './types';
 
 type Vars = Record<string, string | number>;
 
@@ -29,23 +31,31 @@ function format(template: string, vars?: Vars): string {
   });
 }
 
+function isLocale(value: string | null | undefined): value is Locale {
+  return value === 'de' || value === 'en';
+}
+
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
-  const [ready, setReady] = useState(false);
+  // null until AsyncStorage (or device default) resolves — avoids flashing German over English.
+  const [locale, setLocaleState] = useState<Locale | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      let next: Locale = DEFAULT_LOCALE;
       try {
         const stored = await AsyncStorage.getItem(LOCALE_STORAGE_KEY);
-        if (!cancelled && (stored === 'de' || stored === 'en')) {
-          setLocaleState(stored);
+        if (isLocale(stored)) {
+          next = stored;
+        } else {
+          next = detectDeviceLocale();
+          // Persist so the next cold start matches what we showed.
+          void AsyncStorage.setItem(LOCALE_STORAGE_KEY, next).catch(() => {});
         }
       } catch {
-        /* keep default */
-      } finally {
-        if (!cancelled) setReady(true);
+        next = detectDeviceLocale();
       }
+      if (!cancelled) setLocaleState(next);
     })();
     return () => {
       cancelled = true;
@@ -61,7 +71,8 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 
   const t = useCallback(
     (key: TranslationKey, vars?: Vars) => {
-      const dict = dictionaries[locale] ?? dictionaries.de;
+      const active = locale ?? DEFAULT_LOCALE;
+      const dict = dictionaries[active] ?? dictionaries.de;
       const raw = dict[key] ?? dictionaries.de[key] ?? String(key);
       return format(raw, vars);
     },
@@ -69,9 +80,18 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ locale, setLocale, t, ready }),
-    [locale, setLocale, t, ready]
+    () => ({
+      locale: locale ?? DEFAULT_LOCALE,
+      setLocale,
+      t,
+      ready: locale !== null,
+    }),
+    [locale, setLocale, t]
   );
+
+  if (locale === null) {
+    return <BootLoadingScreen />;
+  }
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }

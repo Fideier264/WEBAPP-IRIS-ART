@@ -127,9 +127,12 @@ const en: Record<TranslationKey, string> = {
   'capture.torchOn': 'Torch On',
   'capture.torchOff': 'Torch Off',
   'capture.flipCamera': 'Flip Camera',
-  'capture.permissionTitle': 'Camera access required',
-  'capture.permissionBody': 'Allow camera access to capture your iris.',
-  'capture.allowCamera': 'Allow Camera',
+  'capture.permissionTitle': 'Camera access',
+  'capture.permissionBody': 'Next, you can grant camera access to capture your iris.',
+  'capture.allowCamera': 'Continue',
+  'capture.openSettings': 'Open Settings',
+  'capture.permissionBlockedBody':
+    'Camera access was previously denied. Open Settings, enable the camera for IrisArt, then return here.',
   'capture.uploadInstead': 'Upload Instead',
   'capture.hint': 'Hold still and center your iris in the ring.',
   'capture.zoom': 'Zoom',
@@ -154,6 +157,23 @@ const en: Record<TranslationKey, string> = {
   'disclaimer.accountTitle': 'Data & analysis',
   'disclaimer.accountBody':
     'When signed in we store your iris renderings and optional color analysis on your account. You can delete individual gallery items or the entire account here at any time.',
+
+  'aiConsent.title': 'Allow AI processing',
+  'aiConsent.lead':
+    'Before we enhance or analyze your eye photo, we need your permission to send data to a third-party AI service.',
+  'aiConsent.whatTitle': 'What data is sent?',
+  'aiConsent.whatBody':
+    'The cropped eye/iris region from your photo (a full face is not required). Optional technical metadata for processing.',
+  'aiConsent.whoTitle': 'Who receives it?',
+  'aiConsent.whoBody':
+    'Google Gemini (Google AI / Generative Language API) via our Supabase server functions. Google processes the image to create the enhancement or color analysis.',
+  'aiConsent.whyTitle': 'Why?',
+  'aiConsent.whyBody':
+    'Only for IrisArt features: AI iris enhancement and optional entertainment color analysis — not for identity verification.',
+  'aiConsent.note':
+    'Details are in the Privacy Policy. You can withdraw consent later by clearing app data or contacting us.',
+  'aiConsent.accept': 'Agree and continue',
+  'aiConsent.decline': 'Decline',
 
   'iris.back': 'Back',
   'iris.titleLoading': 'AI Iris Enhancement',

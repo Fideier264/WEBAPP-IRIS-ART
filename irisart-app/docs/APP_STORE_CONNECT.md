@@ -50,6 +50,19 @@ Notes for the questionnaire:
 - Do **not** claim Face ID / fingerprint authentication.
 - Iris photos are for entertainment/art; privacy policy already states no identity verification.
 - Payment card numbers are handled by Stripe (third party); declare payment info / purchase history as applicable.
+- **Third-party AI:** cropped iris images are sent to **Google Gemini** after an **in-app consent** screen (what/who/why). Privacy Policy §5 names Gemini. Note this in App Review Information when replying to AI-data-sharing rejections.
+
+## 3b. App Review Information (AI data sharing reply)
+
+Suggested note for App Store Connect → App Review Information:
+
+```
+IrisArt sends a cropped eye/iris image region to Google Gemini (Google AI) via our Supabase edge functions for AI enhancement and optional entertainment color analysis only — not for identity verification.
+
+Before the first upload, the app shows a consent screen that discloses: (1) what data is sent, (2) that Google Gemini receives it, (3) the purpose, and requires the user to tap Agree. Decline cancels the flow.
+
+The Privacy Policy (in-app and https://irisart.app/privacy) identifies this third-party AI processing under Storage and processors.
+```
 
 ## 4. Age rating
 

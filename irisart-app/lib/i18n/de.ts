@@ -130,9 +130,12 @@ const de = {
   'capture.torchOn': 'Blitz an',
   'capture.torchOff': 'Blitz aus',
   'capture.flipCamera': 'Kamera drehen',
-  'capture.permissionTitle': 'Kamerazugriff erforderlich',
-  'capture.permissionBody': 'Erlaube die Kamera, um deine Iris aufzunehmen.',
-  'capture.allowCamera': 'Kamera erlauben',
+  'capture.permissionTitle': 'Kamerazugriff',
+  'capture.permissionBody': 'Als Nächstes kannst du die Kamera für Iris-Aufnahmen freigeben.',
+  'capture.allowCamera': 'Weiter',
+  'capture.openSettings': 'Einstellungen öffnen',
+  'capture.permissionBlockedBody':
+    'Kamerazugriff wurde zuvor abgelehnt. Öffne die Einstellungen, aktiviere die Kamera für IrisArt, und kehre danach zurück.',
   'capture.uploadInstead': 'Stattdessen hochladen',
   'capture.hint': 'Halte still und zentriere die Iris im Ring.',
   'capture.zoom': 'Zoom',
@@ -159,6 +162,23 @@ const de = {
   'disclaimer.accountBody':
     'Bei Login speichern wir deine Iris-Renderings und optional die Farbanalyse in deinem Konto. Beides kannst du jederzeit löschen — einzelne Bilder in der Galerie oder das gesamte Konto hier.',
 
+  'aiConsent.title': 'KI-Verarbeitung zustimmen',
+  'aiConsent.lead':
+    'Bevor wir dein Augenbild veredeln oder analysieren, brauchen wir deine Erlaubnis, Daten an einen KI-Dienst zu senden.',
+  'aiConsent.whatTitle': 'Welche Daten werden gesendet?',
+  'aiConsent.whatBody':
+    'Der zugeschnittene Augen-/Iris-Ausschnitt deines Fotos (kein vollständiges Gesicht erforderlich). Optional Metadaten zur technischen Verarbeitung.',
+  'aiConsent.whoTitle': 'An wen?',
+  'aiConsent.whoBody':
+    'Google Gemini (Google AI / Generative Language API) über unsere Supabase-Serverfunktionen. Google verarbeitet das Bild, um die Veredelung bzw. Farbanalyse zu erzeugen.',
+  'aiConsent.whyTitle': 'Wofür?',
+  'aiConsent.whyBody':
+    'Nur für IrisArt-Funktionen: KI-Veredelung der Iris und optionale Unterhaltungs-Farbanalyse — nicht zur Identitätsprüfung.',
+  'aiConsent.note':
+    'Details stehen in der Datenschutzerklärung. Du kannst die Zustimmung später widerrufen, indem du die App-Daten löschst oder uns kontaktierst.',
+  'aiConsent.accept': 'Zustimmen und fortfahren',
+  'aiConsent.decline': 'Ablehnen',
+
   // Iris enhance
   'iris.back': 'Zurück',
   'iris.titleLoading': 'KI-Iris-Veredelung',
@@ -173,6 +193,9 @@ const de = {
   'iris.retake': 'Foto erneut aufnehmen',
   'iris.missingPhoto': 'Kein Foto vorhanden.',
   'iris.enhanceFailed': 'Iris-Veredelung fehlgeschlagen.',
+  'iris.billingDepleted':
+    'KI-Guthaben aufgebraucht. Bitte in Google AI Studio Credits aufladen (Projekt-Billing für NANO_BANANA_2_API_KEY).',
+  'iris.quotaExceeded': 'KI-Kontingent oder Rate-Limit erreicht. Bitte später erneut versuchen.',
   'iris.configKeyError':
     'App-Konfiguration ungültig. In EAS muss EXPO_PUBLIC_SUPABASE_ANON_KEY der legacy anon JWT (beginnt mit eyJ…) sein — danach neu bauen und zu TestFlight hochladen.',
 

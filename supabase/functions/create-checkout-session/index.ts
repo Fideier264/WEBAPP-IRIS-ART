@@ -292,6 +292,9 @@ serve(async (req) => {
   form.set("metadata[shipping]", shippingJson);
   form.set("metadata[externalId]", externalId);
   form.set("metadata[productLabel]", productLabel.slice(0, 450));
+  // Live mode: forces Stripe payment receipt to the checkout email (independent of Dashboard toggles).
+  // Test mode: Stripe does not auto-send receipts — use Dashboard → Payment → Send receipt to verify.
+  form.set("payment_intent_data[receipt_email]", email);
   form.set("payment_intent_data[metadata][productSku]", productSku);
   form.set("payment_intent_data[metadata][printFileUrl]", metaPrintUrl);
   form.set("payment_intent_data[metadata][printPending]", printPendingFlag);

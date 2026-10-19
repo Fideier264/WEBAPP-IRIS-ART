@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppColors } from '@/lib/appTheme';
@@ -15,6 +15,7 @@ export default function OnboardingScreen() {
   const t = useT();
   const { height: windowH } = useWindowDimensions();
   const compact = windowH < 760;
+  const logoSize = compact ? 88 : 112;
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
@@ -28,6 +29,11 @@ export default function OnboardingScreen() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={[styles.content, { paddingBottom: BOTTOM_BAR_CLEARANCE }]}>
           <View style={[styles.hero, compact && styles.heroCompact]}>
+            <Image
+              source={require('../assets/images/logo.png')}
+              style={[styles.logo, { width: logoSize, height: logoSize, borderRadius: logoSize / 2 }]}
+              accessibilityLabel="IrisArt"
+            />
             <Text style={[styles.brand, compact && styles.brandCompact, { color: c.pageText }]}>
               IrisArt
             </Text>
@@ -135,6 +141,7 @@ const styles = StyleSheet.create({
   },
   hero: { gap: 8, paddingTop: 6, paddingRight: 88 },
   heroCompact: { gap: 5, paddingTop: 2 },
+  logo: { marginBottom: 4 },
   brand: { fontSize: 40, fontWeight: '700', letterSpacing: 0.2 },
   brandCompact: { fontSize: 34 },
   tagline: { fontSize: 17, fontWeight: '600', letterSpacing: 0.2 },

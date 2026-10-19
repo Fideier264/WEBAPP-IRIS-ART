@@ -1,10 +1,12 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   Image,
+  Linking,
   PanResponder,
   Platform,
   Pressable,
@@ -42,7 +44,7 @@ export default function CaptureScreen() {
   const t = useT();
 
   const cameraRef = useRef<CameraView>(null);
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, requestPermission, getPermission] = useCameraPermissions();
   const [state, setState] = useState<CaptureState>({ kind: 'camera' });
   const [torchOn, setTorchOn] = useState(false);
   const [facing, setFacing] = useState<'back' | 'front'>('back');
@@ -72,6 +74,32 @@ export default function CaptureScreen() {
   });
   const cropRectRef = useRef(cropRect);
   cropRectRef.current = cropRect;
+
+  const canUseCamera = permission?.granted === true;
+  // After the user denies once, iOS will not show the system dialog again.
+  const cameraBlocked = permission != null && permission.granted === false && permission.canAskAgain === false;
+
+  const onRequestCameraAccess = useCallback(async () => {
+    if (cameraBlocked) {
+      try {
+        await Linking.openSettings();
+      } catch {
+        Alert.alert(t('capture.permissionNeeded'), t('capture.permissionBlockedBody'));
+      }
+      return;
+    }
+    await requestPermission();
+  }, [cameraBlocked, requestPermission, t]);
+
+  // Refresh permission status when returning from Settings (do not re-prompt).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') {
+        void getPermission();
+      }
+    });
+    return () => sub.remove();
+  }, [getPermission]);
 
   const cropAspect = 4 / 3;
   const baseRectW = stageSize * 0.84;
@@ -124,8 +152,6 @@ export default function CaptureScreen() {
       },
     });
   }, [baseRectW, cropAspect, stageSize]);
-
-  const canUseCamera = permission?.granted === true;
 
   const onTakePicture = async () => {
     if (!cameraRef.current || isCapturing) return;
@@ -285,16 +311,18 @@ export default function CaptureScreen() {
                   styles.permissionBody,
                   { color: c.muted },
                 ]}>
-                {t('capture.permissionBody')}
+                {cameraBlocked ? t('capture.permissionBlockedBody') : t('capture.permissionBody')}
               </Text>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => requestPermission()}
+                onPress={() => void onRequestCameraAccess()}
                 style={({ pressed }) => [
                   styles.permissionButton,
                   { backgroundColor: c.tint, opacity: pressed ? 0.9 : 1 },
                 ]}>
-                <Text style={styles.permissionButtonText}>{t('capture.allowCamera')}</Text>
+                <Text style={styles.permissionButtonText}>
+                  {cameraBlocked ? t('capture.openSettings') : t('capture.allowCamera')}
+                </Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"

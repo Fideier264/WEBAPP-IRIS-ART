@@ -62,7 +62,13 @@ async function flushPersistedEnhance() {
 
 export async function enhanceIrisTextureWithInpaint(
   photoUri: string,
-  opts?: { cropRect?: { x: number; y: number; w: number; h: number } }
+  opts?: {
+    cropRect?: { x: number; y: number; w: number; h: number };
+    /** Skip memory/disk cache and request a new model variation (Regenerate). */
+    forceRefresh?: boolean;
+    /** Salt mixed into artStyle so the server seed changes. */
+    variationKey?: string;
+  }
 ) {
   await ensurePersistedEnhanceLoaded();
   // New plan: send rectangle eye crop (incl. eyelid/brow) to Nano Banana 2.
@@ -75,57 +81,71 @@ export async function enhanceIrisTextureWithInpaint(
     `pipeline:v2|bg:black|style:${IRIS_NANO_BANANA_ART_STYLE}|rect:${roundedRectKey(opts?.cropRect)}`
   );
 
-  const cached = enhanceCacheByFingerprint.get(key);
-  if (cached) {
-    return {
-      outputUrl: cached.outputUrl,
-      fingerprint: key,
-      seg: {
-        ...cached.seg,
-        maskedImageUri: croppedUri,
-        maskImageUri: croppedUri,
-        cropUri: croppedUri,
-      },
-    };
-  }
+  const forceRefresh = opts?.forceRefresh === true;
+  const artStyle =
+    opts?.variationKey && opts.variationKey.trim()
+      ? `${IRIS_NANO_BANANA_ART_STYLE}|v:${opts.variationKey.trim().slice(0, 48)}`
+      : IRIS_NANO_BANANA_ART_STYLE;
 
-  const persistedOutput = persistedEnhanceMap.get(key);
-  if (persistedOutput) {
-    // Guard against legacy bad cache entries where output accidentally pointed at the crop itself.
-    if (persistedOutput === croppedUri) {
-      persistedEnhanceMap.delete(key);
-      await flushPersistedEnhance();
-    } else {
-      const info = await FileSystem.getInfoAsync(persistedOutput);
-      if (info.exists && (info.size ?? 0) > 0) {
-        const res = {
-          outputUrl: resolveDisplayUri(persistedOutput),
-          fingerprint: key,
-          seg: {
-            maskedImageUri: croppedUri,
-            maskImageUri: croppedUri,
-            cropUri: croppedUri,
-            circle: { cx: 0, cy: 0, r: 0 },
-            size: 0,
-          },
-        };
-        enhanceCacheByFingerprint.set(key, res);
-        await trySaveToAccount(persistedOutput, key);
-        return res;
-      }
-      persistedEnhanceMap.delete(key);
-      await flushPersistedEnhance();
+  if (!forceRefresh) {
+    const cached = enhanceCacheByFingerprint.get(key);
+    if (cached) {
+      return {
+        outputUrl: cached.outputUrl,
+        fingerprint: key,
+        seg: {
+          ...cached.seg,
+          maskedImageUri: croppedUri,
+          maskImageUri: croppedUri,
+          cropUri: croppedUri,
+        },
+      };
     }
+
+    const persistedOutput = persistedEnhanceMap.get(key);
+    if (persistedOutput) {
+      // Guard against legacy bad cache entries where output accidentally pointed at the crop itself.
+      if (persistedOutput === croppedUri) {
+        persistedEnhanceMap.delete(key);
+        await flushPersistedEnhance();
+      } else {
+        const info = await FileSystem.getInfoAsync(persistedOutput);
+        if (info.exists && (info.size ?? 0) > 0) {
+          const res = {
+            outputUrl: resolveDisplayUri(persistedOutput),
+            fingerprint: key,
+            seg: {
+              maskedImageUri: croppedUri,
+              maskImageUri: croppedUri,
+              cropUri: croppedUri,
+              circle: { cx: 0, cy: 0, r: 0 },
+              size: 0,
+            },
+          };
+          enhanceCacheByFingerprint.set(key, res);
+          await trySaveToAccount(persistedOutput, key);
+          return res;
+        }
+        persistedEnhanceMap.delete(key);
+        await flushPersistedEnhance();
+      }
+    }
+  } else {
+    enhanceCacheByFingerprint.delete(key);
+    enhanceInflightByFingerprint.delete(key);
+    persistedEnhanceMap.delete(key);
+    await flushPersistedEnhance();
   }
 
-  let inflight = enhanceInflightByFingerprint.get(key);
+  const inflightKey = forceRefresh ? `${key}|${artStyle}` : key;
+  let inflight = enhanceInflightByFingerprint.get(inflightKey);
   if (!inflight) {
     inflight = (async () => {
       const uploaded = await uploadTempImage(croppedUri);
       const generated = await requestNanoBananaIris({
         imageUrl: uploaded.signedUrl,
         backgroundMode: 'black',
-        artStyle: IRIS_NANO_BANANA_ART_STYLE,
+        artStyle,
       });
 
       const ext = generated.mimeType?.includes('jpeg') ? 'jpg' : 'png';
@@ -157,9 +177,9 @@ export async function enhanceIrisTextureWithInpaint(
       return res;
     })()
       .finally(() => {
-        enhanceInflightByFingerprint.delete(key);
+        enhanceInflightByFingerprint.delete(inflightKey);
       });
-    enhanceInflightByFingerprint.set(key, inflight);
+    enhanceInflightByFingerprint.set(inflightKey, inflight);
   }
 
   return inflight;

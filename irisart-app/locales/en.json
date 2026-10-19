@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "IrisArt",
+    "NSCameraUsageDescription": "IrisArt uses the camera for close-up photos of your iris for color analysis and art generation.",
+    "NSPhotoLibraryUsageDescription": "IrisArt accesses your photo library so you can choose a close-up photo of your iris."
+  },
+  "android": {
+    "app_name": "IrisArt"
+  }
+}

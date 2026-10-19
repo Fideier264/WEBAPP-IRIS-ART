@@ -4,20 +4,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AiDataConsentModal } from '@/components/AiDataConsentModal';
 import { useAppColors } from '@/lib/appTheme';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE, HEADER_BACK_CHIP_MIN_WIDTH } from '@/constants/Layout';
 import { enhanceIrisTextureWithInpaint } from '@/lib/aiIrisInpaint';
 import { useT } from '@/lib/i18n';
-
-function formatEnhanceError(raw: string, t: (key: string) => string): string {
-  if (/Invalid Compact JWS|Invalid API key|sb_publishable_/i.test(raw)) {
-    return t('iris.configKeyError');
-  }
-  const firstLine = raw.split('\n').find((line) => line.trim().length > 0)?.trim();
-  if (firstLine && firstLine.length <= 140) return firstLine;
-  return t('iris.enhanceFailed');
-}
+import { useAiDataConsent } from '@/lib/useAiDataConsent';
 
 type Status =
   | { kind: 'loading' }
@@ -28,6 +21,7 @@ export default function IrisPrepScreen() {
   const c = useAppColors();
   const scheme = c.isDarkPage ? 'dark' : 'light';
   const t = useT();
+  const { consentReady, needsConsent, hasConsent, consentBusy, acceptConsent } = useAiDataConsent();
   const params = useLocalSearchParams<{ uri?: string; cropX?: string; cropY?: string; cropW?: string; cropH?: string }>();
   const uri = typeof params.uri === 'string' ? params.uri : undefined;
   const cropX = typeof params.cropX === 'string' ? Number(params.cropX) : undefined;
@@ -44,6 +38,7 @@ export default function IrisPrepScreen() {
   const [regenNonce, setRegenNonce] = useState(0);
 
   useEffect(() => {
+    if (!consentReady || !hasConsent) return;
     let cancelled = false;
     const run = async () => {
       if (!uri) {
@@ -53,7 +48,11 @@ export default function IrisPrepScreen() {
       try {
         setStatus({ kind: 'loading' });
         if (cancelled) return;
-        const res = await enhanceIrisTextureWithInpaint(uri, { cropRect });
+        const res = await enhanceIrisTextureWithInpaint(uri, {
+          cropRect,
+          forceRefresh: regenNonce > 0,
+          variationKey: regenNonce > 0 ? `regen-${regenNonce}-${Date.now()}` : undefined,
+        });
         if (cancelled) return;
         setStatus({
           kind: 'ready',
@@ -64,9 +63,10 @@ export default function IrisPrepScreen() {
         });
       } catch (e) {
         if (cancelled) return;
+        console.warn('iris enhance failed', e instanceof Error ? e.message : String(e));
         setStatus({
           kind: 'error',
-          message: formatEnhanceError(e instanceof Error ? e.message : t('iris.enhanceFailed'), t),
+          message: t('iris.enhanceFailed'),
         });
       }
     };
@@ -74,7 +74,7 @@ export default function IrisPrepScreen() {
     return () => {
       cancelled = true;
     };
-  }, [uri, cropRect, regenNonce]);
+  }, [uri, cropRect, regenNonce, t, consentReady, hasConsent]);
 
   const title = useMemo(
     () => (status.kind === 'ready' ? t('iris.titleReady') : t('iris.titleLoading')),
@@ -83,6 +83,12 @@ export default function IrisPrepScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
+      <AiDataConsentModal
+        visible={needsConsent}
+        busy={consentBusy}
+        onAccept={() => void acceptConsent()}
+        onDecline={() => router.back()}
+      />
       <LinearGradient
         colors={
           scheme === 'dark'
@@ -122,7 +128,7 @@ export default function IrisPrepScreen() {
               <Image source={{ uri: status.textureUrl }} style={styles.preview} resizeMode="contain" />
             ) : uri ? <Image source={{ uri }} style={styles.preview} resizeMode="cover" /> : null}
 
-            {status.kind === 'loading' ? (
+            {needsConsent || !consentReady || status.kind === 'loading' ? (
               <View style={styles.center}>
                 <ActivityIndicator color={c.tint} />
                 <Text
@@ -130,7 +136,7 @@ export default function IrisPrepScreen() {
                     styles.body,
                   { color: c.muted },
                   ]}>
-                  {t('iris.enhancing')}
+                  {needsConsent ? t('aiConsent.title') : t('iris.enhancing')}
                 </Text>
               </View>
             ) : status.kind === 'error' ? (

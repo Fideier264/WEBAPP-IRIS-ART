@@ -4,10 +4,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AiDataConsentModal } from '@/components/AiDataConsentModal';
 import { useAppColors } from '@/lib/appTheme';
 import { ACCOUNT_HEADER_CLEARANCE, HEADER_BACK_CHIP_MIN_WIDTH } from '@/constants/Layout';
 import { analyzeIris, type IrisAnalysis } from '@/lib/analyzeIris';
 import { useLocale, useT } from '@/lib/i18n';
+import { useAiDataConsent } from '@/lib/useAiDataConsent';
 
 type ArtStyleId = 'cosmic' | 'watercolor' | 'cyberpunk';
 
@@ -46,6 +48,7 @@ export default function ReviewScreen() {
   const scheme = c.isDarkPage ? 'dark' : 'light';
   const t = useT();
   const { locale, ready: localeReady } = useLocale();
+  const { consentReady, needsConsent, hasConsent, consentBusy, acceptConsent } = useAiDataConsent();
   const params = useLocalSearchParams<{ textureUri?: string; sourceUri?: string; style?: string }>();
 
   const textureUri = typeof params.textureUri === 'string' ? params.textureUri : undefined;
@@ -65,7 +68,7 @@ export default function ReviewScreen() {
   const [surfaceMode, setSurfaceMode] = useState<'black' | 'white'>('black');
 
   useEffect(() => {
-    if (!localeReady) return;
+    if (!localeReady || !consentReady || !hasConsent) return;
     let cancelled = false;
     const run = async () => {
       if (!analysisUri) return;
@@ -84,7 +87,7 @@ export default function ReviewScreen() {
     return () => {
       cancelled = true;
     };
-  }, [analysisUri, paletteUri, locale, localeReady]);
+  }, [analysisUri, paletteUri, locale, localeReady, consentReady, hasConsent]);
 
   const subtitle = useMemo(() => 'Preview exactly what your enhanced iris looks like on print', []);
   const irisPaletteColors = useMemo(() => {
@@ -100,6 +103,12 @@ export default function ReviewScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
+      <AiDataConsentModal
+        visible={needsConsent}
+        busy={consentBusy}
+        onAccept={() => void acceptConsent()}
+        onDecline={() => router.back()}
+      />
       <LinearGradient
         colors={scheme === 'dark' ? style.bg : ['rgba(91,92,255,0.14)', 'rgba(0,212,255,0.04)', 'rgba(247,248,255,0)']}
         start={{ x: 0.15, y: 0.05 }}

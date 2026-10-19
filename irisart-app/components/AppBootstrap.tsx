@@ -45,7 +45,7 @@ export function AppBootstrap({ children }: Props) {
     };
   }, []);
 
-  if (status === 'loading') return <BootLoadingScreen label="IrisArt wird geladen…" />;
+  if (status === 'loading') return <BootLoadingScreen label="IrisArt…" />;
   if (status === 'error') {
     return <ConfigErrorScreen missing={config ? missingConfigKeys(config) : undefined} hint={configHint} />;
   }

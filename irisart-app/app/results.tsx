@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppColors } from '@/lib/appTheme';
+import { AiDataConsentModal } from '@/components/AiDataConsentModal';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { ACCOUNT_HEADER_CLEARANCE, BOTTOM_BAR_CLEARANCE, HEADER_BACK_CHIP_MIN_WIDTH } from '@/constants/Layout';
 import { InheritanceEstimate } from '@/components/InheritanceEstimate';
@@ -18,6 +19,7 @@ import {
   type IrisAnalysis,
 } from '@/lib/analyzeIris';
 import { useLocale, useT } from '@/lib/i18n';
+import { useAiDataConsent } from '@/lib/useAiDataConsent';
 import { getUserIrisAnalysis, saveUserIrisAnalysis } from '@/lib/userIrisLibrary';
 
 type Status =
@@ -29,6 +31,7 @@ export default function ResultsScreen() {
   const c = useAppColors();
   const t = useT();
   const { locale, ready: localeReady } = useLocale();
+  const { consentReady, needsConsent, hasConsent, consentBusy, acceptConsent } = useAiDataConsent();
   const params = useLocalSearchParams<{
     uri?: string;
     sourceUri?: string;
@@ -48,7 +51,7 @@ export default function ResultsScreen() {
   const [status, setStatus] = useState<Status>({ kind: 'loading' });
 
   useEffect(() => {
-    if (!localeReady) return;
+    if (!localeReady || !consentReady) return;
     let cancelled = false;
     const persistAccount = async (result: IrisAnalysis) => {
       if (!irisId && !irisFingerprint) return;
@@ -108,6 +111,12 @@ export default function ResultsScreen() {
           }
         }
 
+        // Network call to third-party AI — requires explicit consent.
+        if (!hasConsent) {
+          setStatus({ kind: 'loading' });
+          return;
+        }
+
         setStatus({ kind: 'loading' });
         const result = await analyzeIris(analysisUri, { stableKey, paletteUri, locale });
         if (stableKey) seedIrisAnalysisCache(analysisUri, result, stableKey, locale);
@@ -121,7 +130,19 @@ export default function ResultsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [analysisUri, paletteUri, stableKey, irisId, irisFingerprint, retryNonce, locale, localeReady, t]);
+  }, [
+    analysisUri,
+    paletteUri,
+    stableKey,
+    irisId,
+    irisFingerprint,
+    retryNonce,
+    locale,
+    localeReady,
+    consentReady,
+    hasConsent,
+    t,
+  ]);
 
   const title = useMemo(() => {
     if (status.kind !== 'ready') return t('results.titleLoading');
@@ -130,6 +151,12 @@ export default function ResultsScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
+      <AiDataConsentModal
+        visible={needsConsent}
+        busy={consentBusy}
+        onAccept={() => void acceptConsent()}
+        onDecline={() => router.back()}
+      />
       <LinearGradient
         colors={[...c.pageGradient]}
         start={{ x: 0.15, y: 0.05 }}

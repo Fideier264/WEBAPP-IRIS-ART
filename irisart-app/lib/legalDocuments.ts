@@ -56,7 +56,7 @@ function privacyDe(o: LegalOperator): LegalDocument {
         heading: '5. Speicherung und Drittanbieter',
         paragraphs: [
           'Technische Infrastruktur (Authentifizierung, Dateispeicher, Serverfunktionen): Supabase bzw. vergleichbare Hosting-/Backend-Dienste.',
-          'KI-Verarbeitung: externe Modelle/APIs können Bildausschnitte oder abgeleitete Daten verarbeiten, um Enhancement oder Analyse zu erzeugen. Wir setzen sie nur für die genannten App-Funktionen ein.',
+          'KI-Verarbeitung (Drittanbieter): Für Veredelung und optionale Farbanalyse senden wir den zugeschnittenen Augen-/Iris-Ausschnitt an Google Gemini (Google AI / Generative Language API), vermittelt über unsere Supabase Edge Functions. Google verarbeitet das Bild, um die von dir angeforderten Funktionen zu erzeugen. Vor dem ersten Upload holen wir in der App ausdrücklich deine Einwilligung ein (was gesendet wird, an wen, und wofür).',
           'Zahlung: Stripe (Checkout, Zahlungsabwicklung).',
           'Druck/Versand: merchOne oder vergleichbare Produktionspartner — dafür werden Druckdatei und Lieferadresse benötigt.',
           'Hosting der Web-App kann bei einem Webhoster liegen. Anbieter können Server-Logs (IP, User-Agent) speichern.',
@@ -137,7 +137,7 @@ function privacyEn(o: LegalOperator): LegalDocument {
         heading: '5. Storage and processors',
         paragraphs: [
           'Backend (auth, file storage, edge functions): Supabase or comparable hosting/backend services.',
-          'AI processing: external models/APIs may process image crops or derived data for enhancement or analysis, only for the app features described here.',
+          'AI processing (third party): For enhancement and optional color analysis we send the cropped eye/iris region to Google Gemini (Google AI / Generative Language API), via our Supabase Edge Functions. Google processes the image to produce the features you request. Before the first upload, the app asks for your explicit permission (what is sent, to whom, and why).',
           'Payments: Stripe (checkout and payment processing).',
           'Print/shipping: merchOne or similar production partners — requiring the print file and shipping address.',
           'The web app may be hosted by a web hosting provider. Providers may keep server logs (IP, user agent).',

@@ -131,6 +131,7 @@ export default function AccountScreen() {
                     ]}>
                     <Text style={[styles.langChipText, { color: c.text }]}>
                       {opt.id === 'de' ? t('account.lang.de') : t('account.lang.en')}
+                      {active ? ' ✓' : ''}
                     </Text>
                   </Pressable>
                 );

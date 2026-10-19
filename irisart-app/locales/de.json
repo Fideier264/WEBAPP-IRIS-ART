@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "IrisArt",
+    "NSCameraUsageDescription": "IrisArt nutzt die Kamera für Nahaufnahmen deiner Iris zur Farbanalyse und Kunstgenerierung.",
+    "NSPhotoLibraryUsageDescription": "IrisArt greift auf deine Fotomediathek zu, damit du eine Nahaufnahme deiner Iris auswählen kannst."
+  },
+  "android": {
+    "app_name": "IrisArt"
+  }
+}
