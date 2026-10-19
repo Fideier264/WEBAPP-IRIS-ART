@@ -98,6 +98,15 @@ const en: Record<TranslationKey, string> = {
   'account.privacy': 'Privacy Policy',
   'account.terms': 'Terms of Service',
   'account.support': 'Support / Contact',
+  'account.aiConsentTitle': 'AI data processing',
+  'account.aiConsentBody':
+    'Enhancement and color analysis send your cropped iris region to Google Gemini. You can consent or revoke anytime.',
+  'account.aiConsentStatusOn': 'Status: consented',
+  'account.aiConsentStatusOff': 'Status: not consented',
+  'account.aiConsentAccept': 'Consent',
+  'account.aiConsentRevoke': 'Revoke consent',
+  'account.aiConsentRevokedInfo': 'AI consent revoked. You will be asked again on the next scan.',
+  'account.aiConsentAcceptedInfo': 'AI consent saved.',
 
   'support.title': 'Support',
   'support.heading': 'Help & contact',

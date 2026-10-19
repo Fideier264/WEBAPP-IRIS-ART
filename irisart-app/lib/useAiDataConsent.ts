@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   acceptAiDataConsent,
   hasAcceptedAiDataConsent,
+  revokeAiDataConsent,
 } from '@/lib/aiDataConsent';
 
 type ConsentPhase = 'checking' | 'needed' | 'granted';
@@ -13,6 +14,11 @@ type ConsentPhase = 'checking' | 'needed' | 'granted';
 export function useAiDataConsent() {
   const [phase, setPhase] = useState<ConsentPhase>('checking');
   const [busy, setBusy] = useState(false);
+
+  const refreshConsent = useCallback(async () => {
+    const ok = await hasAcceptedAiDataConsent();
+    setPhase(ok ? 'granted' : 'needed');
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,11 +41,23 @@ export function useAiDataConsent() {
     }
   }, []);
 
+  const revoke = useCallback(async () => {
+    setBusy(true);
+    try {
+      await revokeAiDataConsent();
+      setPhase('needed');
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
   return {
     consentReady: phase !== 'checking',
     needsConsent: phase === 'needed',
     hasConsent: phase === 'granted',
     consentBusy: busy,
     acceptConsent: accept,
+    revokeConsent: revoke,
+    refreshConsent,
   };
 }

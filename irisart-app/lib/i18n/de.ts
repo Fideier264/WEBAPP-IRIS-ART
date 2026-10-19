@@ -99,6 +99,15 @@ const de = {
   'account.privacy': 'Datenschutz',
   'account.terms': 'AGB',
   'account.support': 'Support / Kontakt',
+  'account.aiConsentTitle': 'KI-Datenverarbeitung',
+  'account.aiConsentBody':
+    'Für Iris-Veredelung und Farbanalyse wird der zugeschnittene Iris-Ausschnitt an Google Gemini gesendet. Du kannst zustimmen oder widerrufen.',
+  'account.aiConsentStatusOn': 'Status: zugestimmt',
+  'account.aiConsentStatusOff': 'Status: nicht zugestimmt',
+  'account.aiConsentAccept': 'Zustimmen',
+  'account.aiConsentRevoke': 'Zustimmung widerrufen',
+  'account.aiConsentRevokedInfo': 'KI-Zustimmung widerrufen. Beim nächsten Scan wirst du erneut gefragt.',
+  'account.aiConsentAcceptedInfo': 'KI-Zustimmung gespeichert.',
 
   'support.title': 'Support',
   'support.heading': 'Hilfe & Kontakt',

@@ -17,14 +17,17 @@ type Props = {
   visible: boolean;
   busy?: boolean;
   onAccept: () => void;
+  /** Optional dismiss (e.g. account settings). Gate screens omit this so the card stays. */
+  onDismiss?: () => void;
 };
 
 /**
  * Camera-permission-style gate: blurs the screen and shows a compact card
  * disclosing AI data sharing before the user can continue.
- * Declining is not a leave action — the blur + card stay until they agree.
+ * Declining is not a leave action — the blur + card stay until they agree,
+ * unless onDismiss is provided (settings).
  */
-export function AiDataConsentModal({ visible, busy, onAccept }: Props) {
+export function AiDataConsentModal({ visible, busy, onAccept, onDismiss }: Props) {
   const c = useAppColors();
   const t = useT();
   const [expanded, setExpanded] = useState(false);
@@ -84,6 +87,23 @@ export function AiDataConsentModal({ visible, busy, onAccept }: Props) {
               <Text style={styles.primaryText}>{t('aiConsent.accept')}</Text>
             )}
           </Pressable>
+
+          {onDismiss ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={onDismiss}
+              style={({ pressed }) => [
+                styles.secondaryBtn,
+                {
+                  backgroundColor: c.surfaceAlt,
+                  borderColor: c.border,
+                  opacity: pressed || busy ? 0.88 : 1,
+                },
+              ]}>
+              <Text style={[styles.secondaryText, { color: c.text }]}>{t('aiConsent.decline')}</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </View>
@@ -124,4 +144,11 @@ const styles = StyleSheet.create({
     minHeight: 46,
   },
   primaryText: { color: '#fff', fontSize: 15, fontWeight: '750' },
+  secondaryBtn: {
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  secondaryText: { fontSize: 14.5, fontWeight: '750' },
 });

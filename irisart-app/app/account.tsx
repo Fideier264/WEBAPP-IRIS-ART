@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AiDataConsentModal } from '@/components/AiDataConsentModal';
 import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import { SocialSignInButtons } from '@/components/SocialSignInButtons';
 import { BACKGROUND_THEMES, useAppColors, useAppTheme } from '@/lib/appTheme';
@@ -19,6 +20,7 @@ import { useAuth } from '@/lib/auth';
 import { authErrorMessageKey } from '@/lib/authErrors';
 import { requestDeleteOwnAccount } from '@/lib/deleteAccount';
 import { LOCALES, useLocale, type Locale } from '@/lib/i18n';
+import { useAiDataConsent } from '@/lib/useAiDataConsent';
 
 type AuthMode = 'login' | 'forgot';
 
@@ -61,6 +63,15 @@ export default function AccountScreen() {
     resetPasswordForEmail,
   } = useAuth();
   const { t, locale, setLocale } = useLocale();
+  const {
+    consentReady,
+    hasConsent,
+    consentBusy,
+    acceptConsent,
+    revokeConsent,
+    refreshConsent,
+  } = useAiDataConsent();
+  const [showAiConsentModal, setShowAiConsentModal] = useState(false);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -71,6 +82,12 @@ export default function AccountScreen() {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
 
   const gradient = useMemo(() => c.pageGradient, [c.pageGradient]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshConsent();
+    }, [refreshConsent])
+  );
 
   const clearMessages = () => {
     setErrorKey(null);
@@ -418,6 +435,58 @@ export default function AccountScreen() {
           <LegalDisclaimer variant="account" />
 
           <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.aiConsentTitle')}</Text>
+            <Text style={[styles.body, { color: c.muted }]}>{t('account.aiConsentBody')}</Text>
+            {consentReady ? (
+              <Text style={[styles.body, { color: hasConsent ? '#2E7D32' : c.muted, fontWeight: '750' }]}>
+                {hasConsent ? t('account.aiConsentStatusOn') : t('account.aiConsentStatusOff')}
+              </Text>
+            ) : (
+              <ActivityIndicator color={c.tint} />
+            )}
+            {hasConsent ? (
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy || consentBusy}
+                onPress={() =>
+                  run(async () => {
+                    await revokeConsent();
+                    setInfoKey('account.aiConsentRevokedInfo');
+                  })
+                }
+                style={({ pressed }) => [
+                  styles.dangerOutlineBtn,
+                  {
+                    borderColor: 'rgba(220,80,80,0.55)',
+                    opacity: pressed || busy || consentBusy ? 0.85 : 1,
+                  },
+                ]}>
+                <Text style={styles.dangerOutlineText}>{t('account.aiConsentRevoke')}</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy || consentBusy || !consentReady}
+                onPress={() => {
+                  clearMessages();
+                  setShowAiConsentModal(true);
+                }}
+                style={({ pressed }) => [
+                  styles.primaryBtn,
+                  {
+                    backgroundColor: c.tint,
+                    opacity: pressed || busy || consentBusy || !consentReady ? 0.9 : 1,
+                  },
+                ]}>
+                <Text style={styles.primaryText}>{t('account.aiConsentAccept')}</Text>
+              </Pressable>
+            )}
+            {infoKey === 'account.aiConsentRevokedInfo' || infoKey === 'account.aiConsentAcceptedInfo' ? (
+              <AuthBanner message={t(infoKey)} tone="info" />
+            ) : null}
+          </View>
+
+          <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
             <Text style={[styles.cardTitle, { color: c.text }]}>{t('account.legalTitle')}</Text>
             <Text style={[styles.body, { color: c.muted }]}>{t('account.legalBody')}</Text>
             <Pressable
@@ -452,6 +521,18 @@ export default function AccountScreen() {
           {busy ? <ActivityIndicator color={c.tint} style={{ marginTop: 12 }} /> : null}
         </ScrollView>
       </SafeAreaView>
+      <AiDataConsentModal
+        visible={showAiConsentModal}
+        busy={consentBusy}
+        onDismiss={() => setShowAiConsentModal(false)}
+        onAccept={() =>
+          void (async () => {
+            await acceptConsent();
+            setShowAiConsentModal(false);
+            setInfoKey('account.aiConsentAcceptedInfo');
+          })()
+        }
+      />
     </View>
   );
 }

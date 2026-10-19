@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppColors } from '@/lib/appTheme';
@@ -27,7 +27,11 @@ export default function OnboardingScreen() {
       />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={[styles.content, { paddingBottom: BOTTOM_BAR_CLEARANCE }]}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[styles.content, { paddingBottom: BOTTOM_BAR_CLEARANCE }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
           <View style={[styles.hero, compact && styles.heroCompact]}>
             <Image
               source={require('../assets/images/logo.png')}
@@ -88,7 +92,7 @@ export default function OnboardingScreen() {
               </Pressable>
             </View>
           </View>
-        </View>
+        </ScrollView>
         <AppBottomBar active="scan" />
       </SafeAreaView>
     </View>
@@ -134,8 +138,9 @@ function Row({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: 22, paddingTop: 8 },
+  scroll: { flex: 1 },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'space-between',
     gap: 10,
   },
