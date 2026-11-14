@@ -60,6 +60,7 @@ function privacyDe(o: LegalOperator): LegalDocument {
           'Zahlung: Stripe (Checkout, Zahlungsabwicklung).',
           'Druck/Versand: merchOne oder vergleichbare Produktionspartner — dafür werden Druckdatei und Lieferadresse benötigt.',
           'Hosting der Web-App kann bei einem Webhoster liegen. Anbieter können Server-Logs (IP, User-Agent) speichern.',
+          'Schutz durch Dritte: Jeder Drittanbieter, mit dem wir Nutzerdaten teilen (einschließlich Google Gemini, Supabase, Stripe und Druckpartner), bietet den gleichen oder einen gleichwertigen Schutz der Nutzerdaten, wie in dieser Datenschutzerklärung und den Apple App Store Review Guidelines beschrieben.',
         ],
       },
       {
@@ -74,7 +75,7 @@ function privacyDe(o: LegalOperator): LegalDocument {
         heading: '7. Deine Rechte und Löschung',
         paragraphs: [
           'Du kannst Auskunft, Berichtigung, Löschung, Einschränkung und Datenübertragbarkeit verlangen sowie der Verarbeitung widersprechen, soweit gesetzlich vorgesehen.',
-          `In der App (Konto): einzelne Galerie-Einträge löschen oder „Konto löschen“. Dabei werden Login, Galerie-Bilder und gespeicherte Analysen in IrisArt entfernt.`,
+          `In der App (Konto): einzelne Galerie-Einträge löschen oder „Konto löschen“. Dabei werden Login, Galerie-Bilder und gespeicherte Analysen in IrisArt entfernt. Die KI-Einwilligung kannst du unter Konto → KI-Datenverarbeitung widerrufen.`,
           `Weitere Anfragen: ${o.contactEmail}.`,
         ],
       },
@@ -141,6 +142,7 @@ function privacyEn(o: LegalOperator): LegalDocument {
           'Payments: Stripe (checkout and payment processing).',
           'Print/shipping: merchOne or similar production partners — requiring the print file and shipping address.',
           'The web app may be hosted by a web hosting provider. Providers may keep server logs (IP, user agent).',
+          'Third-party protection: Any third party with whom we share user data (including Google Gemini, Supabase, Stripe, and print partners) provides the same or equal protection of user data as stated in this privacy policy and required by the Apple App Store Review Guidelines.',
         ],
       },
       {
@@ -155,7 +157,7 @@ function privacyEn(o: LegalOperator): LegalDocument {
         heading: '7. Your rights and deletion',
         paragraphs: [
           'You may request access, correction, deletion, restriction, portability, and object to processing where the law provides.',
-          'In the app (Account): delete individual gallery items or use “Delete account”. That removes login, gallery images, and stored analyses in IrisArt.',
+          'In the app (Account): delete individual gallery items or use “Delete account”. That removes login, gallery images, and stored analyses in IrisArt. You can revoke AI consent under Account → AI data processing.',
           `Further requests: ${o.contactEmail}.`,
         ],
       },

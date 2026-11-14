@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /** Bump when consent copy or recipients change so users must re-approve. */
-export const AI_DATA_CONSENT_VERSION = 'v1';
+export const AI_DATA_CONSENT_VERSION = 'v2';
 
-const STORAGE_KEY = 'irisart_ai_data_consent_v1';
+const STORAGE_KEY = 'irisart_ai_data_consent_v2';
 
 type StoredConsent = {
   version: string;

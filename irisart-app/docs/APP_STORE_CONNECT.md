@@ -57,11 +57,21 @@ Notes for the questionnaire:
 Suggested note for App Store Connect → App Review Information:
 
 ```
-IrisArt sends a cropped eye/iris image region to Google Gemini (Google AI) via our Supabase edge functions for AI enhancement and optional entertainment color analysis only — not for identity verification.
+LOGIN IS OPTIONAL — core flow works without an account:
+Home → Start Scan → crop → Agree to AI processing → enhance → Shop.
 
-Before the first upload, the app shows a consent screen that discloses: (1) what data is sent, (2) that Google Gemini receives it, (3) the purpose, and requires the user to tap Agree. Decline cancels the flow.
+AI data sharing (Guideline 5.1.2):
+Before any AI upload, IrisArt shows an in-app consent card that always discloses:
+(1) WHAT: cropped eye/iris image region
+(2) WHO: Google Gemini (Google AI / Generative Language API) via our Supabase edge functions
+(3) WHY: AI iris enhancement and optional entertainment color analysis only — not identity verification
+The user must tap “Agree and continue” before data is sent. Consent can be revoked in Account → AI data processing.
 
-The Privacy Policy (in-app and https://irisart.app/privacy) identifies this third-party AI processing under Storage and processors.
+Privacy Policy (in-app Account → Privacy, and https://irisart.app/privacy) names Google Gemini and states that third parties provide equal protection of user data.
+
+Sign-in (optional, for gallery only):
+Email / Sign in with Apple / Google. Please use the demo account below if you want to test gallery login.
+If a social sign-in prompt appears and you cancel, return to Home and continue without login.
 ```
 
 ## 4. Age rating
@@ -98,15 +108,30 @@ You should not need a special export license for HTTPS-only apps.
 
 ## Review notes (when submitting)
 
-Paste something like:
+Paste into App Review Information (and reply to the Resolution Center):
 
 ```
-Demo account:
-Email: <create a test account>
+Demo account (optional — app works without login):
+Email: <create a confirmed test account BEFORE submit>
 Password: <password>
 
-Flow: Scan → crop → enhance → Shop templates → optional Color Analyzer.
-Account optional for gallery. Physical prints via Stripe (not IAP).
-Sign in with Apple + Google + email available.
-Account deletion: Account screen → Konto löschen.
+IMPORTANT: Sign-in is NOT required to use IrisArt.
+Primary review path (no login):
+1) Home → Start Scan
+2) Capture or upload an eye photo → crop
+3) Read AI consent (what/who/why) → Agree and continue
+4) Wait for enhancement → open Shop / Color Analyzer
+
+Optional: Account (top right) → email demo login to view gallery.
+Account deletion: Account → Delete account.
+
+Physical prints via Stripe Checkout (not IAP).
+AI recipient: Google Gemini. Privacy: in-app + https://irisart.app/privacy
 ```
+
+**Before submit checklist**
+- [ ] Demo email account exists in Supabase and email is **confirmed**
+- [ ] Supabase Auth URL allowlist includes `irisartapp://auth/callback` and `https://irisart.app/auth/callback`
+- [ ] Test Sign in with Apple + email on a physical iPad (or Simulator iPad) after clean install
+- [ ] Confirm AI consent appears before enhance/analyze
+- [ ] Deployed web privacy page matches in-app policy (equal-protection clause)

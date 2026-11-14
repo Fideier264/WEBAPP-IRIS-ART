@@ -31,8 +31,17 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Stable custom-scheme redirect for production iOS/Android (iPad-safe). */
+const NATIVE_AUTH_SCHEME = 'irisartapp';
+
 function getAuthRedirectTo(path = 'auth/callback') {
-  return Linking.createURL(path);
+  const normalized = path.replace(/^\//, '');
+  if (Platform.OS === 'web') {
+    return getWebAuthRedirectTo(normalized);
+  }
+  // Prefer fixed scheme over Linking.createURL so App Store builds don't get
+  // exp:// / Expo Go URLs that break OAuth on review devices (incl. iPad).
+  return `${NATIVE_AUTH_SCHEME}://${normalized}`;
 }
 
 /** Always HTTPS so email links work in any browser / on any device. */
@@ -112,11 +121,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
+
+    const finishLoading = (next: Session | null) => {
       if (!mounted) return;
-      setSession(data.session ?? null);
+      setSession(next);
       setLoading(false);
-    });
+    };
+
+    // Never leave the UI stuck on "loading" if getSession hangs (seen on some iPads).
+    void Promise.race([
+      supabase.auth.getSession().then(({ data }) => data.session ?? null),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+    ])
+      .then((sessionOrNull) => finishLoading(sessionOrNull))
+      .catch(() => finishLoading(null));
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
@@ -140,15 +158,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
     });
 
-    void Linking.getInitialURL().then((url) => {
-      if (!url) return;
-      void createSessionFromUrl(url).then((kind) => {
-        if (kind === 'recovery') {
-          setRecoveryMode(true);
-          router.push('/auth/reset-password');
-        }
+    void Linking.getInitialURL()
+      .then((url) => {
+        if (!url) return;
+        return createSessionFromUrl(url).then((kind) => {
+          if (kind === 'recovery') {
+            setRecoveryMode(true);
+            router.push('/auth/reset-password');
+          }
+        });
+      })
+      .catch(() => {
+        /* ignore */
       });
-    });
 
     // Web: auth emails land on https://irisart.app/auth/…#access_token=… or ?code=
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -300,10 +322,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInApple = useCallback(async () => {
     if (Platform.OS === 'ios') {
-      const available = await AppleAuthentication.isAvailableAsync();
-      if (available) {
-        await signInAppleNative();
-        return;
+      try {
+        const available = await AppleAuthentication.isAvailableAsync();
+        if (available) {
+          await signInAppleNative();
+          return;
+        }
+      } catch (e: unknown) {
+        const code =
+          e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
+        // User cancelled — don't fall through to a second prompt.
+        if (code === 'ERR_REQUEST_CANCELED' || String(e).toLowerCase().includes('cancel')) {
+          throw e instanceof Error ? e : new Error('Apple sign-in was cancelled.');
+        }
+        // Native Apple Sign In can fail on some review iPads; fall back to OAuth.
       }
     }
     await signInAppleOAuth();

@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -22,19 +22,12 @@ type Props = {
 };
 
 /**
- * Camera-permission-style gate: blurs the screen and shows a compact card
- * disclosing AI data sharing before the user can continue.
- * Declining is not a leave action — the blur + card stay until they agree,
- * unless onDismiss is provided (settings).
+ * Camera-permission-style gate: blurs the screen and shows a card disclosing
+ * what / who / why for third-party AI before the user can continue (App Store 5.1.2).
  */
 export function AiDataConsentModal({ visible, busy, onAccept, onDismiss }: Props) {
   const c = useAppColors();
   const t = useT();
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    if (!visible) setExpanded(false);
-  }, [visible]);
 
   if (!visible) return null;
 
@@ -50,28 +43,17 @@ export function AiDataConsentModal({ visible, busy, onAccept, onDismiss }: Props
       <View style={styles.center}>
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
           <Text style={[styles.title, { color: c.text }]}>{t('aiConsent.title')}</Text>
-          <Text style={[styles.body, { color: c.muted }]}>{t('aiConsent.cardSummary')}</Text>
+          <Text style={[styles.body, { color: c.muted }]}>{t('aiConsent.lead')}</Text>
 
-          {expanded ? (
-            <ScrollView style={styles.details} nestedScrollEnabled showsVerticalScrollIndicator={false}>
-              <Text style={[styles.detailTitle, { color: c.text }]}>{t('aiConsent.whatTitle')}</Text>
-              <Text style={[styles.detailBody, { color: c.muted }]}>{t('aiConsent.whatBody')}</Text>
-              <Text style={[styles.detailTitle, { color: c.text }]}>{t('aiConsent.whoTitle')}</Text>
-              <Text style={[styles.detailBody, { color: c.muted }]}>{t('aiConsent.whoBody')}</Text>
-              <Text style={[styles.detailTitle, { color: c.text }]}>{t('aiConsent.whyTitle')}</Text>
-              <Text style={[styles.detailBody, { color: c.muted }]}>{t('aiConsent.whyBody')}</Text>
-              <Text style={[styles.detailBody, { color: c.muted, marginTop: 6 }]}>{t('aiConsent.note')}</Text>
-            </ScrollView>
-          ) : null}
-
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setExpanded((v) => !v)}
-            style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1, alignSelf: 'flex-start' }]}>
-            <Text style={[styles.link, { color: c.tint }]}>
-              {expanded ? t('aiConsent.hideDetails') : t('aiConsent.readDetails')}
-            </Text>
-          </Pressable>
+          <ScrollView style={styles.details} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+            <Text style={[styles.detailTitle, { color: c.text }]}>{t('aiConsent.whatTitle')}</Text>
+            <Text style={[styles.detailBody, { color: c.muted }]}>{t('aiConsent.whatBody')}</Text>
+            <Text style={[styles.detailTitle, { color: c.text }]}>{t('aiConsent.whoTitle')}</Text>
+            <Text style={[styles.detailBody, { color: c.muted }]}>{t('aiConsent.whoBody')}</Text>
+            <Text style={[styles.detailTitle, { color: c.text }]}>{t('aiConsent.whyTitle')}</Text>
+            <Text style={[styles.detailBody, { color: c.muted }]}>{t('aiConsent.whyBody')}</Text>
+            <Text style={[styles.detailBody, { color: c.muted, marginTop: 8 }]}>{t('aiConsent.note')}</Text>
+          </ScrollView>
 
           <Pressable
             accessibilityRole="button"
@@ -121,21 +103,20 @@ const styles = StyleSheet.create({
   center: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 28,
+    paddingHorizontal: 24,
   },
   card: {
     borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 16,
     gap: 12,
-    maxHeight: '78%',
+    maxHeight: '82%',
   },
   title: { fontSize: 18, fontWeight: '750' },
   body: { fontSize: 13.5, lineHeight: 19.5 },
-  details: { maxHeight: 180 },
-  detailTitle: { fontSize: 13.5, fontWeight: '800', marginTop: 8 },
+  details: { maxHeight: 260 },
+  detailTitle: { fontSize: 13.5, fontWeight: '800', marginTop: 10 },
   detailBody: { fontSize: 12.5, lineHeight: 18, marginTop: 4 },
-  link: { fontSize: 13.5, fontWeight: '750', textDecorationLine: 'underline' },
   primaryBtn: {
     borderRadius: 14,
     paddingVertical: 13,

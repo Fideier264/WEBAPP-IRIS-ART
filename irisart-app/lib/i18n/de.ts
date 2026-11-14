@@ -34,7 +34,7 @@ const de = {
   'account.deleteFailed': 'Löschen fehlgeschlagen',
   'account.saveGalleryTitle': 'Iris-Galerie speichern',
   'account.saveGalleryBody':
-    'Melde dich mit E-Mail, Apple oder Google an, um generierte Iris-Bilder in deinem Konto zu speichern. Du kannst das Konto jederzeit in diesem Bildschirm löschen.',
+    'Login ist optional. Scan, Veredelung und Shop funktionieren ohne Konto. Melde dich mit E-Mail, Apple oder Google an, wenn du Renderings in der Galerie speichern willst. Du kannst das Konto jederzeit hier löschen.',
   'account.email': 'E-Mail',
   'account.password': 'Passwort (min. 6 Zeichen)',
   'account.signIn': 'Anmelden',

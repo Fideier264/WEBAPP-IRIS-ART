@@ -33,7 +33,7 @@ const en: Record<TranslationKey, string> = {
   'account.deleteFailed': 'Could not delete account',
   'account.saveGalleryTitle': 'Save your iris gallery',
   'account.saveGalleryBody':
-    'Sign in with email, Apple, or Google to save generated iris images to your account. You can delete the account anytime on this screen.',
+    'Login is optional. Scan, enhancement, and shop work without an account. Sign in with email, Apple, or Google only if you want to save renderings to your gallery. You can delete the account anytime here.',
   'account.email': 'Email',
   'account.password': 'Password (min. 6 characters)',
   'account.signIn': 'Sign in',
