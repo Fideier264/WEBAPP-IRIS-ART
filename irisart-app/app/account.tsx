@@ -524,7 +524,7 @@ export default function AccountScreen() {
       <AiDataConsentModal
         visible={showAiConsentModal}
         busy={consentBusy}
-        onDismiss={() => setShowAiConsentModal(false)}
+        onDecline={() => setShowAiConsentModal(false)}
         onAccept={() =>
           void (async () => {
             await acceptConsent();

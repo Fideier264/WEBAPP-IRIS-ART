@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,10 +15,38 @@ import { useAiDataConsent } from '@/lib/useAiDataConsent';
 export default function OnboardingScreen() {
   const c = useAppColors();
   const t = useT();
-  const { needsConsent, consentBusy, acceptConsent } = useAiDataConsent();
+  const { needsConsent, hasConsent, consentBusy, acceptConsent } = useAiDataConsent();
+  /** After "Don't allow" on launch — home stays usable; scan re-opens consent. */
+  const [deferred, setDeferred] = useState(false);
+  /** User tapped scan without consent — show consent again for that action. */
+  const [scanPrompt, setScanPrompt] = useState(false);
   const { height: windowH } = useWindowDimensions();
   const compact = windowH < 760;
   const logoSize = compact ? 88 : 112;
+
+  const showConsent = needsConsent && (!deferred || scanPrompt);
+
+  const startScan = () => {
+    if (!hasConsent) {
+      setScanPrompt(true);
+      setDeferred(false);
+      return;
+    }
+    router.push('/capture');
+  };
+
+  const onAccept = async () => {
+    await acceptConsent();
+    setDeferred(false);
+    const fromScan = scanPrompt;
+    setScanPrompt(false);
+    if (fromScan) router.push('/capture');
+  };
+
+  const onDecline = () => {
+    setScanPrompt(false);
+    setDeferred(true);
+  };
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
@@ -62,10 +90,16 @@ export default function OnboardingScreen() {
 
           <LegalDisclaimer variant="home" compact />
 
+          {deferred && !hasConsent ? (
+            <Text style={[styles.foot, compact && styles.footCompact, { color: c.pageMuted }]}>
+              {t('aiConsent.declinedHomeHint')}
+            </Text>
+          ) : null}
+
           <View style={styles.footer}>
             <Pressable
               accessibilityRole="button"
-              onPress={() => router.push('/capture')}
+              onPress={startScan}
               style={({ pressed }) => [
                 styles.cta,
                 {
@@ -99,9 +133,11 @@ export default function OnboardingScreen() {
         <AppBottomBar active="scan" />
       </SafeAreaView>
       <AiDataConsentModal
-        visible={needsConsent}
+        visible={showConsent}
         busy={consentBusy}
-        onAccept={() => void acceptConsent()}
+        leadOverride={scanPrompt ? t('aiConsent.requiredForScan') : undefined}
+        onAccept={() => void onAccept()}
+        onDecline={onDecline}
       />
     </View>
   );

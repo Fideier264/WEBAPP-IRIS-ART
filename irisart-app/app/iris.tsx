@@ -231,6 +231,7 @@ export default function IrisPrepScreen() {
         visible={needsConsent}
         busy={consentBusy}
         onAccept={() => void acceptConsent()}
+        onDecline={() => router.back()}
       />
     </View>
   );

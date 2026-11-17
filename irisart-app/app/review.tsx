@@ -304,6 +304,7 @@ export default function ReviewScreen() {
         visible={needsConsent}
         busy={consentBusy}
         onAccept={() => void acceptConsent()}
+        onDecline={() => router.back()}
       />
     </View>
   );

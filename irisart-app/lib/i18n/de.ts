@@ -190,7 +190,11 @@ const de = {
   'aiConsent.note':
     'Details stehen in der Datenschutzerklärung. Du kannst die Zustimmung später widerrufen, indem du die App-Daten löschst oder uns kontaktierst.',
   'aiConsent.accept': 'Zustimmen und fortfahren',
-  'aiConsent.decline': 'Später',
+  'aiConsent.decline': 'Nicht erlauben',
+  'aiConsent.declinedHomeHint':
+    'Ohne KI-Zustimmung ist der Iris-Scan nicht möglich. Tippe auf „Iris-Scan starten“, um erneut zuzustimmen — oder unter Konto.',
+  'aiConsent.requiredForScan':
+    'Für den Iris-Scan werden Fotos an Google Gemini gesendet. Dafür brauchst du die KI-Zustimmung.',
 
   // Iris enhance
   'iris.back': 'Zurück',

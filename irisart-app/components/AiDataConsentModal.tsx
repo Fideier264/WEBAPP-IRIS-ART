@@ -17,15 +17,17 @@ type Props = {
   visible: boolean;
   busy?: boolean;
   onAccept: () => void;
-  /** Optional dismiss (e.g. account settings). Gate screens omit this so the card stays. */
-  onDismiss?: () => void;
+  /** Required: Apple expects a real choice, not forced consent (5.1.1). */
+  onDecline: () => void;
+  /** Optional lead (e.g. scan requires consent). Defaults to aiConsent.lead. */
+  leadOverride?: string;
 };
 
 /**
  * Camera-permission-style gate: blurs the screen and shows a card disclosing
- * what / who / why for third-party AI before the user can continue (App Store 5.1.2).
+ * what / who / why for third-party AI, with Accept and Don't allow (App Store 5.1.2).
  */
-export function AiDataConsentModal({ visible, busy, onAccept, onDismiss }: Props) {
+export function AiDataConsentModal({ visible, busy, onAccept, onDecline, leadOverride }: Props) {
   const c = useAppColors();
   const t = useT();
 
@@ -43,7 +45,7 @@ export function AiDataConsentModal({ visible, busy, onAccept, onDismiss }: Props
       <View style={styles.center}>
         <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
           <Text style={[styles.title, { color: c.text }]}>{t('aiConsent.title')}</Text>
-          <Text style={[styles.body, { color: c.muted }]}>{t('aiConsent.lead')}</Text>
+          <Text style={[styles.body, { color: c.muted }]}>{leadOverride ?? t('aiConsent.lead')}</Text>
 
           <ScrollView style={styles.details} nestedScrollEnabled showsVerticalScrollIndicator={false}>
             <Text style={[styles.detailTitle, { color: c.text }]}>{t('aiConsent.whatTitle')}</Text>
@@ -70,22 +72,20 @@ export function AiDataConsentModal({ visible, busy, onAccept, onDismiss }: Props
             )}
           </Pressable>
 
-          {onDismiss ? (
-            <Pressable
-              accessibilityRole="button"
-              disabled={busy}
-              onPress={onDismiss}
-              style={({ pressed }) => [
-                styles.secondaryBtn,
-                {
-                  backgroundColor: c.surfaceAlt,
-                  borderColor: c.border,
-                  opacity: pressed || busy ? 0.88 : 1,
-                },
-              ]}>
-              <Text style={[styles.secondaryText, { color: c.text }]}>{t('aiConsent.decline')}</Text>
-            </Pressable>
-          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={onDecline}
+            style={({ pressed }) => [
+              styles.secondaryBtn,
+              {
+                backgroundColor: c.surfaceAlt,
+                borderColor: c.border,
+                opacity: pressed || busy ? 0.88 : 1,
+              },
+            ]}>
+            <Text style={[styles.secondaryText, { color: c.text }]}>{t('aiConsent.decline')}</Text>
+          </Pressable>
         </View>
       </View>
     </View>

@@ -315,6 +315,7 @@ export default function ResultsScreen() {
         visible={needsConsent}
         busy={consentBusy}
         onAccept={() => void acceptConsent()}
+        onDecline={() => router.back()}
       />
     </View>
   );

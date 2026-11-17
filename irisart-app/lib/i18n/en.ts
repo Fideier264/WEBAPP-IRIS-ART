@@ -186,7 +186,11 @@ const en: Record<TranslationKey, string> = {
   'aiConsent.note':
     'Details are in the Privacy Policy. You can withdraw consent later by clearing app data or contacting us.',
   'aiConsent.accept': 'Agree and continue',
-  'aiConsent.decline': 'Not now',
+  'aiConsent.decline': "Don't allow",
+  'aiConsent.declinedHomeHint':
+    'Without AI consent, iris scan is unavailable. Tap “Start iris scan” to consent again — or enable it in Account.',
+  'aiConsent.requiredForScan':
+    'Iris scan sends photos to Google Gemini. You need to allow AI processing first.',
 
   'iris.back': 'Back',
   'iris.titleLoading': 'AI Iris Enhancement',
