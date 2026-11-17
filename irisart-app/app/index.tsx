@@ -4,15 +4,18 @@ import React from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useAppColors } from '@/lib/appTheme';
+import { AiDataConsentModal } from '@/components/AiDataConsentModal';
 import { AppBottomBar } from '@/components/AppBottomBar';
 import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import { BOTTOM_BAR_CLEARANCE } from '@/constants/Layout';
+import { useAppColors } from '@/lib/appTheme';
 import { useT } from '@/lib/i18n';
+import { useAiDataConsent } from '@/lib/useAiDataConsent';
 
 export default function OnboardingScreen() {
   const c = useAppColors();
   const t = useT();
+  const { needsConsent, consentBusy, acceptConsent } = useAiDataConsent();
   const { height: windowH } = useWindowDimensions();
   const compact = windowH < 760;
   const logoSize = compact ? 88 : 112;
@@ -95,6 +98,11 @@ export default function OnboardingScreen() {
         </ScrollView>
         <AppBottomBar active="scan" />
       </SafeAreaView>
+      <AiDataConsentModal
+        visible={needsConsent}
+        busy={consentBusy}
+        onAccept={() => void acceptConsent()}
+      />
     </View>
   );
 }

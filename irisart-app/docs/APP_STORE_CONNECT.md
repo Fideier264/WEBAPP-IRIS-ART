@@ -58,10 +58,10 @@ Suggested note for App Store Connect → App Review Information:
 
 ```
 LOGIN IS OPTIONAL — core flow works without an account:
-Home → Start Scan → crop → Agree to AI processing → enhance → Shop.
+Home → Agree to AI processing (shown on first launch) → Start Scan → crop → enhance → Shop.
 
 AI data sharing (Guideline 5.1.2):
-Before any AI upload, IrisArt shows an in-app consent card that always discloses:
+On first launch (Home), IrisArt shows an in-app consent card that always discloses:
 (1) WHAT: cropped eye/iris image region
 (2) WHO: Google Gemini (Google AI / Generative Language API) via our Supabase edge functions
 (3) WHY: AI iris enhancement and optional entertainment color analysis only — not identity verification
@@ -117,10 +117,9 @@ Password: <password>
 
 IMPORTANT: Sign-in is NOT required to use IrisArt.
 Primary review path (no login):
-1) Home → Start Scan
-2) Capture or upload an eye photo → crop
-3) Read AI consent (what/who/why) → Agree and continue
-4) Wait for enhancement → open Shop / Color Analyzer
+1) Open app → read AI consent (what/who/why) on Home → Agree and continue
+2) Home → Start Scan → capture or upload → crop
+3) Wait for enhancement → open Shop / Color Analyzer
 
 Optional: Account (top right) → email demo login to view gallery.
 Account deletion: Account → Delete account.
